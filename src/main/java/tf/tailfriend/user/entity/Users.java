@@ -12,13 +12,14 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@Table(name = "users")
 public class Users {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
-    @Column(length = 50, nullable = false)
+    @Column(length = 50, nullable = false, unique = true)
     private String nickname;
 
     @Column(name = "sns_account_id", length = 255, nullable = false)
@@ -29,7 +30,7 @@ public class Users {
     private SnsType snsType;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "file_id")
+    @JoinColumn(name = "file_id", nullable = true)
     private Files file;
 
     @Column(length = 255)
@@ -38,7 +39,7 @@ public class Users {
     @Column(name = "detail_address")
     private String detailAddress;
 
-    @Column(name = "dong_name", length = 255, nullable = false)
+    @Column(name = "dong_name", length = 255)
     private String dongName;
 
     @Column(nullable = false)

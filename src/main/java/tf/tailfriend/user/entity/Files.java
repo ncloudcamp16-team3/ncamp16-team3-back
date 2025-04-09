@@ -10,6 +10,7 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@Table(name = "files")
 public class Files {
 
     @Id
@@ -17,9 +18,13 @@ public class Files {
     private Integer id;
 
     @Enumerated(EnumType.STRING)
-    private FileType type;
+    @Column(nullable = false)
+    private FileType type = FileType.PHOTO;
 
+    @Column(length = 50)
     private String path;
+
+    @Column(length = 255)
     private String uuid;
 }
 

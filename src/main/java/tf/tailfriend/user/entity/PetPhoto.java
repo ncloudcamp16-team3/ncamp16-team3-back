@@ -26,5 +26,5 @@ public class PetPhoto {
     private Pets pet;
 
     @Column(nullable = false)
-    private boolean thumbnail;
+    private boolean thumbnail = false;
 }

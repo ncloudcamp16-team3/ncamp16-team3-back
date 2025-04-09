@@ -30,7 +30,7 @@ public class UserService {
     @Transactional
     public Users registerUser(UserRegisterDto dto) {
         // 1. SNS 타입 조회
-        SnsType snsType = snsTypeRepository.findById(1)
+        SnsType snsType = snsTypeRepository.findById(dto.getSnsTypeId())
                 .orElseThrow(() -> new RuntimeException("SNS 타입 없음"));
 
         // 2. 유저 객체 생성
@@ -50,7 +50,7 @@ public class UserService {
 
         // 3. 반려동물 처리
         for (var petDto : dto.getPets()) {
-            PetTypes petType = petTypesRepository.findById(1)
+            PetTypes petType = petTypesRepository.findById(petDto.getPetTypeId())
                     .orElseThrow(() -> new RuntimeException("펫 타입 없음"));
 
             Pets pet = Pets.builder()
@@ -79,7 +79,7 @@ public class UserService {
 
             if (matchingPetDto.isPresent() && matchingPetDto.get().getPetPhotos() != null) {
                 for (var photoDto : matchingPetDto.get().getPetPhotos()) {
-                    Files file = filesRepository.findById(1)
+                    Files file = filesRepository.findById(photoDto.getFileId())
                             .orElseThrow(() -> new RuntimeException("파일 없음"));
 
                     PetPhoto photo = PetPhoto.builder()

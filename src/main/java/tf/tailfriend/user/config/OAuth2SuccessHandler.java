@@ -122,6 +122,7 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
 
         String snsAccountId = getSnsAccountId(attributes);
         String email = getEmail(attributes); // 이메일은 프론트 전달용
+        Integer snsTypeId = getSnsTypeId(attributes); // SNS 타입 ID 추가
 
         Integer userId = userService.getUserIdBySnsAccountId(snsAccountId);
 
@@ -132,10 +133,11 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
 
         String token = jwtTokenProvider.createToken(userId); // JWT 생성
 
-        // 이메일과 토큰을 프론트엔드에 쿼리 파라미터로 전달
+        // 이메일, 토큰, SNS 타입 ID를 프론트엔드에 쿼리 파라미터로 전달
         String redirectUrl = UriComponentsBuilder.fromUriString("http://localhost:5173/register")
                 .queryParam("email", email)
                 .queryParam("token", token)
+                .queryParam("snsTypeId", snsTypeId) // SNS 타입 ID 추가
                 .build()
                 .toUriString();
 
@@ -166,5 +168,17 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
             return (String) response.get("id"); // Naver
         }
         return "unknown";
+    }
+    
+    // SNS 타입 ID 반환 메서드 추가
+    private Integer getSnsTypeId(Map<String, Object> attributes) {
+        if (attributes.containsKey("sub")) {
+            return 3; // Google
+        } else if (attributes.containsKey("id")) {
+            return 1; // Kakao
+        } else if (attributes.containsKey("response")) {
+            return 2; // Naver
+        }
+        return null;
     }
 }

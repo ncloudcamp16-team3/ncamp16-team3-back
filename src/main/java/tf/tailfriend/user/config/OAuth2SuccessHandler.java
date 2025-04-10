@@ -90,28 +90,30 @@
 //    }
 package tf.tailfriend.user.config;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.NoArgsConstructor;
+import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.web.authentication.SimpleUrlAuthenticationSuccessHandler;
 import org.springframework.stereotype.Component;
 import org.springframework.web.util.UriComponentsBuilder;
+import tf.tailfriend.user.entity.dto.OAuth2LoginInfo;
 import tf.tailfriend.user.service.UserService;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.Map;
 
 @Component
+@RequiredArgsConstructor
 public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler {
 
     private final JwtTokenProvider jwtTokenProvider;
     private final UserService userService;
-
-    public OAuth2SuccessHandler(JwtTokenProvider jwtTokenProvider, UserService userService) {
-        this.jwtTokenProvider = jwtTokenProvider;
-        this.userService = userService;
-    }
+    private final OAuth2SessionStorage oAuth2SessionStorage;
 
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request,
@@ -120,65 +122,34 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
         OAuth2User oAuth2User = (OAuth2User) authentication.getPrincipal();
         Map<String, Object> attributes = oAuth2User.getAttributes();
 
-        String snsAccountId = getSnsAccountId(attributes);
-        String email = getEmail(attributes); // 이메일은 프론트 전달용
-        Integer snsTypeId = getSnsTypeId(attributes); // SNS 타입 ID 추가
+        String email = OAuth2AttributeExtractor.getEmail(attributes);
+        String snsAccountId = OAuth2AttributeExtractor.getSnsAccountId(attributes);
+        Integer snsTypeId = OAuth2AttributeExtractor.getSnsTypeId(attributes);
 
         Integer userId = userService.getUserIdBySnsAccountId(snsAccountId);
-
-        // userId가 null인 경우는 아직 가입되지 않은 사용자 → -1 또는 0 같은 기본값 사용 가능
         if (userId == null) {
-            userId = -1; // 또는 0 (프론트에서 신규 가입 구분할 수 있게)
+            userId = -1;
         }
 
-        String token = jwtTokenProvider.createToken(userId); // JWT 생성
+        String token = jwtTokenProvider.createToken(userId);
 
-        // 이메일, 토큰, SNS 타입 ID를 프론트엔드에 쿼리 파라미터로 전달
-        String redirectUrl = UriComponentsBuilder.fromUriString("http://localhost:5173/register")
-                .queryParam("email", email)
-                .queryParam("token", token)
-                .queryParam("snsTypeId", snsTypeId) // SNS 타입 ID 추가
+        // 👉 OAuth2LoginInfo 객체 생성
+        OAuth2LoginInfo loginInfo = new OAuth2LoginInfo();
+        loginInfo.setToken(token);
+        loginInfo.setEmail(email);
+        loginInfo.setSnsTypeId(snsTypeId);
+        loginInfo.setSnsAccountId(snsAccountId);
+
+        // 👉 세션 ID로 저장
+        String sessionId = oAuth2SessionStorage.save(loginInfo);
+
+        // 3. 프론트로 리디렉트
+        String redirectUrl = UriComponentsBuilder
+                .fromUriString("http://localhost:5173/register")
+                .queryParam("sessionId", sessionId)
                 .build()
                 .toUriString();
 
         getRedirectStrategy().sendRedirect(request, response, redirectUrl);
-    }
-
-
-    private String getEmail(Map<String, Object> attributes) {
-        if (attributes.containsKey("email")) {
-            return (String) attributes.get("email"); // Google
-        } else if (attributes.containsKey("kakao_account")) {
-            Map<String, Object> kakaoAccount = (Map<String, Object>) attributes.get("kakao_account");
-            return (String) kakaoAccount.get("email");
-        } else if (attributes.containsKey("response")) {
-            Map<String, Object> naverResponse = (Map<String, Object>) attributes.get("response");
-            return (String) naverResponse.get("email");
-        }
-        return "unknown";
-    }
-
-    private String getSnsAccountId(Map<String, Object> attributes) {
-        if (attributes.containsKey("sub")) {
-            return (String) attributes.get("sub"); // Google
-        } else if (attributes.containsKey("id")) {
-            return String.valueOf(attributes.get("id")); // Kakao
-        } else if (attributes.containsKey("response")) {
-            Map<String, Object> response = (Map<String, Object>) attributes.get("response");
-            return (String) response.get("id"); // Naver
-        }
-        return "unknown";
-    }
-    
-    // SNS 타입 ID 반환 메서드 추가
-    private Integer getSnsTypeId(Map<String, Object> attributes) {
-        if (attributes.containsKey("sub")) {
-            return 3; // Google
-        } else if (attributes.containsKey("id")) {
-            return 1; // Kakao
-        } else if (attributes.containsKey("response")) {
-            return 2; // Naver
-        }
-        return null;
     }
 }

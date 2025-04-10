@@ -26,8 +26,10 @@ public class Files {
 
     @Column(length = 255)
     private String uuid;
+
+    public enum FileType {
+        PHOTO, VIDEO
+    }
+
 }
 
-enum FileType {
-    PHOTO, VIDEO
-}

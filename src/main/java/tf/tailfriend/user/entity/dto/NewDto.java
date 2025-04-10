@@ -3,15 +3,20 @@ package tf.tailfriend.user.entity.dto;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import tf.tailfriend.user.entity.Files.FileType;
 import tf.tailfriend.user.entity.Pets.ActivityStatus;
-
-import java.util.List;
 
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class PetRegisterDto {
+public class NewDto {
 
+    private String nickname;
+    private String snsAccountId;
+    private Integer snsTypeId;
+    private Integer fileId;
+
+    private Integer ownerId;
     private Integer petTypeId;
     private String name;
     private String gender;
@@ -21,5 +26,10 @@ public class PetRegisterDto {
     private boolean neutured;
     private ActivityStatus activityStatus;
 
-    private List<PetPhotoDto> photos;
+    private FileType type;
+    private String path;
+    private String uuid;
+
+    private boolean thumbnail;
+
 }

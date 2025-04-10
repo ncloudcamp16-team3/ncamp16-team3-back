@@ -4,16 +4,16 @@ import jakarta.persistence.*;
 import lombok.*;
 
 @Entity
-@Table(name = "pet_photos")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class PetPhoto {
+@Table(name = "pet_photos")
+public class PetPhotos {
 
     @EmbeddedId
-    private PetPhotoId id;
+    private PetPhotosId id;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @MapsId("fileId")
@@ -26,5 +26,5 @@ public class PetPhoto {
     private Pets pet;
 
     @Column(nullable = false)
-    private boolean thumbnail = false;
+    private boolean thumbnail;
 }

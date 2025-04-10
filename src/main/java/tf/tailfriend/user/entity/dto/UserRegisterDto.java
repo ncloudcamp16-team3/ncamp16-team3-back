@@ -13,11 +13,7 @@ public class UserRegisterDto {
     private String nickname;
     private String snsAccountId;
     private Integer snsTypeId;
-    private String address;
-    private String detailAddress;
-    private String dongName;
-    private Double latitude;
-    private Double longitude;
+    private Integer fileId;
 
     private List<PetRegisterDto> pets;
 }

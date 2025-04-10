@@ -8,12 +8,12 @@ import java.io.Serializable;
 import lombok.*;
 
 @Embeddable
-@Getter
-@Setter
 @NoArgsConstructor
 @AllArgsConstructor
+@Getter
+@Setter
 @EqualsAndHashCode
-public class PetPhotoId implements Serializable {
+public class PetPhotosId implements Serializable {
     private Integer fileId;
     private Integer petId;
 }

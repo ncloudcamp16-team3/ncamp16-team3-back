@@ -10,7 +10,7 @@ import lombok.*;
 @AllArgsConstructor
 @Builder
 @Table(name = "sns_types")
-public class SnsType {
+public class SnsTypes {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

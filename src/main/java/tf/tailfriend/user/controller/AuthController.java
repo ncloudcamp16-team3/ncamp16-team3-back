@@ -7,6 +7,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import tf.tailfriend.user.entity.Users;
 import tf.tailfriend.user.entity.dto.LoginRequestDto;
+import tf.tailfriend.user.entity.dto.NewDto;
 import tf.tailfriend.user.entity.dto.UserRegisterDto;
 import tf.tailfriend.user.service.AuthService;
 import tf.tailfriend.user.service.UserService;
@@ -25,20 +26,19 @@ public class AuthController {
 
     @PostMapping("/register")
     public ResponseEntity<?> register(@RequestBody UserRegisterDto dto) {
+        logger.info("🔥 register() called!");
+        logger.debug("📦 DTO received: {}", dto);
 
-        System.out.println("🔥 register() called!");
-        System.out.println("📦 DTO received: " + dto);
-        // 받은 JSON payload 디버깅 로그 출력
-        logger.debug("Received registration request: {}", dto);
+        // 유저 등록 (반환 없음)
+        userService.registerUser(dto);
 
-        Users savedUser = userService.registerUser(dto);
-        logger.debug("Saved user: {}", savedUser);
-
-        String token = authService.login(new LoginRequestDto(savedUser.getSnsAccountId()));
-        logger.debug("Generated token: {}", token);
+        // 로그인 처리 (snsAccountId로 로그인 요청)
+        String token = authService.login(new LoginRequestDto(dto.getSnsAccountId()));
+        logger.debug("🔐 Generated token: {}", token);
 
         return ResponseEntity.ok(Collections.singletonMap("token", token));
     }
+
 
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequestDto dto) {

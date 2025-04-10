@@ -21,7 +21,7 @@ public class Pets {
 
     @ManyToOne
     @JoinColumn(name = "owner_id", nullable = false)
-    private Users owner;
+    private Users user;
 
     @ManyToOne
     @JoinColumn(name = "pet_type_id", nullable = false)
@@ -51,19 +51,19 @@ public class Pets {
 
     @OneToMany(mappedBy = "pet", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
-    private List<PetPhoto> petPhotos = new ArrayList<>();
+    private List<PetPhotos> petPhoto = new ArrayList<>();
 
     // ✅ 양방향 연관관계 편의 메서드
-    public void addPhoto(PetPhoto photo) {
-        petPhotos.add(photo);
+    public void addPhoto(PetPhotos photo) {
+        petPhoto.add(photo);
         photo.setPet(this);
     }
 
     // ✅ 리스트 통째로 설정 시도할 때도 양방향 연관관계 유지
-    public void setPhotos(List<PetPhoto> photos) {
-        this.petPhotos.clear(); // 기존 리스트 초기화
+    public void setPhoto(List<PetPhotos> photos) {
+        this.petPhoto.clear(); // 기존 리스트 초기화
         if (photos != null) {
-            for (PetPhoto photo : photos) {
+            for (PetPhotos photo : photos) {
                 addPhoto(photo);
             }
         }

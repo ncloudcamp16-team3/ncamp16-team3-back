@@ -27,17 +27,14 @@ public class Users {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "sns_type_id", nullable = false)
-    private SnsType snsType;
+    private SnsTypes snsType;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "file_id", nullable = true)
+    @JoinColumn(name = "file_id", nullable = false) // ✅ now required
     private Files file;
 
     @Column(length = 255)
     private String address;
-
-    @Column(name = "detail_address")
-    private String detailAddress;
 
     @Column(name = "dong_name", length = 255)
     private String dongName;
@@ -48,7 +45,14 @@ public class Users {
     @Column(nullable = false)
     private Double longitude;
 
-    @OneToMany(mappedBy = "owner", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private List<Pets> pets = new ArrayList<>();
+
+    @Getter
+    public enum Distance {
+        _1("1"), _2("2"), _3("3"), _4("4");
+        private final String value;
+        Distance(String value) { this.value = value; }
+    }
 }

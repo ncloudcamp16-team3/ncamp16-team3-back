@@ -4,13 +4,11 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import tf.tailfriend.user.entity.*;
-import tf.tailfriend.user.entity.dto.NewDto;
 import tf.tailfriend.user.entity.dto.PetPhotoDto;
 import tf.tailfriend.user.entity.dto.PetRegisterDto;
 import tf.tailfriend.user.entity.dto.UserRegisterDto;
 import tf.tailfriend.user.repository.*;
 
-import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -65,7 +63,7 @@ public class UserService {
                     .birth(petDto.getBirth())
                     .weight(petDto.getWeight())
                     .info(petDto.getInfo())
-                    .neutured(petDto.isNeutured())
+                    .neutered(petDto.isNeutered())
                     .activityStatus(petDto.getActivityStatus())
                     .build();
 

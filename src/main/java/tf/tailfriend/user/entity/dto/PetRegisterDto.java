@@ -18,7 +18,7 @@ public class PetRegisterDto {
     private String birth;
     private Double weight;
     private String info;
-    private boolean neutured;
+    private boolean neutered;
     private ActivityStatus activityStatus;
 
     private List<PetPhotoDto> photos;

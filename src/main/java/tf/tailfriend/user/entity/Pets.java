@@ -43,7 +43,7 @@ public class Pets {
     private String info;
 
     @Column(nullable = false)
-    private Boolean neutured;
+    private Boolean neutered;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "activity_status", nullable = false)

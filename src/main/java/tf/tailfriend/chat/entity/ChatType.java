@@ -1,4 +1,4 @@
-package tf.tailfriend.admin.entity;
+package tf.tailfriend.chat.entity;
 
 import jakarta.persistence.*;
 import lombok.Getter;
@@ -6,19 +6,16 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Entity
-@Table(name = "admins")
+@Table(name = "chat_types")
 @Getter
 @Setter
 @NoArgsConstructor
-public class Admin {
+public class ChatType {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
-    @Column(unique = true, nullable = false)
-    private String email;
-
-    @Column(nullable = false)
-    private String password;
+    @Column(nullable = false, length = 50)
+    private String name;
 }

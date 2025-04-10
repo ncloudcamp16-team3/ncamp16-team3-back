@@ -1,4 +1,4 @@
-package tf.tailfriend.notification.entity;
+package tf.tailfriend.facility.entity;
 
 import jakarta.persistence.*;
 import lombok.Getter;
@@ -10,11 +10,11 @@ import tf.tailfriend.user.entity.User;
 import java.time.LocalDateTime;
 
 @Entity
-@Table
+@Table(name = "reviews")
 @Getter
 @Setter
 @NoArgsConstructor
-public class Notification {
+public class Review {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -25,14 +25,14 @@ public class Notification {
     private User user;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "notify_type_id", nullable = false)
-    private NotificationType notificationType;
+    @JoinColumn(name = "facility_id", nullable = false)
+    private Facility facility;
 
-    @Column(columnDefinition = "TEXT", nullable = false)
-    private String content;
+    @Column(columnDefinition = "TEXT")
+    private String comment;
 
-    @Column(nullable = false)
-    private Boolean read = false;
+    @Column(name = "star_point", nullable = false)
+    private Integer starPoint;
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)

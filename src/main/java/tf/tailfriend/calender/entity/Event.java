@@ -4,43 +4,35 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import tf.tailfriend.user.entity.User;
 
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "calender_schedules")
+@Table(name = "events")
 @Getter
 @Setter
 @NoArgsConstructor
-public class Calender {
+public class Event {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false)
-    private User user;
-
-    @Column(columnDefinition = "TEXT", nullable = false)
+    @Column(nullable = false)
     private String title;
+
+    private String address;
 
     @Column(name = "start_date", nullable = false)
     private LocalDateTime startDate;
 
-    @Column(name = "end_date")
+    @Column(name = "end_date", nullable = false)
     private LocalDateTime endDate;
 
-    @Column(nullable = false)
-    private String address;
+    @Column(name = "event_url")
+    private String eventUrl;
 
-    @Column(name = "dong_name", nullable = false)
-    private String dongName;
-
-    @Column(nullable = false)
     private Double latitude;
 
-    @Column(nullable = false)
     private Double longitude;
 }

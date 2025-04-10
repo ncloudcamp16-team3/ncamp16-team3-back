@@ -1,10 +1,11 @@
-package tf.tailfriend.board.entity;
+package tf.tailfriend.petsta.entity;
 
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
+import tf.tailfriend.file.entity.File;
 import tf.tailfriend.user.entity.User;
 
 import java.time.LocalDateTime;
@@ -12,29 +13,26 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Table(name = "boards")
+@Table(name = "petsta_posts")
 @Getter
 @Setter
 @NoArgsConstructor
-public class Board {
+public class PetstaPost {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "board_type_id", nullable = false)
-    private BoardType boardType;
+    @JoinColumn(name = "user_id", nullable = false)
+    private User user;
 
-    @Column(nullable = false)
-    private String title;
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "file_id", nullable = false)
+    private File file;
 
     @Column(nullable = false, columnDefinition = "TEXT")
     private String content;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false)
-    private User user;
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
@@ -43,16 +41,9 @@ public class Board {
     @Column(name = "like_count", nullable = false)
     private Integer likeCount = 0;
 
-    @OneToMany(mappedBy = "board", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<BoardPhoto> photos = new ArrayList<>();
+    @Column(name = "comment_count", nullable = false)
+    private Integer commentCount = 0;
 
-    public void addPhoto(BoardPhoto photo) {
-        photos.add(photo);
-        photo.setBoard(this);
-    }
-
-    public void removePhoto(BoardPhoto photo) {
-        photos.remove(photo);
-        photo.setBoard(null);
-    }
+    @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<PetstaComment> comments = new ArrayList<>();
 }

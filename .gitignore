@@ -200,4 +200,8 @@ gradle-app.setting
 # Java heap dump
 *.hprof
 
+### Java ###
+# Compiled class file
+*.class
+
 # End of https://www.toptal.com/developers/gitignore/api/intellij,windows,macos,gradle

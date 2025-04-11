@@ -18,11 +18,6 @@ public class UserPrincipal implements UserDetails {
     private String email;
     private Integer snsTypeId;
 
-    public UserPrincipal(Integer userId) {
-        this.userId = userId;
-    }
-
-
     // 권한이 필요한 경우 확장 가능
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {

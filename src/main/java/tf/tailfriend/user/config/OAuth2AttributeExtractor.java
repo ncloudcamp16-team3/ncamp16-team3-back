@@ -18,15 +18,16 @@ public class OAuth2AttributeExtractor {
     }
 
     public static String getSnsAccountId(Map<String, Object> attributes) {
-        if (attributes.containsKey("sub")) {
-            return (String) attributes.get("sub"); // Google
-        } else if (attributes.containsKey("id")) {
-            return String.valueOf(attributes.get("id")); // Kakao
-        } else if (attributes.containsKey("response")) {
-            Map<String, Object> response = (Map<String, Object>) attributes.get("response");
-            return (String) response.get("id"); // Naver
-        }
-        return "unknown";
+        return getEmail(attributes);
+//        if (attributes.containsKey("sub")) {
+//            return (String) attributes.get("sub"); // Google
+//        } else if (attributes.containsKey("id")) {
+//            return String.valueOf(attributes.get("id")); // Kakao
+//        } else if (attributes.containsKey("response")) {
+//            Map<String, Object> response = (Map<String, Object>) attributes.get("response");
+//            return (String) response.get("id"); // Naver
+//        }
+//        return "unknown";
     }
 
     public static Integer getSnsTypeId(Map<String, Object> attributes) {

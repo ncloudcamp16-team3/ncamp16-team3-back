@@ -1,6 +1,5 @@
 package tf.tailfriend.user.controller;
 
-import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,11 +15,9 @@ import tf.tailfriend.user.entity.dto.UserRegisterDto;
 import tf.tailfriend.user.service.AuthService;
 import tf.tailfriend.user.service.UserService;
 
-import java.io.IOException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.UUID;
 
 @RestController
 @RequestMapping
@@ -70,14 +67,6 @@ public class AuthController {
 
         Users user = userService.findBySnsAccountId(snsAccountId).orElse(null);
         Integer userId = user != null ? user.getId() : -1;
-
-        // provider 문자열 (ex: "KAKAO", "NAVER", "GOOGLE")
-        String provider = switch (snsTypeId) {
-            case 1 -> "KAKAO";
-            case 2 -> "NAVER";
-            case 3 -> "GOOGLE";
-            default -> "UNKNOWN";
-        };
 
         // JWT 생성
         String token = jwtTokenProvider.createToken(userId, email, snsTypeId);

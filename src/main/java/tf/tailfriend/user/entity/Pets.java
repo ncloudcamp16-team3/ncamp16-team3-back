@@ -47,27 +47,11 @@ public class Pets {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "activity_status", nullable = false)
-    private ActivityStatus activityStatus = ActivityStatus.NONE;  // 기본값 NONE으로 설정
+    private ActivityStatus activityStatus = ActivityStatus.NONE;
 
     @OneToMany(mappedBy = "pet", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private List<PetPhotos> petPhoto = new ArrayList<>();
-
-    // ✅ 양방향 연관관계 편의 메서드
-    public void addPhoto(PetPhotos photo) {
-        petPhoto.add(photo);
-        photo.setPet(this);
-    }
-
-    // ✅ 리스트 통째로 설정 시도할 때도 양방향 연관관계 유지
-    public void setPhoto(List<PetPhotos> photos) {
-        this.petPhoto.clear(); // 기존 리스트 초기화
-        if (photos != null) {
-            for (PetPhotos photo : photos) {
-                addPhoto(photo);
-            }
-        }
-    }
 
     // ✅ 내부 enum 정의 (public으로 설정해서 외부에서도 사용 가능)
     public enum ActivityStatus {

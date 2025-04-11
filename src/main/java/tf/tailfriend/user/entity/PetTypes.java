@@ -12,6 +12,7 @@ import lombok.*;
 @Builder
 @Table(name = "pet_types")
 public class PetTypes {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;

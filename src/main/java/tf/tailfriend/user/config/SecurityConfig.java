@@ -48,7 +48,6 @@ public class SecurityConfig {
         return http.build();
     }
 
-    //react와 연동을 위한 cors 설정
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();

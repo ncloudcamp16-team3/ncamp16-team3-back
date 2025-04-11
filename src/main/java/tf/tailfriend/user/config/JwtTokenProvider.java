@@ -31,10 +31,11 @@ public class JwtTokenProvider {
     }
 
 
-    public String createToken(Integer userId, String email, Integer snsTypeId) {
+    public String createToken(Integer userId, String email, Integer snsTypeId, Boolean isNewUser) {
         Claims claims = Jwts.claims().setSubject(userId.toString());
         claims.put("email", email);
         claims.put("snsTypeId", snsTypeId);
+        claims.put("isNewUser", isNewUser);
 
         Date now = new Date();
         Date validity = new Date(now.getTime() + validityInMilliseconds);
@@ -47,13 +48,13 @@ public class JwtTokenProvider {
                 .compact();
     }
 
-    // ✅ 인증 객체 생성 (UserPrincipal에 모든 정보 포함)
     public Authentication getAuthentication(String token) {
         Integer userId = getUserId(token);
         String email = getEmail(token);
         Integer snsTypeId = getSnsTypeId(token);
+        Boolean isNewUser = getIsNewUser(token);
 
-        UserDetails userDetails = new UserPrincipal(userId, email, snsTypeId);
+        UserDetails userDetails = new UserPrincipal(userId, email, snsTypeId,isNewUser);
         return new UsernamePasswordAuthenticationToken(userDetails, "", userDetails.getAuthorities());
     }
 
@@ -62,9 +63,12 @@ public class JwtTokenProvider {
         try {
             parseClaims(token);
             return true;
+        } catch (ExpiredJwtException e) {
+            System.out.println("⚠️ Token expired");
         } catch (JwtException | IllegalArgumentException e) {
-            return false;
+            System.out.println("❌ Invalid token: " + e.getMessage());
         }
+        return false;
     }
 
     // ✅ 유저 정보 추출
@@ -79,6 +83,11 @@ public class JwtTokenProvider {
     public Integer getSnsTypeId(String token) {
         Object snsTypeId = parseClaims(token).get("snsTypeId");
         return snsTypeId instanceof Integer ? (Integer) snsTypeId : Integer.parseInt(snsTypeId.toString());
+    }
+
+    public Boolean getIsNewUser(String token) {
+        Object isNew = parseClaims(token).get("isNewUser");
+        return isNew instanceof Boolean ? (Boolean) isNew : Boolean.parseBoolean(isNew.toString());
     }
 
     // ✅ 클레임 파싱

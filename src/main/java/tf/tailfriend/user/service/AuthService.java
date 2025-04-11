@@ -23,7 +23,8 @@ public class AuthService {
         return jwtTokenProvider.createToken(
                 user.getId(),
                 user.getSnsAccountId(),
-                user.getSnsType().getId() // 예: "KAKAO", "GOOGLE", etc.
+                user.getSnsType().getId(),
+                false
         );
     }
 }

@@ -30,45 +30,33 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
         OAuth2User oAuth2User = (OAuth2User) authentication.getPrincipal();
         var attributes = oAuth2User.getAttributes();
 
+        // 🔍 사용자 정보 추출
         String email = OAuth2AttributeExtractor.getEmail(attributes);
         String snsAccountId = OAuth2AttributeExtractor.getSnsAccountId(attributes);
         Integer snsTypeId = OAuth2AttributeExtractor.getSnsTypeId(attributes);
 
-        // 가입 여부 확인
+        // 🟡 가입 여부 확인
         Integer userId = userService.getUserIdBySnsAccountId(snsAccountId);
         boolean isNewUser = (userId == null);
         if (isNewUser) {
-            userId = -1; // 아직 DB에 없음
+            userId = -1; // DB에 아직 없는 유저
         }
 
-        // ✅ JWT 발급 (HttpOnly 쿠키)
-        String token = jwtTokenProvider.createToken(userId, email, snsTypeId);
-        ResponseCookie loginCookie = ResponseCookie.from("accessToken", token)
+        // 🔐 JWT 생성
+        String token = jwtTokenProvider.createToken(userId, email, snsTypeId, isNewUser);
+
+        // 🍪 accessToken 쿠키 설정
+        ResponseCookie accessTokenCookie = ResponseCookie.from("accessToken", token)
                 .httpOnly(true)
-                .secure(false) // 운영 환경에선 true로 설정
+                .secure(false) // 👉 배포 시 반드시 true
                 .path("/")
                 .maxAge(Duration.ofHours(1))
                 .sameSite("Lax")
                 .build();
-        response.addHeader("Set-Cookie", loginCookie.toString());
+        response.addHeader("Set-Cookie", accessTokenCookie.toString());
 
-        // ✅ 회원가입 필요 시 signupInfo 쿠키도 발급 (JS에서 읽을 수 있음)
-        if (isNewUser) {
-            String json = "{\"email\":\"%s\",\"snsAccountId\":\"%s\",\"snsTypeId\":%d}"
-                    .formatted(email, snsAccountId, snsTypeId);
-            String encoded = URLEncoder.encode(json, StandardCharsets.UTF_8);
-
-            ResponseCookie signupCookie = ResponseCookie.from("signupInfo", encoded)
-                    .httpOnly(false)
-                    .secure(false) // 운영 환경에선 true로 설정
-                    .path("/")
-                    .maxAge(Duration.ofMinutes(5))
-                    .sameSite("Lax")
-                    .build();
-            response.addHeader("Set-Cookie", signupCookie.toString());
-        }
-
-        // ✅ 리디렉션 (프론트엔드에서 쿠키 확인 후 처리)
+        // 🚀 프론트 리디렉션
         response.sendRedirect("http://localhost:5173/oauth2/success");
     }
+
 }

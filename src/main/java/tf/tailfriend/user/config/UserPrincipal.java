@@ -5,6 +5,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
+import tf.tailfriend.user.entity.Users;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -17,6 +18,16 @@ public class UserPrincipal implements UserDetails {
     private Integer userId;
     private String email;
     private Integer snsTypeId;
+    private Boolean isNewUser; // ✅ 추가
+
+    public static UserPrincipal create(Users user, boolean isNewUser) {
+        return new UserPrincipal(
+                user.getId(),
+                user.getSnsAccountId(), // email 대신 snsAccountId를 username으로 썼다면 여기도 그렇게
+                user.getSnsType().getId(),
+                isNewUser
+        );
+    }
 
     // 권한이 필요한 경우 확장 가능
     @Override

@@ -36,7 +36,7 @@ public class UserService {
     }
 
     @Transactional
-    public void registerUser(UserRegisterDto dto) {
+    public Users registerUser(UserRegisterDto dto) {
         // 1. SNS 타입 조회
         SnsTypes snsType = snsTypeRepository.findById(dto.getSnsTypeId())
                 .orElseThrow(() -> new RuntimeException("SNS 타입 없음"));
@@ -55,6 +55,7 @@ public class UserService {
                 .build();
 
         usersRepository.save(user);
+        usersRepository.flush(); // ✅ 즉시 DB 반영해서 user.id 보장
 
         // 4. 펫 + 사진 등록
         for (PetRegisterDto petDto : dto.getPets()) {
@@ -94,6 +95,9 @@ public class UserService {
                 petPhotosRepository.save(petPhoto);
             }
         }
+
+        return user;
     }
+
 
 }

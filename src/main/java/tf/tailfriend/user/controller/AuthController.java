@@ -10,9 +10,8 @@ import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.web.bind.annotation.*;
 import tf.tailfriend.user.config.JwtTokenProvider;
 import tf.tailfriend.user.config.OAuth2AttributeExtractor;
-import tf.tailfriend.user.config.OAuth2SessionStorage;
+import tf.tailfriend.user.entity.Users;
 import tf.tailfriend.user.entity.dto.LoginRequestDto;
-import tf.tailfriend.user.entity.dto.OAuth2LoginInfo;
 import tf.tailfriend.user.entity.dto.UserRegisterDto;
 import tf.tailfriend.user.service.AuthService;
 import tf.tailfriend.user.service.UserService;
@@ -31,7 +30,6 @@ public class AuthController {
     private final JwtTokenProvider jwtTokenProvider;
     private final UserService userService;
     private final AuthService authService;
-    private final OAuth2SessionStorage oauth2SessionStorage;
 
     private static final Logger logger = LoggerFactory.getLogger(AuthController.class);
 
@@ -54,44 +52,47 @@ public class AuthController {
     @PostMapping("/api/auth/login")
     public ResponseEntity<?> login(@RequestBody LoginRequestDto dto) {
         logger.debug("Received login request: {}", dto);
+
         String token = authService.login(dto);
         logger.debug("Generated token: {}", token);
+
         return ResponseEntity.ok(Collections.singletonMap("token", token));
     }
 
 
     @GetMapping("/oauth2/success")
-    public void handleOAuth2Success(@AuthenticationPrincipal OAuth2User oAuth2User, HttpServletResponse response) throws IOException {
+    public ResponseEntity<?> handleOAuth2Success(@AuthenticationPrincipal OAuth2User oAuth2User) {
         Map<String, Object> attributes = oAuth2User.getAttributes();
 
         String email = OAuth2AttributeExtractor.getEmail(attributes);
         String snsAccountId = OAuth2AttributeExtractor.getSnsAccountId(attributes);
         Integer snsTypeId = OAuth2AttributeExtractor.getSnsTypeId(attributes);
-        Integer userId = userService.getUserIdBySnsAccountId(snsAccountId);
-        if (userId == null) userId = -1;
 
-        String token = jwtTokenProvider.createToken(userId);
+        Users user = userService.findBySnsAccountId(snsAccountId).orElse(null);
+        Integer userId = user != null ? user.getId() : -1;
 
-        OAuth2LoginInfo loginInfo = new OAuth2LoginInfo(email, snsAccountId, snsTypeId, token);
-        String sessionId = oauth2SessionStorage.save(loginInfo);
+        // provider 문자열 (ex: "KAKAO", "NAVER", "GOOGLE")
+        String provider = switch (snsTypeId) {
+            case 1 -> "KAKAO";
+            case 2 -> "NAVER";
+            case 3 -> "GOOGLE";
+            default -> "UNKNOWN";
+        };
 
-        // 프론트로 sessionId만 전달
-        response.sendRedirect("http://localhost:5173/register?sessionId=" + sessionId);
+        // JWT 생성
+        String token = jwtTokenProvider.createToken(userId, email, snsTypeId);
+
+        // 프론트에 필요한 정보 응답
+        Map<String, Object> response = new HashMap<>();
+        response.put("token", token);
+        response.put("email", email);
+        response.put("snsAccountId", snsAccountId);
+        response.put("snsTypeId", snsTypeId);
+        response.put("userId", userId);
+
+        return ResponseEntity.ok(response);
     }
 
-    @GetMapping("/api/auth/oauth2/session")
-    public ResponseEntity<?> getOAuth2Session(@RequestParam String sessionId) {
-        OAuth2LoginInfo info = oauth2SessionStorage.get(sessionId);
-
-        if (info == null) {
-            return ResponseEntity.status(410).body("세션이 만료되었거나 존재하지 않습니다.");
-        }
-
-        // 한번 조회 후 제거 (1회용)
-        oauth2SessionStorage.remove(sessionId);
-
-        return ResponseEntity.ok(info);
-    }
 
 
 }

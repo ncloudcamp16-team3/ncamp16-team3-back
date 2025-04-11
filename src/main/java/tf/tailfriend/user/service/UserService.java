@@ -9,6 +9,7 @@ import tf.tailfriend.user.entity.dto.PetRegisterDto;
 import tf.tailfriend.user.entity.dto.UserRegisterDto;
 import tf.tailfriend.user.repository.*;
 
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -27,6 +28,11 @@ public class UserService {
         return usersRepository.findBySnsAccountId(snsAccountId)
                 .map(Users::getId)
                 .orElse(null);
+    }
+
+    // ✅ snsAccountId로 Users 객체 반환 (Optional)
+    public Optional<Users> findBySnsAccountId(String snsAccountId) {
+        return usersRepository.findBySnsAccountId(snsAccountId);
     }
 
     @Transactional

@@ -15,9 +15,15 @@ public class AuthService {
     private final JwtTokenProvider jwtTokenProvider;
 
     public String login(LoginRequestDto dto) {
-        Users user = usersRepository.findBySnsAccountId(dto.getSnsAccountId())
-                .orElseThrow(() -> new RuntimeException("존재하지 않는 계정입니다."));
+        String snsAccountId = dto.getSnsAccountId();
 
-        return jwtTokenProvider.createToken(user.getId());
+        Users user = usersRepository.findBySnsAccountId(snsAccountId)
+                .orElseThrow(() -> new IllegalArgumentException("❌ 존재하지 않는 계정입니다: " + snsAccountId));
+
+        return jwtTokenProvider.createToken(
+                user.getId(),
+                user.getSnsAccountId(),
+                user.getSnsType().getId() // 예: "KAKAO", "GOOGLE", etc.
+        );
     }
 }

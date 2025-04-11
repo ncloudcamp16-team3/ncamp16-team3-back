@@ -27,13 +27,14 @@ public class JwtTokenProvider {
 
     @PostConstruct
     protected void init() {
-        // 문자열을 바이트로 변환 후 키 객체 생성
         this.secretKey = Keys.hmacShaKeyFor(secretKeyString.getBytes(StandardCharsets.UTF_8));
     }
 
-    // JWT 생성
-    public String createToken(Integer userId) {
+
+    public String createToken(Integer userId, String email, Integer snsTypeId) {
         Claims claims = Jwts.claims().setSubject(userId.toString());
+        claims.put("email", email);
+        claims.put("snsTypeId", snsTypeId);
 
         Date now = new Date();
         Date validity = new Date(now.getTime() + validityInMilliseconds);
@@ -42,33 +43,50 @@ public class JwtTokenProvider {
                 .setClaims(claims)
                 .setIssuedAt(now)
                 .setExpiration(validity)
-                .signWith(secretKey, SignatureAlgorithm.HS256)  // ✅ Key 객체 사용
+                .signWith(secretKey, SignatureAlgorithm.HS256)
                 .compact();
     }
 
-    // 유저 ID 추출
-    public Integer getUserId(String token) {
-        return Integer.parseInt(Jwts.parserBuilder()
-                .setSigningKey(secretKey)
-                .build()
-                .parseClaimsJws(token)
-                .getBody()
-                .getSubject());
-    }
-
-    // 인증 객체 반환
+    // ✅ 인증 객체 생성 (UserPrincipal에 모든 정보 포함)
     public Authentication getAuthentication(String token) {
-        UserDetails userDetails = new UserPrincipal(getUserId(token));
+        Integer userId = getUserId(token);
+        String email = getEmail(token);
+        Integer snsTypeId = getSnsTypeId(token);
+
+        UserDetails userDetails = new UserPrincipal(userId, email, snsTypeId);
         return new UsernamePasswordAuthenticationToken(userDetails, "", userDetails.getAuthorities());
     }
 
-    // 토큰 유효성 검사
+    // ✅ 토큰 유효성 검사
     public boolean validateToken(String token) {
         try {
-            Jwts.parserBuilder().setSigningKey(secretKey).build().parseClaimsJws(token);
+            parseClaims(token);
             return true;
         } catch (JwtException | IllegalArgumentException e) {
             return false;
         }
+    }
+
+    // ✅ 유저 정보 추출
+    public Integer getUserId(String token) {
+        return Integer.parseInt(parseClaims(token).getSubject());
+    }
+
+    public String getEmail(String token) {
+        return (String) parseClaims(token).get("email");
+    }
+
+    public Integer getSnsTypeId(String token) {
+        Object snsTypeId = parseClaims(token).get("snsTypeId");
+        return snsTypeId instanceof Integer ? (Integer) snsTypeId : Integer.parseInt(snsTypeId.toString());
+    }
+
+    // ✅ 클레임 파싱
+    private Claims parseClaims(String token) {
+        return Jwts.parserBuilder()
+                .setSigningKey(secretKey)
+                .build()
+                .parseClaimsJws(token)
+                .getBody();
     }
 }

@@ -45,10 +45,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             return bearerToken.substring(7);
         }
 
-        // 2. accessToken 쿠키에서도 찾아봄
-        Cookie[] cookies = request.getCookies();
-        if (cookies != null) {
-            for (Cookie cookie : cookies) {
+        // 2. accessToken 쿠키 확인
+        if (request.getCookies() != null) {
+            for (Cookie cookie : request.getCookies()) {
                 if ("accessToken".equals(cookie.getName())) {
                     return cookie.getValue();
                 }

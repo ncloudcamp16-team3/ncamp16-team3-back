@@ -1,9 +1,7 @@
 package tf.tailfriend.sitter.entity;
 
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import tf.tailfriend.file.entity.File;
 import tf.tailfriend.pet.entity.PetType;
@@ -14,8 +12,9 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "pet_sitters")
 @Getter
-@Setter
+@Builder
 @NoArgsConstructor
+@AllArgsConstructor
 public class Sitter {
 
     @Id

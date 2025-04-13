@@ -1,9 +1,7 @@
 package tf.tailfriend.pet.entity;
 
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 import tf.tailfriend.user.entity.User;
 
 import java.util.ArrayList;
@@ -12,8 +10,9 @@ import java.util.List;
 @Entity
 @Table(name = "pets")
 @Getter
-@Setter
+@Builder
 @NoArgsConstructor
+@AllArgsConstructor
 public class Pet {
 
     @Id

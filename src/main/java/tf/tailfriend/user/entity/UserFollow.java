@@ -1,9 +1,7 @@
 package tf.tailfriend.user.entity;
 
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
 import java.io.Serializable;
 import java.util.Objects;
@@ -11,8 +9,9 @@ import java.util.Objects;
 @Entity
 @Table(name = "user_follows")
 @Getter
-@Setter
+@Builder
 @NoArgsConstructor
+@AllArgsConstructor
 public class UserFollow {
 
     @EmbeddedId
@@ -30,8 +29,9 @@ public class UserFollow {
 
     @Embeddable
     @Getter
-    @Setter
+    @Builder
     @NoArgsConstructor
+    @AllArgsConstructor
     public static class UserFollowId implements Serializable {
 
         @Column(name = "follower_id")
@@ -39,11 +39,6 @@ public class UserFollow {
 
         @Column(name = "followed_id")
         private Integer followedId;
-
-        public UserFollowId(Integer followerId, Integer followedId) {
-            this.followerId = followerId;
-            this.followedId = followedId;
-        }
 
         @Override
         public boolean equals(Object obj) {
@@ -61,5 +56,18 @@ public class UserFollow {
         public int hashCode() {
             return Objects.hash(followerId, followedId);
         }
+    }
+
+    public static UserFollow of(User follower, User followed) {
+        UserFollowId id = UserFollowId.builder()
+                .followerId(follower.getId())
+                .followedId(followed.getId())
+                .build();
+
+        return UserFollow.builder()
+                .id(id)
+                .follower(follower)
+                .followed(followed)
+                .build();
     }
 }

@@ -1,9 +1,7 @@
 package tf.tailfriend.petsta.entity;
 
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 import tf.tailfriend.user.entity.User;
 
 import java.io.Serializable;
@@ -12,8 +10,9 @@ import java.util.Objects;
 @Entity
 @Table(name = "petsta_likes")
 @Getter
-@Setter
+@Builder
 @NoArgsConstructor
+@AllArgsConstructor
 public class PetstaLike {
 
     @EmbeddedId
@@ -31,8 +30,9 @@ public class PetstaLike {
 
     @Embeddable
     @Getter
-    @Setter
+    @Builder
     @NoArgsConstructor
+    @AllArgsConstructor
     public static class PetStaLikeId implements Serializable {
 
         @Column(name = "user_id")
@@ -59,4 +59,16 @@ public class PetstaLike {
         }
     }
 
+    public static PetstaLike of(User user, PetstaPost petstaPost) {
+        PetStaLikeId id = PetStaLikeId.builder()
+                .userId(user.getId())
+                .petstaPostId(petstaPost.getId())
+                .build();
+
+        return PetstaLike.builder()
+                .id(id)
+                .user(user)
+                .petstaPost(petstaPost)
+                .build();
+    }
 }

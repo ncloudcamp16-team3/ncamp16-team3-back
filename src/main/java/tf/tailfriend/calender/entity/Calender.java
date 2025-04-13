@@ -1,9 +1,7 @@
 package tf.tailfriend.calender.entity;
 
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 import tf.tailfriend.user.entity.User;
 
 import java.time.LocalDateTime;
@@ -11,8 +9,9 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "calender_schedules")
 @Getter
-@Setter
+@Builder
 @NoArgsConstructor
+@AllArgsConstructor
 public class Calender {
 
     @Id
@@ -34,9 +33,6 @@ public class Calender {
 
     @Column(nullable = false)
     private String address;
-
-    @Column(name = "dong_name", nullable = false)
-    private String dongName;
 
     @Column(nullable = false)
     private Double latitude;

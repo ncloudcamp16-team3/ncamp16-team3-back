@@ -1,9 +1,7 @@
 package tf.tailfriend.reserve.entity;
 
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 import tf.tailfriend.facility.entity.Facility;
 import tf.tailfriend.user.entity.User;
 
@@ -12,8 +10,9 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "reserves")
 @Getter
-@Setter
+@Builder
 @NoArgsConstructor
+@AllArgsConstructor
 public class Reserve {
 
     @Id

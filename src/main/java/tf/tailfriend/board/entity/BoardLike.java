@@ -1,9 +1,7 @@
 package tf.tailfriend.board.entity;
 
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 import tf.tailfriend.user.entity.User;
 
 import java.io.Serializable;
@@ -12,8 +10,9 @@ import java.util.Objects;
 @Entity
 @Table(name = "board_likes")
 @Getter
-@Setter
+@Builder
 @NoArgsConstructor
+@AllArgsConstructor
 public class BoardLike {
 
     @EmbeddedId
@@ -31,8 +30,9 @@ public class BoardLike {
 
     @Embeddable
     @Getter
-    @Setter
+    @Builder
     @NoArgsConstructor
+    @AllArgsConstructor
     public static class BoardLikeId implements Serializable {
 
         @Column(name = "board_id")
@@ -57,5 +57,18 @@ public class BoardLike {
         public int hashCode() {
             return Objects.hash(boardId, userId);
         }
+    }
+
+    public static BoardLike of(User user, Board board) {
+        BoardLikeId id = BoardLikeId.builder()
+                .userId(user.getId())
+                .boardId(board.getId())
+                .build();
+
+        return BoardLike.builder()
+                .id(id)
+                .user(user)
+                .board(board)
+                .build();
     }
 }

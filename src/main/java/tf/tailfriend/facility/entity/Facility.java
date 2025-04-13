@@ -1,17 +1,16 @@
 package tf.tailfriend.facility.entity;
 
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
 import java.time.LocalTime;
 
 @Entity
 @Table(name = "facilities")
 @Getter
-@Setter
+@Builder
 @NoArgsConstructor
+@AllArgsConstructor
 public class Facility {
 
     @Id
@@ -45,9 +44,6 @@ public class Facility {
 
     @Column(name = "detail_address")
     private String detailAddress;
-
-    @Column(name = "dong_name", nullable = false)
-    private String dongName;
 
     @Column(nullable = false)
     private Double latitude;

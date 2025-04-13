@@ -1,9 +1,7 @@
 package tf.tailfriend.board.entity;
 
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import tf.tailfriend.user.entity.User;
 
@@ -12,8 +10,9 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "comments")
 @Getter
-@Setter
+@Builder
 @NoArgsConstructor
+@AllArgsConstructor
 public class Comment {
 
     @Id

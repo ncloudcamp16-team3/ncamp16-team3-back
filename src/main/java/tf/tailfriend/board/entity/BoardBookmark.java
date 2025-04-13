@@ -1,9 +1,7 @@
 package tf.tailfriend.board.entity;
 
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 import tf.tailfriend.user.entity.User;
 
 import java.io.Serializable;
@@ -12,8 +10,9 @@ import java.util.Objects;
 @Entity
 @Table(name = "board_bookmarks")
 @Getter
-@Setter
+@Builder
 @NoArgsConstructor
+@AllArgsConstructor
 public class BoardBookmark {
 
     @EmbeddedId
@@ -31,8 +30,9 @@ public class BoardBookmark {
 
     @Embeddable
     @Getter
-    @Setter
+    @Builder
     @NoArgsConstructor
+    @AllArgsConstructor
     public static class BoardBookmarkId implements Serializable {
 
         @Column(name = "user_id")
@@ -57,5 +57,18 @@ public class BoardBookmark {
         public int hashCode() {
             return Objects.hash(userId, boardId);
         }
+    }
+
+    public static BoardBookmark of(Board board, User user) {
+        BoardBookmarkId id = BoardBookmarkId.builder()
+                .userId(user.getId())
+                .boardId(board.getId())
+                .build();
+
+        return BoardBookmark.builder()
+                .id(id)
+                .user(user)
+                .board(board)
+                .build();
     }
 }

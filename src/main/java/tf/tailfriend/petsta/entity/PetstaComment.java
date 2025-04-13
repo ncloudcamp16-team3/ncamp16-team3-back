@@ -1,9 +1,7 @@
 package tf.tailfriend.petsta.entity;
 
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import tf.tailfriend.user.entity.User;
 
@@ -14,8 +12,9 @@ import java.util.List;
 @Entity
 @Table(name = "petsta_comments")
 @Getter
-@Setter
+@Builder
 @NoArgsConstructor
+@AllArgsConstructor
 public class PetstaComment {
 
     @Id
@@ -46,4 +45,10 @@ public class PetstaComment {
 
     @Column(name = "reply_count", nullable = false)
     private Integer replyCount = 0;
+
+    public void addReply(PetstaComment reply) {
+        replies.add(reply);
+        reply.parent = this;
+        replyCount++;
+    }
 }

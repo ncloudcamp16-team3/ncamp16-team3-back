@@ -1,9 +1,7 @@
 package tf.tailfriend.user.entity;
 
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 import tf.tailfriend.file.entity.File;
 
 import java.util.HashSet;
@@ -12,8 +10,9 @@ import java.util.Set;
 @Entity
 @Table(name = "users")
 @Getter
-@Setter
+@Builder
 @NoArgsConstructor
+@AllArgsConstructor
 public class User {
 
     @Id
@@ -58,26 +57,32 @@ public class User {
     }
 
     @OneToMany(mappedBy = "follower")
+    @Builder.Default
     private Set<UserFollow> following = new HashSet<>();
 
     @OneToMany(mappedBy = "followed")
+    @Builder.Default
     private Set<UserFollow> followers = new HashSet<>();
 
     public void follow(User userToFollow) {
-        UserFollow follow = new UserFollow();
-        UserFollow.UserFollowId id = new UserFollow.UserFollowId();
-        id.setFollowedId(this.id);
-        id.setFollowerId(userToFollow.getId());
-        follow.setId(id);
-        follow.setFollower(this);
-        follow.setFollowed(userToFollow);
+        UserFollow.UserFollowId id = UserFollow.UserFollowId.builder()
+                .followerId(this.id)
+                .followedId(userToFollow.getId())
+                .build();
+
+        UserFollow follow = UserFollow.builder()
+                .id(id)
+                .follower(this)
+                .followed(userToFollow)
+                .build();
 
         this.following.add(follow);
         userToFollow.getFollowers().add(follow);
     }
 
-    public void unFollow(User userToUnFollow) {
-        this.following.removeIf(follow -> follow.getFollowed().equals(userToUnFollow));
-        userToUnFollow.getFollowers().removeIf(follow -> follow.getFollowed().equals(this));
+    public void unFollow(User userToFollow) {
+        UserFollow follow = UserFollow.of(this, userToFollow);
+        this.following.add(follow);
+        userToFollow.getFollowers().add(follow);
     }
 }

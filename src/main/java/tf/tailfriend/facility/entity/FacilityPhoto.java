@@ -1,9 +1,7 @@
 package tf.tailfriend.facility.entity;
 
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 import tf.tailfriend.file.entity.File;
 
 import java.io.Serializable;
@@ -12,8 +10,9 @@ import java.util.Objects;
 @Entity
 @Table(name = "facility_photos")
 @Getter
-@Setter
+@Builder
 @NoArgsConstructor
+@AllArgsConstructor
 public class FacilityPhoto {
 
     @EmbeddedId
@@ -31,8 +30,9 @@ public class FacilityPhoto {
 
     @Embeddable
     @Getter
-    @Setter
+    @Builder
     @NoArgsConstructor
+    @AllArgsConstructor
     public static class FacilityPhotoId implements Serializable {
 
         @Column(name = "file_id")
@@ -57,5 +57,18 @@ public class FacilityPhoto {
         public int hashCode() {
             return Objects.hash(fileId, facilityId);
         }
+    }
+
+    public static FacilityPhoto of(File file, Facility facility) {
+        FacilityPhotoId id = FacilityPhotoId.builder()
+                .facilityId(facility.getId())
+                .fileId(file.getId())
+                .build();
+
+        return FacilityPhoto.builder()
+                .id(id)
+                .facility(facility)
+                .file(file)
+                .build();
     }
 }

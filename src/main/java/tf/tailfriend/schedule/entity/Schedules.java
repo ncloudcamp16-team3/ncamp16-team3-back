@@ -1,4 +1,4 @@
-package tf.tailfriend.calender.entity;
+package tf.tailfriend.schedule.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
@@ -7,12 +7,12 @@ import tf.tailfriend.user.entity.User;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "calender_schedules")
+@Table(name = "schedules")
 @Getter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class Calender {
+public class Schedules {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

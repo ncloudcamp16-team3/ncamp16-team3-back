@@ -1,4 +1,4 @@
-package tf.tailfriend.sitter.entity;
+package tf.tailfriend.petsitter.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
@@ -15,7 +15,7 @@ import java.time.LocalDateTime;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class Sitter {
+public class PetSitter {
 
     @Id
     @Column(name = "id")

@@ -1,4 +1,4 @@
-package tf.tailfriend.calender.entity;
+package tf.tailfriend.schedule.entity;
 
 import jakarta.persistence.*;
 import lombok.*;

@@ -3,6 +3,7 @@ package tf.tailfriend.board.entity;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
+import tf.tailfriend.file.entity.File;
 import tf.tailfriend.user.entity.User;
 
 import java.time.LocalDateTime;
@@ -43,15 +44,18 @@ public class Board {
     private Integer likeCount = 0;
 
     @OneToMany(mappedBy = "board", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
     private List<BoardPhoto> photos = new ArrayList<>();
 
-    public void addPhoto(BoardPhoto photo) {
+    public void addPhoto(File file) {
+        BoardPhoto photo = BoardPhoto.builder()
+                .board(this)
+                .file(file)
+                .build();
         photos.add(photo);
-        photo.setBoard(this);
     }
 
-    public void removePhoto(BoardPhoto photo) {
-        photos.remove(photo);
-        photo.setBoard(null);
+    public void removePhoto(File file) {
+        photos.removeIf(photo -> photo.getFile().equals(file));
     }
 }

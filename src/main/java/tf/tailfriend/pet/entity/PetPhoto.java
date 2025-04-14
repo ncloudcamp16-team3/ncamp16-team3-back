@@ -61,7 +61,7 @@ public class PetPhoto {
         }
     }
 
-    public static PetPhoto of(Pet pet, File file) {
+    public static PetPhoto of(Pet pet, File file, boolean thumbnail) {
         PetPhotoId id = PetPhotoId.builder()
                 .petId(pet.getId())
                 .fileId(file.getId())
@@ -71,6 +71,7 @@ public class PetPhoto {
                 .id(id)
                 .pet(pet)
                 .file(file)
+                .thumbnail(thumbnail)
                 .build();
     }
 }

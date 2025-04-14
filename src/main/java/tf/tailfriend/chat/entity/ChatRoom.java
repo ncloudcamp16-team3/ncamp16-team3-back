@@ -34,11 +34,22 @@ public class ChatRoom {
     private LocalDateTime lastUpdate;
 
     @OneToMany(mappedBy = "chatRoom", cascade = CascadeType.ALL)
+    @Builder.Default
     private List<Message> messages = new ArrayList<>();
 
-    public void addMessage(Message message) {
+    public static Message createMessage(ChatRoom chatRoom, User user, String content, ChatType chatType, String metadata) {
+        return Message.builder()
+                .chatRoom(chatRoom)
+                .user(user)
+                .content(content)
+                .chatType(chatType)
+                .metadata(metadata)
+                .build();
+    }
+
+    public void addMessage(User user, String content, ChatType chatType, String metadata) {
+        Message message = createMessage(this, user, content, chatType, metadata);
         messages.add(message);
-        message.setChatRoom(this);
         this.lastUpdate = LocalDateTime.now();
     }
 }

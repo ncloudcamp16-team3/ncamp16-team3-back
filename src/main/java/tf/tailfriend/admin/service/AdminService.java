@@ -40,8 +40,8 @@ public class AdminService {
 
         // 관리자 객체 생성
         Admin admin = new Admin();
-        admin.setEmail(email);
-        admin.setPassword(encodedPassword);
+//        admin.setEmail(email);
+//        admin.setPassword(encodedPassword);
 
         return adminDao.save(admin);
     }

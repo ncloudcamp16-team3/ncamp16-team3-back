@@ -2,6 +2,7 @@ package tf.tailfriend.pet.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import tf.tailfriend.file.entity.File;
 import tf.tailfriend.user.entity.User;
 
 import java.util.ArrayList;
@@ -54,15 +55,15 @@ public class Pet {
     }
 
     @OneToMany(mappedBy = "pet", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
     private List<PetPhoto> photos = new ArrayList<>();
 
-    public void addPhoto(PetPhoto photo) {
+    public void addPhoto(File file, boolean thumbnail) {
+        PetPhoto photo = PetPhoto.of(this, file, thumbnail);
         photos.add(photo);
-        photo.setPet(this);
     }
 
-    public void removePhoto(PetPhoto photo) {
-        photos.remove(photo);
-        photo.setPet(null);
+    public void removePhoto(File file) {
+        photos.removeIf(photo -> photo.getFile().equals(file));
     }
 }

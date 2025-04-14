@@ -1,4 +1,4 @@
-package tf.tailfriend.notification.entity;
+package tf.tailfriend.chat.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
@@ -8,32 +8,36 @@ import tf.tailfriend.user.entity.User;
 import java.time.LocalDateTime;
 
 @Entity
-@Table
+@Table(name = "message")
 @Getter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class Notification {
+public class Message {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
     @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "chat_room_id", nullable = false)
+    private ChatRoom chatRoom;
+
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "notify_type_id", nullable = false)
-    private NotificationType notificationType;
-
-    @Column(columnDefinition = "TEXT", nullable = false)
-    private String content;
-
     @Column(nullable = false)
-    private Boolean read = false;
+    private String content;
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "type_id", nullable = false)
+    private ChatType chatType;
+
+    @Column(columnDefinition = "JSON")
+    private String metadata;
 }

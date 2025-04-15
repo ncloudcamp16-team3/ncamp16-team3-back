@@ -19,15 +19,15 @@ spring:
         order_inserts: true
         order_updates: true
 
-#  datasource:
-#    driver-class-name: com.mysql.cj.jdbc.Driver
-#    url: ${SPRING_DATASOURCE_URL:jdbc:mysql://localhost:3306/tailfriends?useUnicode=true&serverTimezone=Asia/Seoul}
-#    username: ${SPRING_DATASOURCE_USERNAME:root}
-#    password: ${SPRING_DATASOURCE_PASSWORD:root1234}
-#
-#    hikari:
-#      maximum-pool-size: 10
-#      minimum-idle: 2
-#      idle-timeout: 30000
-#      max-lifetime: 1800000
-#      connection-timeout: 3000
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: ${SPRING_DATASOURCE_URL:jdbc:mysql://localhost:3306/tailfriends?useUnicode=true&serverTimezone=Asia/Seoul}
+    username: ${SPRING_DATASOURCE_USERNAME:root}
+    password: ${SPRING_DATASOURCE_PASSWORD:root1234}
+
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+      idle-timeout: 30000
+      max-lifetime: 1800000
+      connection-timeout: 3000

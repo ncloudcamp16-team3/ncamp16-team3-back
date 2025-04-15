@@ -1,10 +1,7 @@
 package tf.tailfriend.pet.entity;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
 import tf.tailfriend.file.entity.File;
 import tf.tailfriend.user.entity.User;
 

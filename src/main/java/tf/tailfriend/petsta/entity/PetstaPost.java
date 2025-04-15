@@ -1,7 +1,10 @@
 package tf.tailfriend.petsta.entity;
 
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 import tf.tailfriend.file.entity.File;
 import tf.tailfriend.user.entity.User;

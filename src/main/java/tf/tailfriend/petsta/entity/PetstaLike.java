@@ -1,7 +1,10 @@
 package tf.tailfriend.petsta.entity;
 
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 import tf.tailfriend.user.entity.User;
 
 import java.io.Serializable;
@@ -23,7 +26,7 @@ public class PetstaLike {
     @JoinColumn(name = "user_id")
     private User user;
 
-    @MapsId("boardId")
+    @MapsId("petstaPostId")
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "petsta_id")
     private PetstaPost petstaPost;

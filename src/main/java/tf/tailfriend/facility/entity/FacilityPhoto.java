@@ -1,7 +1,10 @@
 package tf.tailfriend.facility.entity;
 
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 import tf.tailfriend.file.entity.File;
 
 import java.io.Serializable;

@@ -1,18 +1,21 @@
 package tf.tailfriend.notification.entity;
 
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 import tf.tailfriend.user.entity.User;
 
 import java.time.LocalDateTime;
 
 @Entity
-@Table
 @Getter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@Table(name = "notifications")
 public class Notification {
 
     @Id
@@ -30,8 +33,8 @@ public class Notification {
     @Column(columnDefinition = "TEXT", nullable = false)
     private String content;
 
-    @Column(nullable = false)
-    private Boolean read = false;
+    @Column(name = "read_status", nullable = false)
+    private Boolean readStatus = false;
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)

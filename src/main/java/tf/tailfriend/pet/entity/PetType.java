@@ -1,7 +1,10 @@
 package tf.tailfriend.pet.entity;
 
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 @Entity
 @Table(name = "pet_types")

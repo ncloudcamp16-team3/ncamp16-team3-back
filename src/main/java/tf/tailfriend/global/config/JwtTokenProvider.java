@@ -3,6 +3,8 @@ package tf.tailfriend.global.config;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
 import jakarta.annotation.PostConstruct;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -20,7 +22,8 @@ import java.util.Date;
 import java.util.stream.Collectors;
 
 @Component
-public class JwtTokenProvider {
+@Slf4j
+public class JwtTokenProvider implements InitializingBean {
 
     @Value("${jwt.secret}")
     private String secretKeyString;
@@ -39,6 +42,13 @@ public class JwtTokenProvider {
     }
 
     // 관리자 페이지
+    @Override
+    public void afterPropertiesSet() throws Exception {
+        byte[] keyBytes = secretKeyString.getBytes();
+        this.key = Keys.hmacShaKeyFor(keyBytes);
+        log.info("JWT token key: {}", this.key);
+    }
+
     public String createToken(Authentication authentication) {
         String authorities = authentication.getAuthorities().stream()
                 .map(GrantedAuthority::getAuthority)
@@ -75,7 +85,7 @@ public class JwtTokenProvider {
 
     public Authentication getAuthentication(String token) {
         Claims claims = parseClaims(token);
-        
+
         if (claims.get("auth") != null) {
             // 관리자 페이지
             Collection<? extends GrantedAuthority> authorities =

@@ -15,7 +15,7 @@ spring:
         jdbc:
           batch_size: 50
         format_sql: true
-        dialect: org.hibernate.dialect.MySQL8Dialect
+        dialect: org.hibernate.dialect.MySQLDialect
         order_inserts: true
         order_updates: true
 

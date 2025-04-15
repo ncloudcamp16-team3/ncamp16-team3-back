@@ -1,21 +1,18 @@
 package tf.tailfriend.notification.entity;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import tf.tailfriend.user.entity.User;
 
 import java.time.LocalDateTime;
 
 @Entity
+@Table(name = "notifications")
 @Getter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(name = "notifications")
 public class Notification {
 
     @Id

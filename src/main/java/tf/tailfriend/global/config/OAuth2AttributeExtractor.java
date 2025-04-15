@@ -1,4 +1,4 @@
-package tf.tailfriend.user.config;
+package tf.tailfriend.global.config;
 
 import java.util.Map;
 

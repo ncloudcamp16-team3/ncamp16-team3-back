@@ -1,4 +1,4 @@
-package tf.tailfriend.user.config;
+package tf.tailfriend.global.config;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;

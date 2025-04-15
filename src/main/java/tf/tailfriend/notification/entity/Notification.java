@@ -8,7 +8,7 @@ import tf.tailfriend.user.entity.User;
 import java.time.LocalDateTime;
 
 @Entity
-@Table
+@Table(name = "notifications")
 @Getter
 @Builder
 @NoArgsConstructor
@@ -30,8 +30,8 @@ public class Notification {
     @Column(columnDefinition = "TEXT", nullable = false)
     private String content;
 
-    @Column(nullable = false)
-    private Boolean read = false;
+    @Column(name = "read_status", nullable = false)
+    private Boolean readStatus = false;
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)

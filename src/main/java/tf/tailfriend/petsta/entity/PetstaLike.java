@@ -23,7 +23,7 @@ public class PetstaLike {
     @JoinColumn(name = "user_id")
     private User user;
 
-    @MapsId("boardId")
+    @MapsId("postId")
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "petsta_id")
     private PetstaPost petstaPost;
@@ -39,7 +39,7 @@ public class PetstaLike {
         private Integer userId;
 
         @Column(name = "petsta_id")
-        private Integer petstaPostId;
+        private Integer postId;
 
         @Override
         public boolean equals(Object obj) {
@@ -50,19 +50,19 @@ public class PetstaLike {
                 return false;
             }
             PetStaLikeId that = (PetStaLikeId) obj;
-            return userId.equals(that.userId) && petstaPostId.equals(that.petstaPostId);
+            return userId.equals(that.userId) && postId.equals(that.postId);
         }
 
         @Override
         public int hashCode() {
-            return Objects.hash(userId, petstaPostId);
+            return Objects.hash(userId, postId);
         }
     }
 
     public static PetstaLike of(User user, PetstaPost petstaPost) {
         PetStaLikeId id = PetStaLikeId.builder()
                 .userId(user.getId())
-                .petstaPostId(petstaPost.getId())
+                .postId(petstaPost.getId())
                 .build();
 
         return PetstaLike.builder()

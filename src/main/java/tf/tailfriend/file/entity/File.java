@@ -1,11 +1,7 @@
 package tf.tailfriend.file.entity;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-
+import lombok.*;
 @Entity
 @Table(name = "files")
 @Getter

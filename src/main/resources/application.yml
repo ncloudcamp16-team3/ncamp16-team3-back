@@ -21,9 +21,12 @@ spring:
 
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: ${SPRING_DATASOURCE_URL:jdbc:mysql://localhost:3306/tailfriends?useUnicode=true&serverTimezone=Asia/Seoul}
-    username: ${SPRING_DATASOURCE_USERNAME:root}
-    password: ${SPRING_DATASOURCE_PASSWORD:root1234}
+#    url: ${SPRING_DATASOURCE_URL:jdbc:mysql://localhost:3306/tailfriends?useUnicode=true&serverTimezone=Asia/Seoul}
+#    username: ${SPRING_DATASOURCE_USERNAME:root}
+#    password: ${SPRING_DATASOURCE_PASSWORD:root1234}
+    url: ENC(0Uz5uetjY8o/G5c4f9WdUYFc/SeaARf8ckwuvVzIN9BNttmwjs7/4B5My30yLk+CThUrp/QvzB3oa+TuOVckiHoS4TXEOb18kc+2xSeyrH6DuxXmef6y/DwUSwALcVwv0OV7eGmu+LXHI59b7r9FXaAlq/1ocJ2K)
+    username: ENC(+rRh62YKb3oNtRra3W7MUB8YWBTvwEEVaOQhRpviEMUX8/znhTuCEtO3i233v8BA)
+    password: ENC(ddNAQKqussFi+q6MMiqKjNdlFDoXB7W2jWraRUW4Nuanl0e19hn7db2GT2UQ6r9x)
 
     hikari:
       maximum-pool-size: 10
@@ -31,3 +34,8 @@ spring:
       idle-timeout: 30000
       max-lifetime: 1800000
       connection-timeout: 3000
+
+jasypt:
+  encryptor:
+    bean: jasyptEncryptor
+    password: ${JASYPT_KEY}

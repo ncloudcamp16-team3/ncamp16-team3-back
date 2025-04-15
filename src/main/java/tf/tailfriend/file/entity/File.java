@@ -2,7 +2,6 @@ package tf.tailfriend.file.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
-
 @Entity
 @Table(name = "files")
 @Getter

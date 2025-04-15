@@ -52,7 +52,8 @@ public class SecurityConfig {
                 .exceptionHandling(exception -> exception.authenticationEntryPoint(jwtAuthEntryPoint))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                    .requestMatchers("/oauth2/authorization/**").permitAll()
+                    // APP
+                        .requestMatchers("/oauth2/authorization/**").permitAll()
                     .requestMatchers("/api/**").permitAll()
                     // 공개 API
                     .requestMatchers("/login").permitAll()
@@ -81,10 +82,13 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(List.of("http://localhost:5173")); // React origin
+        configuration.addAllowedOrigin("http://localhost:5173");
+        // 필요한 경우 실제 배포 환경 URL도 추가
+        //configuration.addAllowedOrigin("https://your-production-domain.com");
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setAllowCredentials(true);
+        configuration.setMaxAge(3600L);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);

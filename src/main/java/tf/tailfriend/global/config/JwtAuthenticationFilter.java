@@ -2,15 +2,18 @@ package tf.tailfriend.global.config;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.context.annotation.Lazy;
+import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 import tf.tailfriend.admin.service.AdminService;
+import tf.tailfriend.global.config.JwtTokenProvider;
 
 import java.io.IOException;
 
@@ -26,7 +29,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     }
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
+    protected void doFilterInternal(HttpServletRequest request,
+                                    HttpServletResponse response,
+                                    FilterChain filterChain)
+            throws ServletException, IOException {
+      
         String jwt = resolveToken(request);
 
         if (StringUtils.hasText(jwt)) {
@@ -46,10 +53,21 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     }
 
     private String resolveToken(HttpServletRequest request) {
+        // 1. Authorization 헤더 우선
         String bearerToken = request.getHeader("Authorization");
-        if (StringUtils.hasText(bearerToken) && bearerToken.startsWith("Bearer ")) {
+        if (bearerToken != null && bearerToken.startsWith("Bearer ")) {
             return bearerToken.substring(7);
         }
+
+        // 2. accessToken 쿠키 확인
+        if (request.getCookies() != null) {
+            for (Cookie cookie : request.getCookies()) {
+                if ("accessToken".equals(cookie.getName())) {
+                    return cookie.getValue();
+                }
+            }
+        }
+
         return null;
     }
 }

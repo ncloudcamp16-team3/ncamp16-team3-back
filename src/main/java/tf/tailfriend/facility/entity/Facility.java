@@ -2,7 +2,6 @@ package tf.tailfriend.facility.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
-
 import java.time.LocalTime;
 
 @Entity

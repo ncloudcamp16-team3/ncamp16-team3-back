@@ -3,8 +3,11 @@ package tf.tailfriend.user.entity;
 import jakarta.persistence.*;
 import lombok.*;
 import tf.tailfriend.file.entity.File;
+import tf.tailfriend.pet.entity.Pet;
 
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 @Entity
@@ -63,6 +66,10 @@ public class User {
     @OneToMany(mappedBy = "followed")
     @Builder.Default
     private Set<UserFollow> followers = new HashSet<>();
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private List<Pet> pet = new ArrayList<>();
 
     public void follow(User userToFollow) {
         UserFollow.UserFollowId id = UserFollow.UserFollowId.builder()

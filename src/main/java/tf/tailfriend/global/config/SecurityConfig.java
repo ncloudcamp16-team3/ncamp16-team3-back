@@ -36,9 +36,10 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> {
                     // 공개 API
                     auth.requestMatchers("/login").permitAll();
-                    // admin API
                     auth.requestMatchers("/admin").permitAll();
-                    auth.requestMatchers("/admin/login").permitAll();
+                    // admin API
+                    auth.requestMatchers("/api/admin/login", "/api/admin/auth/validate", "/api/admin/logout").permitAll();
+                    auth.requestMatchers("/api/admin/register").permitAll();
                     auth.requestMatchers("/admin/**").hasRole("ADMIN");
                     // 나머지 API 권한 설정
                     auth.anyRequest().authenticated();

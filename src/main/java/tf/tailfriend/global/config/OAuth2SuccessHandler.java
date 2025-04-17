@@ -51,8 +51,12 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
                 .build();
         response.addHeader("Set-Cookie", accessTokenCookie.toString());
 
-        // 🚀 프론트 리디렉션
-        response.sendRedirect("http://localhost:5173/oauth2/success");
+        String domain = request.getServerName();
+        String redirectUrl = domain.contains("localhost") ?
+                "http://localhost:5173/oauth2/success" :
+                "http://tailfriends.kro.kr/oauth2/success";
+
+        response.sendRedirect(redirectUrl);
     }
 
 }

@@ -70,6 +70,9 @@ public class SecurityConfig {
                         .authorizationEndpoint(endpoint -> endpoint
                                 .baseUri("/api/oauth2/authorization") // ✅ 여기서 경로 커스터마이징
                         )
+                        .redirectionEndpoint(redirection -> redirection
+                                .baseUri("/api/login/oauth2/code/*") // ✅ 여기를 꼭 추가해야 custom redirect-uri 작동함!
+                        )
                         .successHandler(successHandler) // OAuth2 로그인 성공 후 핸들러 설정
                 )
                 .exceptionHandling(exception -> exception.authenticationEntryPoint(jwtAuthEntryPoint)); // 인증 실패시 처리

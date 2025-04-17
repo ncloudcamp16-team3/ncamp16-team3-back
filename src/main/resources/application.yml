@@ -82,3 +82,5 @@ logging:
     tf.tailfriend.user.controller: DEBUG
     org.springframework.web: DEBUG
     org.springframework.http.converter.json: DEBUG
+
+URL: ${URL}

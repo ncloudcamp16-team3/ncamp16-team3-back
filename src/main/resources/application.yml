@@ -83,4 +83,4 @@ logging:
     org.springframework.web: DEBUG
     org.springframework.http.converter.json: DEBUG
 
-URL: ${URL}
+URL: ${baseUrl}

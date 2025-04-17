@@ -52,17 +52,19 @@ public class SecurityConfig {
                 .exceptionHandling(exception -> exception.authenticationEntryPoint(jwtAuthEntryPoint))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        // APP
-                        .requestMatchers("/api/oauth2/authorization/**").permitAll()
-                        .requestMatchers("/api/**").permitAll()
-                        // 공개 API
-                        .requestMatchers("/login").permitAll()
-                        // admin API
-                        .requestMatchers("/admin").permitAll()
-                        .requestMatchers("/admin/login").permitAll()
-                        .requestMatchers("/admin/**").hasRole("ADMIN")
-                        // 나머지 API 권한 설정
-                        .anyRequest().authenticated()
+                    // APP
+                    .requestMatchers("/api/oauth2/authorization/**").permitAll()
+                    .requestMatchers("/api/**").permitAll()
+                    // 공개 API
+                    auth.requestMatchers("/login").permitAll();
+                    auth.requestMatchers("/admin").permitAll();
+                    // admin API
+                    auth.requestMatchers("/api/admin/login", "/api/admin/auth/validate", "/api/admin/logout").permitAll();
+                    auth.requestMatchers("/api/admin/register").permitAll();
+                    auth.requestMatchers("/admin/**").hasRole("ADMIN");
+
+                    // 나머지 API 권한 설정
+                    .anyRequest().authenticated()
                 )
                 .oauth2Login(oauth2 -> oauth2
                         .authorizationEndpoint(endpoint -> endpoint

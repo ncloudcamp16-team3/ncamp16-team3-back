@@ -56,30 +56,25 @@ public class SecurityConfig {
                     .requestMatchers("/api/oauth2/authorization/**").permitAll()
                     .requestMatchers("/api/**").permitAll()
                     // 공개 API
-                    auth.requestMatchers("/login").permitAll();
-                    auth.requestMatchers("/admin").permitAll();
+                    .requestMatchers("/login").permitAll()
+                    .requestMatchers("/admin").permitAll()
                     // admin API
-                    auth.requestMatchers("/api/admin/login", "/api/admin/auth/validate", "/api/admin/logout").permitAll();
-                    auth.requestMatchers("/api/admin/register").permitAll();
-                    auth.requestMatchers("/admin/**").hasRole("ADMIN");
+                    .requestMatchers("/api/admin/login", "/api/admin/auth/validate", "/api/admin/logout").permitAll()
+                    .requestMatchers("/api/admin/register").permitAll()
+                    .requestMatchers("/admin/**").hasRole("ADMIN")
 
                     // 나머지 API 권한 설정
                     .anyRequest().authenticated()
                 )
-                .oauth2Login(oauth2 -> oauth2
-                        .authorizationEndpoint(endpoint -> endpoint
-                                .baseUri("/api/oauth2/authorization") // ✅ 여기서 경로 커스터마이징
-                        )
-                        .successHandler(successHandler) // OAuth2 로그인 성공 후 핸들러 설정
-                )
+//                .oauth2Login(oauth2 -> oauth2
+//                        .authorizationEndpoint(endpoint -> endpoint
+//                                .baseUri("/api/oauth2/authorization") // ✅ 여기서 경로 커스터마이징
+//                        )
+//                        .successHandler(successHandler) // OAuth2 로그인 성공 후 핸들러 설정
+//                )
                 .exceptionHandling(exception -> exception.authenticationEntryPoint(jwtAuthEntryPoint)); // 인증 실패시 처리
 
-        // 조건문으로 필터 선택
-        if (jwtAuthFilter != null) {
-            http.addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
-        } else {
-            http.addFilterBefore(new JwtAuthenticationFilter(jwtTokenProvider), UsernamePasswordAuthenticationFilter.class);
-        }
+        http.addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }

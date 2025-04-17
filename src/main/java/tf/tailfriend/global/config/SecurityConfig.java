@@ -83,8 +83,7 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.addAllowedOrigin("http://localhost:5173");
-        // 필요한 경우 실제 배포 환경 URL도 추가
-        //configuration.addAllowedOrigin("https://your-production-domain.com");
+        configuration.addAllowedOrigin("http://tailfriends.kro.kr");
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setAllowCredentials(true);

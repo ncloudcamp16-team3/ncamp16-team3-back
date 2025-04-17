@@ -1,0 +1,25 @@
+# 빌드 산출물들
+build
+.gradle
+
+# IDE 관련
+.idea
+*.iml
+*.ipr
+*.iws
+
+# OS 관련
+.DS_Store
+Thumbs.db
+
+# 테스트 리포트
+test-results
+test-output
+
+# 로그
+*.log
+
+# 환경파일 등 민감한 설정 (있다면)
+.env
+application-local.yml
+application-dev.yml

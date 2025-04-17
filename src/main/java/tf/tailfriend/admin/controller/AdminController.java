@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.*;
 import tf.tailfriend.admin.dto.AdminLoginRequest;
 import tf.tailfriend.admin.dto.AdminLoginResponse;
 import tf.tailfriend.admin.entity.Admin;
+import tf.tailfriend.admin.exception.AdminException;
 import tf.tailfriend.admin.service.AdminService;
 
 import java.util.HashMap;
@@ -45,10 +46,18 @@ public class AdminController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<AdminLoginResponse> login(@RequestBody AdminLoginRequest request) {
+    public ResponseEntity<?> login(@RequestBody AdminLoginRequest request) {
         log.info("Login request: {}", request);
-        AdminLoginResponse response = adminService.login(request.getEmail(), request.getPassword());
-        return ResponseEntity.ok(response);
+        try {
+            AdminLoginResponse response = adminService.login(request.getEmail(), request.getPassword());
+            return ResponseEntity.ok(response);
+        } catch (AdminException e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("message", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("message", "로그인 처리 중 오류가 발생했습니다"));
+        }
     }
 
     @PostMapping("/logout")

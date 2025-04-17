@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import tf.tailfriend.admin.dto.AdminLoginResponse;
 import tf.tailfriend.admin.entity.Admin;
+import tf.tailfriend.admin.exception.AdminException;
 import tf.tailfriend.admin.repository.AdminDao;
 import tf.tailfriend.global.config.JwtTokenProvider;
 
@@ -49,10 +50,10 @@ public class AdminService {
     @Transactional
     public AdminLoginResponse login(String email, String password) {
         Admin admin = adminDao.findByEmail(email)
-                .orElseThrow(() -> new IllegalArgumentException("이메일 오류"));
+                .orElseThrow(() -> new AdminException("일치하는 이메일이 없습니다"));
 
         if (!passwordEncoder.matches(password, admin.getPassword())) {
-            throw new IllegalArgumentException("비밀번호 오류");
+            throw new AdminException("비밀번호를 확인해주세요");
         }
 
         List<SimpleGrantedAuthority> authorities = Collections.singletonList(new SimpleGrantedAuthority("ROLE_ADMIN"));

@@ -66,12 +66,12 @@ public class SecurityConfig {
                     // 나머지 API 권한 설정
                     .anyRequest().authenticated()
                 )
-//                .oauth2Login(oauth2 -> oauth2
-//                        .authorizationEndpoint(endpoint -> endpoint
-//                                .baseUri("/api/oauth2/authorization") // ✅ 여기서 경로 커스터마이징
-//                        )
-//                        .successHandler(successHandler) // OAuth2 로그인 성공 후 핸들러 설정
-//                )
+                .oauth2Login(oauth2 -> oauth2
+                        .authorizationEndpoint(endpoint -> endpoint
+                                .baseUri("/api/oauth2/authorization") // ✅ 여기서 경로 커스터마이징
+                        )
+                        .successHandler(successHandler) // OAuth2 로그인 성공 후 핸들러 설정
+                )
                 .exceptionHandling(exception -> exception.authenticationEntryPoint(jwtAuthEntryPoint)); // 인증 실패시 처리
 
         http.addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
@@ -83,8 +83,7 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.addAllowedOrigin("http://localhost:5173");
-        // 필요한 경우 실제 배포 환경 URL도 추가
-        //configuration.addAllowedOrigin("https://your-production-domain.com");
+        configuration.addAllowedOrigin("http://tailfriends.kro.kr");
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setAllowCredentials(true);

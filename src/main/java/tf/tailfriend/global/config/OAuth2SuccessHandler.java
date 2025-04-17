@@ -3,6 +3,7 @@ package tf.tailfriend.global.config;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseCookie;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.core.user.OAuth2User;
@@ -19,6 +20,10 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
 
     private final JwtTokenProvider jwtTokenProvider;
     private final UserService userService;
+
+
+    @Value("${URL}")
+    private String mainUrl;
 
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request,
@@ -51,12 +56,11 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
                 .build();
         response.addHeader("Set-Cookie", accessTokenCookie.toString());
 
-        String domain = request.getServerName();
-        String redirectUrl = domain.contains("localhost") ?
-                "http://localhost:5173/oauth2/success" :
-                "http://tailfriends.kro.kr/oauth2/success";
 
+        String redirectUrl = mainUrl+"/oauth2/success";
+        System.out.println(redirectUrl);
         response.sendRedirect(redirectUrl);
+
     }
 
 }

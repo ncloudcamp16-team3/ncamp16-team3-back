@@ -18,16 +18,10 @@ public class Facility {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "facility_type_id", nullable = false)
-    private FacilityType facilityType;
+    private FacilityType facilityTypeId;
 
     @Column(nullable = false)
     private String name;
-
-    @Column(name = "open_time")
-    private LocalTime openTime;
-
-    @Column(name = "close_time")
-    private LocalTime closeTime;
 
     @Column(length = 50)
     private String tel;
@@ -37,6 +31,9 @@ public class Facility {
 
     @Column(name = "star_point", nullable = false)
     private Double starPoint = 0.0;
+
+    @Column(name= "review_count", nullable = false)
+    private Integer reviewCount = 0;
 
     @Column(nullable = false)
     private String address;

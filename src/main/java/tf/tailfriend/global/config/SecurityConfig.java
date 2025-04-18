@@ -74,6 +74,10 @@ public class SecurityConfig {
                                 .baseUri("/api/login/oauth2/code/*") // ✅ 여기를 꼭 추가해야 custom redirect-uri 작동함!
                         )
                         .successHandler(successHandler) // OAuth2 로그인 성공 후 핸들러 설정
+                        .failureHandler((request, response, exception) -> {
+                            exception.printStackTrace(); // 에러 로그 출력
+                            response.sendRedirect("/login?error");
+                        })
                 )
                 .exceptionHandling(exception -> exception.authenticationEntryPoint(jwtAuthEntryPoint)); // 인증 실패시 처리
 

@@ -79,6 +79,8 @@ jwt:
 
 logging:
   level:
+    org.springframework.security: DEBUG
+    org.springframework.security.oauth2: DEBUG
     tf.tailfriend.user.controller: DEBUG
     org.springframework.web: DEBUG
     org.springframework.http.converter.json: DEBUG

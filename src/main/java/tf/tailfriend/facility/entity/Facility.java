@@ -23,12 +23,6 @@ public class Facility {
     @Column(nullable = false)
     private String name;
 
-    @Column(name = "open_time")
-    private LocalTime openTime;
-
-    @Column(name = "close_time")
-    private LocalTime closeTime;
-
     @Column(length = 50)
     private String tel;
 

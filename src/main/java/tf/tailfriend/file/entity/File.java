@@ -21,9 +21,6 @@ public class File {
     @Column(nullable = false)
     private String path;
 
-    @Column(nullable = false)
-    private String uuid;
-
     public enum FileType {
         PHOTO, VIDEO
     }

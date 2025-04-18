@@ -7,6 +7,7 @@ import lombok.NoArgsConstructor;
 import tf.tailfriend.board.entity.Board;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -25,6 +26,9 @@ public class BoardResponseDto {
     private Integer likeCount;
     private List<String> imageUrls;
 
+    @Builder.Default
+    private List<CommentResponseDto> comments = new ArrayList<>();
+
     public static BoardResponseDto fromEntity(Board board) {
         return BoardResponseDto.builder()
                 .id(board.getId())
@@ -35,8 +39,24 @@ public class BoardResponseDto {
                 .createdAt(board.getCreatedAt())
                 .likeCount(board.getLikeCount())
                 .imageUrls(board.getPhotos().stream()
-                        .map(photo -> photo.getFile().getPath() + "/" + photo.getFile().getUuid())
+                        .map(photo -> photo.getFile().getPath())
                         .collect(Collectors.toList()))
+                .build();
+    }
+
+    public static BoardResponseDto fromEntityWithComments(Board board, List<CommentResponseDto> comments) {
+        return BoardResponseDto.builder()
+                .id(board.getId())
+                .boardTypeId(board.getBoardType().getId())
+                .title(board.getTitle())
+                .content(board.getContent())
+                .authorNickname(board.getUser().getNickname())
+                .createdAt(board.getCreatedAt())
+                .likeCount(board.getLikeCount())
+                .imageUrls(board.getPhotos().stream()
+                        .map(photo -> photo.getFile().getPath())
+                        .collect(Collectors.toList()))
+                .comments(comments)
                 .build();
     }
 }

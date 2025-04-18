@@ -84,7 +84,6 @@ public class UserService {
                 File file = File.builder()
                         .type(photoDto.getType())
                         .path(photoDto.getPath())
-                        .uuid(photoDto.getUuid() != null ? photoDto.getUuid() : UUID.randomUUID().toString())
                         .build();
 
                 fileRepository.save(file);

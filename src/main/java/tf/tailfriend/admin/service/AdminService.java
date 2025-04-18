@@ -1,5 +1,6 @@
 package tf.tailfriend.admin.service;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -7,7 +8,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import tf.tailfriend.admin.dto.AdminLoginResponse;
 import tf.tailfriend.admin.entity.Admin;
-import tf.tailfriend.admin.exception.AdminException;
+import tf.tailfriend.admin.exception.EmailException;
+import tf.tailfriend.admin.exception.PasswordException;
 import tf.tailfriend.admin.repository.AdminDao;
 import tf.tailfriend.global.config.JwtTokenProvider;
 
@@ -17,6 +19,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Service
+@Slf4j
 public class AdminService {
 
     private final AdminDao adminDao;
@@ -50,10 +53,11 @@ public class AdminService {
     @Transactional
     public AdminLoginResponse login(String email, String password) {
         Admin admin = adminDao.findByEmail(email)
-                .orElseThrow(() -> new AdminException("일치하는 이메일이 없습니다"));
+                .orElseThrow(() -> new EmailException());
 
         if (!passwordEncoder.matches(password, admin.getPassword())) {
-            throw new AdminException("비밀번호를 확인해주세요");
+            log.info("비밀번호가 맞지않아");
+            throw new PasswordException();
         }
 
         List<SimpleGrantedAuthority> authorities = Collections.singletonList(new SimpleGrantedAuthority("ROLE_ADMIN"));

@@ -46,15 +46,27 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
         // 🔐 JWT 생성
         String token = jwtTokenProvider.createToken(userId, snsAccountId, snsTypeId, isNewUser);
 
-        // 🍪 accessToken 쿠키 설정
-        ResponseCookie accessTokenCookie = ResponseCookie.from("accessToken", token)
-                .httpOnly(true)
-                .secure(false) // 👉 배포 시 반드시 true
-                .path("/")
-                .maxAge(Duration.ofHours(1))
-                .sameSite("Lax")
-                .build();
-        response.addHeader("Set-Cookie", accessTokenCookie.toString());
+        if (mainUrl.equals("http://localhost:5173")) {
+            // 🍪 accessToken 쿠키 설정
+            ResponseCookie accessTokenCookie = ResponseCookie.from("accessToken", token)
+                    .httpOnly(true)
+                    .secure(false) // 👉 배포 시 반드시 true
+                    .path("/")
+                    .maxAge(Duration.ofHours(1))
+                    .sameSite("Lax")
+                    .build();
+            response.addHeader("Set-Cookie", accessTokenCookie.toString());
+        }
+        else{
+            ResponseCookie accessTokenCookie = ResponseCookie.from("accessToken", token)
+                    .httpOnly(true)
+                    .secure(true) // 👉 배포 시 반드시 true
+                    .path("/")
+                    .maxAge(Duration.ofHours(1))
+                    .sameSite("None")
+                    .build();
+            response.addHeader("Set-Cookie", accessTokenCookie.toString());
+        }
 
 
         String redirectUrl = mainUrl+"/oauth2/success";

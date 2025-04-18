@@ -69,6 +69,7 @@ public class SecurityConfig {
                 .oauth2Login(oauth2 -> oauth2
                         .authorizationEndpoint(endpoint -> endpoint
                                 .baseUri("/api/oauth2/authorization") // ✅ 여기서 경로 커스터마이징
+                                .authorizationRequestRepository(cookieOAuth2AuthorizationRequestRepository())
                         )
                         .redirectionEndpoint(redirection -> redirection
                                 .baseUri("/api/login/oauth2/code/*") // ✅ 여기를 꼭 추가해야 custom redirect-uri 작동함!

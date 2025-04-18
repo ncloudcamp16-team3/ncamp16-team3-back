@@ -35,7 +35,7 @@ public class BoardResponseDto {
                 .createdAt(board.getCreatedAt())
                 .likeCount(board.getLikeCount())
                 .imageUrls(board.getPhotos().stream()
-                        .map(photo -> photo.getFile().getPath() + "/" + photo.getFile().getUuid())
+                        .map(photo -> photo.getFile().getPath())
                         .collect(Collectors.toList()))
                 .build();
     }

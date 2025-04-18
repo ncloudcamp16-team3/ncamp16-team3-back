@@ -4,7 +4,7 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import tf.tailfriend.file.entity.File;
-import tf.tailfriend.file.repository.FileRepository;
+import tf.tailfriend.file.service.FileService;
 import tf.tailfriend.pet.entity.Pet;
 import tf.tailfriend.pet.entity.PetPhoto;
 import tf.tailfriend.pet.entity.PetType;
@@ -16,25 +16,23 @@ import tf.tailfriend.user.entity.User;
 import tf.tailfriend.user.entity.dto.PetPhotoDto;
 import tf.tailfriend.user.entity.dto.PetRegisterDto;
 import tf.tailfriend.user.entity.dto.UserRegisterDto;
-import tf.tailfriend.user.repository.SnsTypeRepository;
-import tf.tailfriend.user.repository.UserRepository;
-
-import java.util.UUID;
+import tf.tailfriend.user.repository.SnsTypeDao;
+import tf.tailfriend.user.repository.UserDao;
 
 @Service
 @RequiredArgsConstructor
 public class UserService {
 
-    private final UserRepository userRepository;
+    private final UserDao userDao;
     private final PetRepository petsRepository;
-    private final SnsTypeRepository snsTypeRepository;
+    private final SnsTypeDao snsTypeDao;
     private final PetTypeRepository petTypesRepository;
     private final PetPhotoRepository petPhotosRepository;
-    private final FileRepository fileRepository;
+    private final FileService fileService;
 
     // ✅ 이메일로 userId 반환
     public Integer getUserIdBySnsAccountId(String snsAccountId) {
-        return userRepository.findBySnsAccountId(snsAccountId)
+        return userDao.findBySnsAccountId(snsAccountId)
                 .map(User::getId)
                 .orElse(null);
     }
@@ -42,13 +40,11 @@ public class UserService {
     @Transactional
     public User registerUser(UserRegisterDto dto) {
         // 1. SNS 타입 조회
-        SnsType snsType = snsTypeRepository.findById(dto.getSnsTypeId())
+        SnsType snsType = snsTypeDao.findById(dto.getSnsTypeId())
                 .orElseThrow(() -> new RuntimeException("SNS 타입 없음"));
 
         // 2. 기본 프로필 파일
-        File defaultFile = fileRepository.findById(
-                dto.getFileId() != null ? dto.getFileId() : 1
-        ).orElseThrow(() -> new RuntimeException("기본 파일 없음"));
+        File defaultFile = fileService.getOrDefault(dto.getFileId());
 
         // 3. 유저 저장
         User user = User.builder()
@@ -58,8 +54,8 @@ public class UserService {
                 .file(defaultFile)
                 .build();
 
-        userRepository.save(user);
-        userRepository.flush(); // ✅ 즉시 DB 반영해서 user.id 보장
+        userDao.save(user);
+        userDao.flush(); // ✅ 즉시 DB 반영해서 user.id 보장
 
         // 4. 펫 + 사진 등록
         for (PetRegisterDto petDto : dto.getPets()) {
@@ -81,13 +77,11 @@ public class UserService {
             petsRepository.save(pet);
 
             for (PetPhotoDto photoDto : petDto.getPhotos()) {
-                File file = File.builder()
-                        .type(photoDto.getType())
-                        .path(photoDto.getPath())
-                        .uuid(photoDto.getUuid() != null ? photoDto.getUuid() : UUID.randomUUID().toString())
-                        .build();
-
-                fileRepository.save(file);
+                File file = fileService.save(
+                        "",
+                        "pet", // 폴더명
+                        photoDto.getType()
+                );
 
                 PetPhoto petPhoto = PetPhoto.builder()
                         .id(new PetPhoto.PetPhotoId(file.getId(), pet.getId()))

@@ -17,7 +17,12 @@ spring:
       idle-timeout: 30000
       max-lifetime: 1800000
       connection-timeout: 3000
-  
+
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
+
   jpa:
     database-platform: org.hibernate.dialect.MySQL8Dialect
   
@@ -84,3 +89,10 @@ logging:
     org.springframework.http.converter.json: DEBUG
 
 URL: ${baseUrl}
+
+ncp:
+  end-point: ${NCP_END_POINT}
+  region-name: ${NCP_REGION_NAME}
+  access-key: ${NCR_USERNAME}
+  secret-key: ${NCR_PASSWORD}
+  bucket-name: ${NCP_BUCKET_NAME}

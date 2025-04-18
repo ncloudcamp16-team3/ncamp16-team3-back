@@ -69,17 +69,27 @@ public class SecurityConfig {
                 .oauth2Login(oauth2 -> oauth2
                         .authorizationEndpoint(endpoint -> endpoint
                                 .baseUri("/api/oauth2/authorization") // ✅ 여기서 경로 커스터마이징
+                                .authorizationRequestRepository(cookieOAuth2AuthorizationRequestRepository())
                         )
                         .redirectionEndpoint(redirection -> redirection
                                 .baseUri("/api/login/oauth2/code/*") // ✅ 여기를 꼭 추가해야 custom redirect-uri 작동함!
                         )
                         .successHandler(successHandler) // OAuth2 로그인 성공 후 핸들러 설정
+                        .failureHandler((request, response, exception) -> {
+                            exception.printStackTrace(); // 에러 로그 출력
+                            response.sendRedirect("/login?error");
+                        })
                 )
                 .exceptionHandling(exception -> exception.authenticationEntryPoint(jwtAuthEntryPoint)); // 인증 실패시 처리
 
         http.addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
+    }
+
+    @Bean
+    public HttpCookieOAuth2AuthorizationRequestRepository cookieOAuth2AuthorizationRequestRepository() {
+        return new HttpCookieOAuth2AuthorizationRequestRepository();
     }
 
     @Bean

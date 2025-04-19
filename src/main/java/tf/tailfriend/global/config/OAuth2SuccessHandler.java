@@ -46,6 +46,8 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
         // 🔐 JWT 생성
         String token = jwtTokenProvider.createToken(userId, snsAccountId, snsTypeId, isNewUser);
 
+
+
         if (mainUrl.equals("http://localhost:5173")) {
             // 🍪 accessToken 쿠키 설정
             ResponseCookie accessTokenCookie = ResponseCookie.from("accessToken", token)

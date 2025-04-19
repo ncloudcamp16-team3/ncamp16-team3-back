@@ -24,7 +24,8 @@ public class MemberService {
     private final FileRepository fileRepository;
 
     /**
-
+     * 회원의 마이페이지 정보를 조회합니다.
+     *
      * @param userId 조회할 회원의 ID
      * @return 회원 정보와 반려동물 정보가 포함된 MyPageResponseDto
      */
@@ -52,7 +53,8 @@ public class MemberService {
     }
 
     /**
-
+     * 회원의 닉네임을 업데이트합니다.
+     *
      * @param userId      수정할 회원의 ID
      * @param newNickname 새로운 닉네임
      * @return 업데이트된 닉네임
@@ -80,12 +82,11 @@ public class MemberService {
                     throw new IllegalArgumentException("이미 사용 중인 닉네임입니다: " + newNickname);
                 });
 
-        // 5. 닉네임 업데이트
-        if (user instanceof User) {
+        // 5. 닉네임 업데이트 (instanceof 검사 제거)
+        if (user != null) { // null 검사만 유지
             user.updateNickname(newNickname);
         } else {
-            // user.setNickname(newNickname);
-            throw new UnsupportedOperationException("닉네임 업데이트 메서드가 구현되어 있지 않습니다.");
+            throw new UnsupportedOperationException("닉네임 업데이트를 할 수 없습니다.");
         }
 
         // 6. 저장 및 반환
@@ -94,7 +95,8 @@ public class MemberService {
     }
 
     /**
-
+     * 회원 프로필 이미지를 업데이트합니다.
+     *
      * @param userId 수정할 회원의 ID
      * @param fileId 새 프로필 이미지 파일 ID
      * @return 업데이트된 이미지 URL
@@ -118,6 +120,8 @@ public class MemberService {
     }
 
     /**
+     * 회원을 탈퇴시킵니다.
+     *
      * @param userId 탈퇴할 회원의 ID
      */
     @Transactional

@@ -1,5 +1,6 @@
 package tf.tailfriend.user.controller;
 
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -32,10 +33,12 @@ public class AuthController {
 
     private static final Logger logger = LoggerFactory.getLogger(AuthController.class);
 
+
     @PostMapping("/api/auth/register")
     public ResponseEntity<?> register(@RequestBody UserRegisterDto dto, HttpServletResponse response) {
         logger.info("🔥 register() called!");
         logger.debug("📦 DTO received: {}", dto);
+
 
         // 유저 등록
         User savedUser = userService.registerUser(dto); // 반환값 Users로 변경
@@ -59,6 +62,8 @@ public class AuthController {
 
     @PostMapping("/api/auth/login")
     public ResponseEntity<?> login(@RequestBody LoginRequestDto dto, HttpServletResponse response) {
+
+
         logger.debug("📥 로그인 요청: {}", dto);
 
         String token = authService.login(dto);
@@ -81,6 +86,8 @@ public class AuthController {
 
     @PostMapping("/api/auth/logout")
     public ResponseEntity<?> logout(HttpServletResponse response) {
+        String osName = System.getProperty("os.name").toLowerCase();
+        System.out.println("/api/auth/logout : "+osName);
         response.addHeader("Set-Cookie", clearCookie("accessToken").toString());
         return ResponseEntity.ok(Map.of("message", "로그아웃 완료"));
     }
@@ -103,25 +110,36 @@ public class AuthController {
         return ResponseEntity.ok(response);
     }
 
-    // 🔧 JWT 쿠키 생성
+
     private ResponseCookie createJwtCookie(String token) {
+        String osName = System.getProperty("os.name").toLowerCase();
+        System.out.println("create Cookie : " + osName);
+
+        boolean isLinux = osName.contains("linux");
+
         return ResponseCookie.from("accessToken", token)
                 .httpOnly(true)
-                .secure(false) // ⚠️ 배포 시 true + HTTPS
+                .secure(isLinux) // 리눅스(서버)일 경우 secure true
                 .path("/")
                 .maxAge(Duration.ofDays(1))
-                .sameSite("Lax")
+                .sameSite(isLinux ? "None" : "Lax")
                 .build();
     }
 
     // 🔧 쿠키 삭제 (0초로 만료)
     private ResponseCookie clearCookie(String name) {
+        String osName = System.getProperty("os.name").toLowerCase();
+        System.out.println("create Cookie : " + osName);
+
+        boolean isLinux = osName.contains("linux");
+
+
         return ResponseCookie.from(name, "")
                 .httpOnly(true)
-                .secure(false) // ⚠️ 배포 시 true + HTTPS
+                .secure(isLinux) // 리눅스(서버)일 경우 secure true
                 .path("/")
                 .maxAge(0)
-                .sameSite("Lax")
+                .sameSite(isLinux ? "None" : "Lax")
                 .build();
     }
 

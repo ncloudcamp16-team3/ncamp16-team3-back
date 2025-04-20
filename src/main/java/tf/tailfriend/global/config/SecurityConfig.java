@@ -69,7 +69,7 @@ public class SecurityConfig {
                 .oauth2Login(oauth2 -> oauth2
                         .authorizationEndpoint(endpoint -> endpoint
                                 .baseUri("/api/oauth2/authorization") // ✅ 여기서 경로 커스터마이징
-                                .authorizationRequestRepository(cookieOAuth2AuthorizationRequestRepository())
+//                                .authorizationRequestRepository(cookieOAuth2AuthorizationRequestRepository())
                         )
                         .redirectionEndpoint(redirection -> redirection
                                 .baseUri("/api/login/oauth2/code/*") // ✅ 여기를 꼭 추가해야 custom redirect-uri 작동함!
@@ -87,16 +87,17 @@ public class SecurityConfig {
         return http.build();
     }
 
-    @Bean
-    public HttpCookieOAuth2AuthorizationRequestRepository cookieOAuth2AuthorizationRequestRepository() {
-        return new HttpCookieOAuth2AuthorizationRequestRepository();
-    }
+//    @Bean
+//    public HttpCookieOAuth2AuthorizationRequestRepository cookieOAuth2AuthorizationRequestRepository() {
+//        return new HttpCookieOAuth2AuthorizationRequestRepository();
+//    }
 
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.addAllowedOrigin("http://localhost:5173");
         configuration.addAllowedOrigin("http://tailfriends.kro.kr");
+        configuration.addAllowedOrigin("https://tailfriends.kro.kr");
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setAllowCredentials(true);

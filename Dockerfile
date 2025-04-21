@@ -15,6 +15,9 @@ RUN gradle clean bootJar
 FROM eclipse-temurin:17-jdk
 WORKDIR /app
 
+# ffmpeg 설치
+RUN apt update && apt install -y ffmpeg
+
 # 빌드 결과물 복사
 COPY --from=build /app/build/libs/*.jar app.jar
 

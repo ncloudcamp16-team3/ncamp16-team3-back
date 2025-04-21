@@ -2,7 +2,11 @@ package tf.tailfriend.facility.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+
+import java.sql.Time;
 import java.time.LocalTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "facilities")
@@ -18,7 +22,7 @@ public class Facility {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "facility_type_id", nullable = false)
-    private FacilityType facilityTypeId;
+    private FacilityType facilityType;
 
     @Column(nullable = false)
     private String name;
@@ -46,4 +50,18 @@ public class Facility {
 
     @Column(nullable = false)
     private Double longitude;
+
+    @OneToMany(mappedBy = "facility", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<FacilityTimetable> timetables = new ArrayList<>();
+
+    public void addTimetable(FacilityTimetable.Day day, Time openTime, Time closeTime) {
+        FacilityTimetable timetable = FacilityTimetable.builder()
+                .day(day)
+                .openTime(openTime)
+                .closeTime(closeTime)
+                .facility(this)
+                .build();
+
+        timetables.add(timetable);
+    }
 }

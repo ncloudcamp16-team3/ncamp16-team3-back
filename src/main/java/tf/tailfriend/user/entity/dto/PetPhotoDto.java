@@ -13,4 +13,5 @@ public class PetPhotoDto {
     private String path;
     private String uuid;
     private boolean thumbnail;
+    private String originName;
 }

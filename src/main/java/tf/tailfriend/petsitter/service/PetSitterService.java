@@ -12,6 +12,7 @@ import tf.tailfriend.petsitter.entity.PetSitter;
 import tf.tailfriend.petsitter.repository.PetSitterDao;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -37,5 +38,13 @@ public class PetSitterService {
                 .collect(Collectors.toList());
 
         return new PageImpl<>(petSitterDtos, pageable, petSitters.getTotalElements());
+    }
+
+    @Transactional(readOnly = true)
+    public PetSitterResponseDto findById(Integer id) {
+        PetSitter petSitter = petSitterDao.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("펫시터가 존재하지 않습니다 " + id));
+
+        return PetSitterResponseDto.fromEntity(petSitter);
     }
 }

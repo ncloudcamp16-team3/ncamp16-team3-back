@@ -6,10 +6,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import tf.tailfriend.petsitter.dto.PetSitterResponseDto;
 import tf.tailfriend.petsitter.entity.PetSitter;
 import tf.tailfriend.petsitter.service.PetSitterService;
@@ -32,5 +29,12 @@ public class AdminPetSitterController {
         Page<PetSitterResponseDto> petSitters = petSitterService.findAll(pageRequest);
 
         return ResponseEntity.ok(petSitters);
+    }
+
+    @GetMapping("/petsitter/{id}")
+    public ResponseEntity<?> getPetSitterById(@PathVariable Integer id) {
+        PetSitterResponseDto petSitter = petSitterService.findById(id);
+        log.info("petSitter: {}", petSitter);
+        return ResponseEntity.ok(petSitter);
     }
 }

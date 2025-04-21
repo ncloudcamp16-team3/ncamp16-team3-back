@@ -80,6 +80,7 @@ public class UserService {
 
             for (PetPhotoDto photoDto : petDto.getPhotos()) {
                 File file = fileService.save(
+                        photoDto.getOriginName(),
                         "pet", // 폴더명
                         photoDto.getType()
                 );

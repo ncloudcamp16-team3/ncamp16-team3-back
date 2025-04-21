@@ -26,7 +26,6 @@ public class AdminAnnounceController {
 
     private final BoardTypeService boardTypeService;
     private final AnnounceService announceService;
-    private final FileService fileService;
 
     @PostMapping("/announce/post")
     public ResponseEntity<?> createAnnounce(
@@ -43,21 +42,10 @@ public class AdminAnnounceController {
                         .body(Map.of("message", "유효하지 않은 게시판 타입입니다"));
             }
 
-            List<File> files = new ArrayList<>();
-            if (images != null && !images.isEmpty()) {
-                for (MultipartFile image : images) {
-                    if (!image.isEmpty()) {
-                        File file = fileService.save("board", File.FileType.PHOTO);
-                        files.add(file);
-                    }
-                }
-            }
-
-            Announce announce = announceService.createAnnounce(title, content, boardType, files);
-            AnnounceResponseDto responseDto = AnnounceResponseDto.fromEntity(announce);
+            announceService.createAnnounce(title, content, boardType, images);
 
             return ResponseEntity.status(HttpStatus.CREATED)
-                    .body(Map.of("message", "공지사항이 성공정으로 등록되었습니다"));
+                    .body(Map.of("message", "공지사항이 성공적으로 등록되었습니다"));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of("message", "공지사항 등록 실패: " + e.getMessage()));

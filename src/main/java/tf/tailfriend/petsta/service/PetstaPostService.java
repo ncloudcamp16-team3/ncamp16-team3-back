@@ -45,7 +45,7 @@ public class PetstaPostService {
     @Transactional
     public void uploadPhoto(Integer userId, String content, MultipartFile imageFile) throws StorageServiceException {
         // 1. 파일 저장
-        File savedFile = fileService.save("post", File.FileType.PHOTO);
+        File savedFile = fileService.save(imageFile.getOriginalFilename(), "post", File.FileType.PHOTO);
 
         // 2. 파일 S3 업로드
         try (InputStream is = imageFile.getInputStream()) {

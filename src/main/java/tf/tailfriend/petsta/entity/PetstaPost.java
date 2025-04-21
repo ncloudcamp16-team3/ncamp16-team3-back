@@ -41,6 +41,16 @@ public class PetstaPost {
     @Column(name = "like_count", nullable = false)
     private Integer likeCount = 0;
 
+    public void increaseLikeCount() {
+        this.likeCount++;
+    }
+
+    public void decreaseLikeCount() {
+        if (this.likeCount > 0) {
+            this.likeCount--;
+        }
+    }
+
     @Builder.Default
     @Column(name = "comment_count", nullable = false)
     private Integer commentCount = 0;

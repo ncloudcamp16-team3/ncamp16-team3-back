@@ -23,7 +23,7 @@ public class BoardLike {
     @JoinColumn(name = "user_id")
     private User user;
 
-    @MapsId("boardId")
+    @MapsId("boardPostId")
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "board_post_id")
     private Board board;
@@ -35,8 +35,8 @@ public class BoardLike {
     @AllArgsConstructor
     public static class BoardLikeId implements Serializable {
 
-        @Column(name = "board_id")
-        private Integer boardId;
+        @Column(name = "board_post_id")
+        private Integer boardPostId;
 
         @Column(name = "user_id")
         private Integer userId;
@@ -50,19 +50,19 @@ public class BoardLike {
                 return false;
             }
             BoardLikeId that = (BoardLikeId) obj;
-            return boardId.equals(that.boardId) && userId.equals(that.userId);
+            return boardPostId.equals(that.boardPostId) && userId.equals(that.userId);
         }
 
         @Override
         public int hashCode() {
-            return Objects.hash(boardId, userId);
+            return Objects.hash(boardPostId, userId);
         }
     }
 
     public static BoardLike of(User user, Board board) {
         BoardLikeId id = BoardLikeId.builder()
                 .userId(user.getId())
-                .boardId(board.getId())
+                .boardPostId(board.getId())
                 .build();
 
         return BoardLike.builder()

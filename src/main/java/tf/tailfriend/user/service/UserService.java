@@ -8,9 +8,9 @@ import tf.tailfriend.file.service.FileService;
 import tf.tailfriend.pet.entity.Pet;
 import tf.tailfriend.pet.entity.PetPhoto;
 import tf.tailfriend.pet.entity.PetType;
-import tf.tailfriend.pet.repository.PetPhotoRepository;
-import tf.tailfriend.pet.repository.PetRepository;
-import tf.tailfriend.pet.repository.PetTypeRepository;
+import tf.tailfriend.pet.repository.PetPhotoDao;
+import tf.tailfriend.pet.repository.PetDao;
+import tf.tailfriend.pet.repository.PetTypeDao;
 import tf.tailfriend.user.entity.SnsType;
 import tf.tailfriend.user.entity.User;
 import tf.tailfriend.user.entity.dto.PetPhotoDto;
@@ -24,10 +24,10 @@ import tf.tailfriend.user.repository.UserDao;
 public class UserService {
 
     private final UserDao userDao;
-    private final PetRepository petsRepository;
+    private final PetDao petDao;
     private final SnsTypeDao snsTypeDao;
-    private final PetTypeRepository petTypesRepository;
-    private final PetPhotoRepository petPhotosRepository;
+    private final PetTypeDao petTypeDao;
+    private final PetPhotoDao petPhotoDao;
     private final FileService fileService;
 
     // ✅ 이메일로 userId 반환
@@ -61,7 +61,7 @@ public class UserService {
 
         // 4. 펫 + 사진 등록
         for (PetRegisterDto petDto : dto.getPets()) {
-            PetType petType = petTypesRepository.findById(petDto.getPetTypeId())
+            PetType petType = petTypeDao.findById(petDto.getPetTypeId())
                     .orElseThrow(() -> new RuntimeException("펫 타입 없음"));
 
             Pet pet = Pet.builder()
@@ -76,7 +76,7 @@ public class UserService {
                     .activityStatus(petDto.getActivityStatus())
                     .build();
 
-            petsRepository.save(pet);
+            petDao.save(pet);
 
             for (PetPhotoDto photoDto : petDto.getPhotos()) {
                 File file = fileService.save(
@@ -92,7 +92,7 @@ public class UserService {
                         .thumbnail(photoDto.isThumbnail())
                         .build();
 
-                petPhotosRepository.save(petPhoto);
+                petPhotoDao.save(petPhoto);
             }
         }
 

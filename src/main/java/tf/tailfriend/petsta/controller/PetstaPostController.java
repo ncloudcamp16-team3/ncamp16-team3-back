@@ -51,10 +51,32 @@ public class PetstaPostController {
     }
 
     @GetMapping("/lists")
-    public ResponseEntity<List<PostResponseDto>> getPostLists() {
-        List<PostResponseDto> posts = petstaPostService.getAllPosts();
+    public ResponseEntity<List<PostResponseDto>> getPostLists(
+            @AuthenticationPrincipal UserPrincipal userPrincipal) {
+        Integer userId = userPrincipal.getUserId();
+        List<PostResponseDto> posts = petstaPostService.getAllPosts(userId);
         System.out.println(posts);
         return ResponseEntity.ok(posts);
     }
 
+    @PostMapping("/{postId}/like")
+    public ResponseEntity<String> toggleLike(
+            @AuthenticationPrincipal UserPrincipal userPrincipal,
+            @PathVariable("postId") Integer postId
+    ) {
+        Integer userId = userPrincipal.getUserId();
+        petstaPostService.toggleLike(userId, postId);
+        return ResponseEntity.ok("좋아요 토글 완료");
+    }
+
+
+    @PostMapping("/{postId}/bookmark")
+    public ResponseEntity<String> toggleBookmark(
+            @AuthenticationPrincipal UserPrincipal userPrincipal,
+            @PathVariable("postId") Integer postId
+    ) {
+        Integer userId = userPrincipal.getUserId();
+        petstaPostService.toggleBookmark(userId, postId);
+        return ResponseEntity.ok("북마크 토글 완료");
+    }
 }

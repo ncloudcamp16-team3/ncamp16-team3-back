@@ -2,14 +2,21 @@ package tf.tailfriend.petsta.service;
 
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import tf.tailfriend.file.entity.File;
 import tf.tailfriend.file.service.FileService;
 import tf.tailfriend.global.service.StorageService;
 import tf.tailfriend.global.service.StorageServiceException;
+import tf.tailfriend.petsta.entity.PetstaBookmark;
+import tf.tailfriend.petsta.entity.PetstaLike;
 import tf.tailfriend.petsta.entity.PetstaPost;
 import tf.tailfriend.petsta.entity.dto.PostResponseDto;
+import tf.tailfriend.petsta.repository.PetstaBookmarkDao;
+import tf.tailfriend.petsta.repository.PetstaLikeDao;
 import tf.tailfriend.petsta.repository.PetstaPostDao;
 import tf.tailfriend.user.entity.User;
 import tf.tailfriend.user.repository.UserDao;
@@ -20,6 +27,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -30,6 +38,8 @@ public class PetstaPostService {
      private final FileService fileService;
      private final StorageService storageService;
      private final PetstaPostDao petstaPostDao;
+     private final PetstaLikeDao petstaLikeDao;
+     private final PetstaBookmarkDao petstaBookmarkDao;
      private final UserDao userDao;
 
     @Transactional
@@ -93,21 +103,65 @@ public class PetstaPostService {
 
 
     @Transactional
-    public List<PostResponseDto> getAllPosts() {
-        // PetstaPostDao를 통해 모든 게시글을 조회
-        List<PetstaPost> posts = petstaPostDao.findAll();
+    public List<PostResponseDto> getAllPosts(Integer loginUserId) {
+        Pageable pageable = PageRequest.of(0, 5, Sort.by(Sort.Direction.DESC, "createdAt"));
+        List<PetstaPost> posts = petstaPostDao.findAllByOrderByCreatedAtDesc(pageable).getContent();
 
-        // PetstaPost를 PostResponseDto로 변환
-        return posts.stream()  .map(post -> {
-                    PostResponseDto dto = new PostResponseDto(post);
-                    // 파일 경로를 기반으로 S3 링크 생성
+
+        return posts.stream()
+                .map(post -> {
+                    boolean initialLiked = petstaLikeDao.existsByUserIdAndPetstaPostId(loginUserId, post.getId());
+                    boolean initialBookmarked = petstaBookmarkDao.existsByUserIdAndPetstaPostId(loginUserId,post.getId());
+                    PostResponseDto dto = new PostResponseDto(post, initialLiked,initialBookmarked);
+
                     String fileUrl = storageService.generatePresignedUrl(post.getFile().getPath());
-                    dto.setFileName(fileUrl); // PostResponseDto에 파일 URL 추가
+                    dto.setFileName(fileUrl);
+
                     return dto;
                 })
                 .collect(Collectors.toList());
     }
 
+
+
+    @Transactional
+    public void toggleLike(Integer userId, Integer postId) {
+        PetstaPost post = petstaPostDao.findById(postId)
+                .orElseThrow(() -> new IllegalArgumentException("게시글을 찾을 수 없습니다."));
+
+        User user = userDao.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("유저를 찾을 수 없습니다."));
+
+        Optional<PetstaLike> existingLike = petstaLikeDao.findByUserIdAndPetstaPostId(userId, postId);
+
+        if (existingLike.isPresent()) {
+            petstaLikeDao.delete(existingLike.get());
+            post.decreaseLikeCount();
+        } else {
+            PetstaLike newLike = PetstaLike.of(user, post); // << 깔끔
+            petstaLikeDao.save(newLike);
+            post.increaseLikeCount();
+        }
+    }
+
+
+    @Transactional
+    public void toggleBookmark(Integer userId, Integer postId) {
+        PetstaPost post = petstaPostDao.findById(postId)
+                .orElseThrow(() -> new IllegalArgumentException("게시글을 찾을 수 없습니다."));
+
+        User user = userDao.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("유저를 찾을 수 없습니다."));
+
+        Optional<PetstaBookmark> existingBookmark = petstaBookmarkDao.findByUserIdAndPetstaPostId(userId, postId);
+
+        if (existingBookmark.isPresent()) {
+            petstaBookmarkDao.delete(existingBookmark.get());
+        } else {
+            PetstaBookmark newBookmark = PetstaBookmark.of(user, post); // << 깔끔
+            petstaBookmarkDao.save(newBookmark);
+        }
+    }
 
 
 }

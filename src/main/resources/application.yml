@@ -101,3 +101,4 @@ ncp:
   access-key: ${NCR_USERNAME}
   secret-key: ${NCR_PASSWORD}
   bucket-name: ${NCP_BUCKET_NAME}
+

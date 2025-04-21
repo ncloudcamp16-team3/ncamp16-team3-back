@@ -3,11 +3,15 @@ package tf.tailfriend.global.config;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.http.ResponseCookie;
+import org.springframework.util.SerializationUtils;
 
-import java.io.UnsupportedEncodingException;
+import java.io.*;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.Optional;
 
 public class CookieUtils {
@@ -37,16 +41,19 @@ public class CookieUtils {
 
     // 쿠키 추가
     public static void addCookie(HttpServletResponse response, String name, String value, int maxAge) {
-        try {
-            String encodedValue = URLEncoder.encode(value, ENCODING);
-            Cookie cookie = new Cookie(name, encodedValue);
-            cookie.setPath("/");
-            cookie.setHttpOnly(true);
-            cookie.setMaxAge(maxAge);
-            response.addCookie(cookie);
-        } catch (UnsupportedEncodingException e) {
-            throw new RuntimeException("Failed to encode cookie value", e);
-        }
+        String osName = System.getProperty("os.name").toLowerCase();
+        boolean isLinux = osName.contains("linux");
+
+        // ✅ Base64로 인코딩된 value는 그대로 사용
+        ResponseCookie cookie = ResponseCookie.from(name, value)
+                .httpOnly(true)
+                .secure(isLinux)
+                .path("/")
+                .maxAge(maxAge)
+                .sameSite(isLinux ? "None" : "Lax")
+                .build();
+
+        response.addHeader("Set-Cookie", cookie.toString());
     }
 
     // maxAge 기본값으로 쿠키 추가 (180초)
@@ -55,12 +62,19 @@ public class CookieUtils {
     }
 
     // 쿠키 삭제
-    public static void deleteCookie(HttpServletRequest request, HttpServletResponse response, String name) {
-        getCookie(request, name).ifPresent(cookie -> {
-            cookie.setValue("");
-            cookie.setPath("/");
-            cookie.setMaxAge(0);
-            response.addCookie(cookie);
-        });
+    public static void deleteCookie(HttpServletResponse response, String name) {
+        String osName = System.getProperty("os.name").toLowerCase();
+        boolean isLinux = osName.contains("linux");
+
+        ResponseCookie cookie = ResponseCookie.from(name, "")
+                .httpOnly(true)
+                .secure(isLinux)
+                .path("/")
+                .maxAge(0) // 쿠키 삭제
+                .sameSite(isLinux ? "None" : "Lax")
+                .build();
+
+        response.addHeader("Set-Cookie", cookie.toString());
     }
+
 }

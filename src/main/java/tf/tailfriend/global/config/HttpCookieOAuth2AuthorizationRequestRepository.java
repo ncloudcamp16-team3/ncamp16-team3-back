@@ -1,4 +1,3 @@
-
 package tf.tailfriend.global.config;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -26,7 +25,7 @@ public class HttpCookieOAuth2AuthorizationRequestRepository
     public void saveAuthorizationRequest(OAuth2AuthorizationRequest authorizationRequest,
                                          HttpServletRequest request, HttpServletResponse response) {
         if (authorizationRequest == null) {
-            CookieUtils.deleteCookie(request, response, OAUTH2_AUTH_REQUEST_COOKIE_NAME);
+            CookieUtils.deleteCookie(response, OAUTH2_AUTH_REQUEST_COOKIE_NAME);
             return;
         }
 
@@ -36,14 +35,33 @@ public class HttpCookieOAuth2AuthorizationRequestRepository
 
     @Override
     public OAuth2AuthorizationRequest removeAuthorizationRequest(HttpServletRequest request, HttpServletResponse response) {
-        return null;
+        OAuth2AuthorizationRequest authorizationRequest = loadAuthorizationRequest(request);
+        CookieUtils.deleteCookie(response, OAUTH2_AUTH_REQUEST_COOKIE_NAME);
+        return authorizationRequest;
     }
 
     private String serialize(OAuth2AuthorizationRequest object) {
-        return Base64.getUrlEncoder().encodeToString(SerializationUtils.serialize(object));
+        try {
+            // Serialize the object into a byte array using SerializationUtils
+            byte[] serializedObject = SerializationUtils.serialize(object);
+            // Base64 encode the byte array for safe cookie storage
+            return Base64.getUrlEncoder().encodeToString(serializedObject);
+        } catch (Exception e) {
+            throw new IllegalArgumentException("OAuth2AuthorizationRequest serialization failed", e);
+        }
     }
 
     private OAuth2AuthorizationRequest deserialize(String cookie) {
-        return (OAuth2AuthorizationRequest) SerializationUtils.deserialize(Base64.getUrlDecoder().decode(cookie));
+        try {
+            // Base64 decode
+            byte[] decodedBytes = Base64.getUrlDecoder().decode(cookie);
+            // Deserialize using SerializationUtils
+            return (OAuth2AuthorizationRequest) SerializationUtils.deserialize(decodedBytes);
+        } catch (Exception e) {
+            // Enhanced error logging
+            System.err.println("Error during deserialization: " + e.getMessage());
+            e.printStackTrace();
+            throw new IllegalArgumentException("OAuth2AuthorizationRequest deserialization failed", e);
+        }
     }
 }

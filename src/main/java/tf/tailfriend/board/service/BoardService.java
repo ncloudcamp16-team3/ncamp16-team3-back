@@ -8,9 +8,12 @@ import org.springframework.transaction.annotation.Transactional;
 import tf.tailfriend.board.dto.BoardResponseDto;
 import tf.tailfriend.board.dto.CommentResponseDto;
 import tf.tailfriend.board.entity.Board;
+import tf.tailfriend.board.entity.BoardType;
 import tf.tailfriend.board.entity.Comment;
 import tf.tailfriend.board.repository.BoardDao;
 import tf.tailfriend.board.repository.CommentDao;
+import tf.tailfriend.file.entity.File;
+import tf.tailfriend.user.entity.User;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -47,5 +50,39 @@ public class BoardService {
         BoardResponseDto boardResponseDto = BoardResponseDto.fromEntityWithComments(board, commentDtos);
 
         return boardResponseDto;
+    }
+
+    public Board createBoard(String title, String content, BoardType boardType, User user, List<File> files) {
+        // 필수 파라미터 검증
+        if (title == null || title.trim().isEmpty()) {
+            throw new IllegalArgumentException("게시글 제목은 필수입니다.");
+        }
+
+        if (content == null || content.trim().isEmpty()) {
+            throw new IllegalArgumentException("게시글 내용은 필수입니다.");
+        }
+
+        if (boardType == null) {
+            throw new IllegalArgumentException("게시판 타입은 필수입니다.");
+        }
+
+        if (user == null) {
+            throw new IllegalArgumentException("작성자 정보는 필수입니다.");
+        }
+
+        Board board = Board.builder()
+                .title(title)
+                .content(content)
+                .boardType(boardType)
+                .user(user)
+                .build();
+
+        if (files != null && !files.isEmpty()) {
+            for (File file : files) {
+                board.addPhoto(file);
+            }
+        }
+
+        return boardDao.save(board);
     }
 }

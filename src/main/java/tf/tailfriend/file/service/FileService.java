@@ -15,9 +15,9 @@ public class FileService {
     private final FileDao fileDao;
 
     @Transactional
-    public File save(String originalFilename,String pathName, File.FileType fileType) {
+    public File save(String pathName, File.FileType fileType) {
         String uuid = UUID.randomUUID().toString();
-        String path = "uploads/" + pathName+ "/"  + uuid+originalFilename;
+        String path = "uploads/" + pathName + "/" + uuid;
 
         File file = File.builder()
                 .path(path)

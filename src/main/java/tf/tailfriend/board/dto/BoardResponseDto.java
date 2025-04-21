@@ -24,6 +24,7 @@ public class BoardResponseDto {
     private String authorNickname;
     private LocalDateTime createdAt;
     private Integer likeCount;
+    private Integer commentCount;
     private List<String> imageUrls;
 
     @Builder.Default
@@ -38,6 +39,7 @@ public class BoardResponseDto {
                 .authorNickname(board.getUser().getNickname())
                 .createdAt(board.getCreatedAt())
                 .likeCount(board.getLikeCount())
+                .commentCount(board.getCommentCount())
                 .imageUrls(board.getPhotos().stream()
                         .map(photo -> photo.getFile().getPath())
                         .collect(Collectors.toList()))
@@ -53,6 +55,7 @@ public class BoardResponseDto {
                 .authorNickname(board.getUser().getNickname())
                 .createdAt(board.getCreatedAt())
                 .likeCount(board.getLikeCount())
+                .commentCount(board.getCommentCount())
                 .imageUrls(board.getPhotos().stream()
                         .map(photo -> photo.getFile().getPath())
                         .collect(Collectors.toList()))

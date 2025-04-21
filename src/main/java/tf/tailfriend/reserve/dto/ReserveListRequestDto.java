@@ -1,28 +1,28 @@
 package tf.tailfriend.reserve.dto;
 
-import lombok.*;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.Setter;
 import org.springframework.format.annotation.DateTimeFormat;
-import tf.tailfriend.reserve.entity.Payment;
 
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 
 @Getter
 @Setter
 @Builder
-public class PaymentListRequestDto {
-
-    private Integer userId;
+public class ReserveListRequestDto {
 
     @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
-    private LocalDateTime startDate;
+    private LocalDateTime localDateTime;
 
-    @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
-    private LocalDateTime endDate;
+    private double latitude;
+
+    private double longitude;
 
     @Builder.Default
     private int page = 0;
 
     @Builder.Default
     private int size = 10;
-
 }

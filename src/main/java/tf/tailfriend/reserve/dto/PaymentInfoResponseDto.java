@@ -3,6 +3,7 @@ package tf.tailfriend.reserve.dto;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
+import tf.tailfriend.reserve.entity.Payment;
 
 @Getter
 @Setter
@@ -10,8 +11,11 @@ import lombok.Setter;
 public class PaymentInfoResponseDto {
 
     private Integer id;
+
     private String name;
+
     private String createdAt;
+
     private Integer price;
 
 }

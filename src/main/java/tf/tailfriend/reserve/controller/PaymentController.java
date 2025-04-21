@@ -23,11 +23,10 @@ public class PaymentController {
     @RequestMapping("/get")
     public ResponseEntity<ListResponseDto<PaymentInfoResponseDto>> getPayments(
             @RequestParam("id") int userId,
-            @RequestParam("fid") int facilityTypeId,
             @RequestParam(value = "startDate", required = false) String startDate,
             @RequestParam(value = "endDate", required = false) String endDate,
-            @RequestParam("page") int page,
-            @RequestParam("size") int size) {
+            @RequestParam(value = "page", required = false, defaultValue = "0") int page,
+            @RequestParam(value = "size", required = false, defaultValue = "10") int size) {
 
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
@@ -48,7 +47,6 @@ public class PaymentController {
 
         PaymentListRequestDto requestDto = PaymentListRequestDto.builder()
                 .userId(userId)
-                .facilityTypeId(facilityTypeId)
                 .startDate(parsedStartDate)
                 .endDate(parsedEndDate)
                 .page(page)

@@ -22,7 +22,7 @@ public class PaymentDaoImpl implements CustomPaymentDao {
 
         // 기본 SQL 쿼리 작성
         StringBuilder sql = new StringBuilder("""
-            SELECT 
+            SELECT
                 p.id,
                 f.name,
                 p.created_at,
@@ -31,7 +31,6 @@ public class PaymentDaoImpl implements CustomPaymentDao {
             JOIN reserves r ON p.reserve_id = r.id
             JOIN facilities f ON r.user_id = f.id
             WHERE r.user_id = :userId
-              AND f.facility_type_id = :facilityTypeId
         """);
 
         // 날짜 필터링 추가
@@ -48,7 +47,6 @@ public class PaymentDaoImpl implements CustomPaymentDao {
         // 쿼리 실행
         Query query = em.createNativeQuery(sql.toString());
         query.setParameter("userId", requestDto.getUserId());
-        query.setParameter("facilityTypeId", requestDto.getFacilityTypeId());
 
         if (requestDto.getStartDate() != null) {
             query.setParameter("startDate", requestDto.getStartDate());
@@ -77,7 +75,6 @@ public class PaymentDaoImpl implements CustomPaymentDao {
             JOIN reserves r ON p.reserve_id = r.id
             JOIN facilities f ON r.user_id = f.id
             WHERE r.user_id = :userId
-              AND f.facility_type_id = :facilityTypeId
         """;
 
         if (requestDto.getStartDate() != null) {
@@ -90,7 +87,6 @@ public class PaymentDaoImpl implements CustomPaymentDao {
         // 전체 데이터 개수 쿼리 실행
         Query countQuery = em.createNativeQuery(countSql);
         countQuery.setParameter("userId", requestDto.getUserId());
-        countQuery.setParameter("facilityTypeId", requestDto.getFacilityTypeId());
 
         if (requestDto.getStartDate() != null) {
             countQuery.setParameter("startDate", requestDto.getStartDate());

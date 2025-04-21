@@ -52,19 +52,24 @@ public class SecurityConfig {
                 .exceptionHandling(exception -> exception.authenticationEntryPoint(jwtAuthEntryPoint))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                    // APP
-                    .requestMatchers("/api/oauth2/authorization/**").permitAll()
-                    .requestMatchers("/api/**").permitAll()
-                    // 공개 API
-                    .requestMatchers("/login").permitAll()
-                    .requestMatchers("/admin").permitAll()
-                    // admin API
-                    .requestMatchers("/api/admin/login", "/api/admin/auth/validate", "/api/admin/logout").permitAll()
-                    .requestMatchers("/api/admin/register").permitAll()
-                    .requestMatchers("/admin/**").hasRole("ADMIN")
+                        // OAuth2 관련
+                        .requestMatchers("/api/oauth2/authorization/**").permitAll()
 
-                    // 나머지 API 권한 설정
-                    .anyRequest().authenticated()
+                        // 관리자 API - 로그인, 인증 체크, 로그아웃은 누구나 접근 가능
+                        .requestMatchers("/api/admin/login", "/api/admin/auth/validate", "/api/admin/logout").permitAll()
+                        .requestMatchers("/api/admin/register").permitAll()
+
+                        // 나머지 관리자 API는 ADMIN 권한 필요
+                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
+
+                        // 일반 API
+                        .requestMatchers("/api/**").permitAll()
+
+                        // 정적 페이지
+                        .requestMatchers("/login").permitAll()
+                        .requestMatchers("/admin").permitAll()
+                        // 나머지 API 권한 설정
+                        .anyRequest().authenticated()
                 )
                 .oauth2Login(oauth2 -> oauth2
                         .authorizationEndpoint(endpoint -> endpoint

@@ -61,4 +61,8 @@ public class Board {
     public void removePhoto(File file) {
         photos.removeIf(photo -> photo.getFile().equals(file));
     }
+
+    public void increaseCommentCount() {
+        commentCount++;
+    }
 }

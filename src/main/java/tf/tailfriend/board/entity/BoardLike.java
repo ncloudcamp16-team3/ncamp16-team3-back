@@ -25,7 +25,7 @@ public class BoardLike {
 
     @MapsId("boardId")
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "board_id")
+    @JoinColumn(name = "board_post_id")
     private Board board;
 
     @Embeddable

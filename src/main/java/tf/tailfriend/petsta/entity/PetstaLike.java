@@ -25,7 +25,7 @@ public class PetstaLike {
 
     @MapsId("postId")
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "petsta_id")
+    @JoinColumn(name = "petsta_post_id")
     private PetstaPost petstaPost;
 
     @Embeddable

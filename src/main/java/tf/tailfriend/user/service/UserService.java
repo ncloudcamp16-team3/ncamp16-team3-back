@@ -78,7 +78,6 @@ public class UserService {
 
             for (PetPhotoDto photoDto : petDto.getPhotos()) {
                 File file = fileService.save(
-                        "",
                         "pet", // 폴더명
                         photoDto.getType()
                 );

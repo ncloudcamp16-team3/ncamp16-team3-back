@@ -36,5 +36,6 @@ public class Announce {
     private BoardType boardType;
 
     @OneToMany(mappedBy = "announce", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
     private List<AnnouncePhoto> photos = new ArrayList<>();
 }

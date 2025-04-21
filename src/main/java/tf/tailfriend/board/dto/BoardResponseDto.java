@@ -1,9 +1,6 @@
 package tf.tailfriend.board.dto;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
 import tf.tailfriend.board.entity.Board;
 
 import java.time.LocalDateTime;
@@ -25,10 +22,32 @@ public class BoardResponseDto {
     private LocalDateTime createdAt;
     private Integer likeCount;
     private Integer commentCount;
-    private List<String> imageUrls;
+
+    private String firstImageUrl;
+    private List<String> imageUrls = new ArrayList<>();
 
     @Builder.Default
     private List<CommentResponseDto> comments = new ArrayList<>();
+
+    // 첫 번째 이미지 URL 업데이트 메서드
+    public void updateFirstImageUrl(String url) {
+        this.firstImageUrl = url;
+
+        // 이미지 URL 목록이 비어있으면 첫 번째 이미지도 추가
+        if (this.imageUrls.isEmpty() && url != null) {
+            this.imageUrls.add(url);
+        }
+    }
+
+    // 이미지 URL 목록 설정 메서드
+    public void setImageUrls(List<String> urls) {
+        this.imageUrls = urls;
+
+        // 첫 번째 이미지 URL도 업데이트
+        if (!urls.isEmpty()) {
+            this.firstImageUrl = urls.get(0);
+        }
+    }
 
     public static BoardResponseDto fromEntity(Board board) {
         return BoardResponseDto.builder()
@@ -40,9 +59,6 @@ public class BoardResponseDto {
                 .createdAt(board.getCreatedAt())
                 .likeCount(board.getLikeCount())
                 .commentCount(board.getCommentCount())
-                .imageUrls(board.getPhotos().stream()
-                        .map(photo -> photo.getFile().getPath())
-                        .collect(Collectors.toList()))
                 .build();
     }
 

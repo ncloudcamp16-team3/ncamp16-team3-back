@@ -2,6 +2,7 @@ package tf.tailfriend.facility.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import tf.tailfriend.board.entity.BoardPhoto;
 
 import java.sql.Time;
 import java.time.LocalTime;
@@ -50,6 +51,10 @@ public class Facility {
 
     @Column(nullable = false)
     private Double longitude;
+
+    @OneToMany(mappedBy = "facility", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private List<FacilityPhoto> photos = new ArrayList<>();
 
     @OneToMany(mappedBy = "facility", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<FacilityTimetable> timetables = new ArrayList<>();

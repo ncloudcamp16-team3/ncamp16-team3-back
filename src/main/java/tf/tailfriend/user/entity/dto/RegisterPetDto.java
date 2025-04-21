@@ -10,7 +10,7 @@ import java.util.List;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class PetRegisterDto {
+public class RegisterPetDto {
 
     private Integer petTypeId;
     private String name;
@@ -21,5 +21,5 @@ public class PetRegisterDto {
     private boolean neutered;
     private ActivityStatus activityStatus;
 
-    private List<PetPhotoDto> photos;
+    private List<RegisterPetPhotoDto> photos;
 }

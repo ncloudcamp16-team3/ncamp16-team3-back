@@ -6,20 +6,24 @@ import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 import tf.tailfriend.global.config.JwtTokenProvider;
 import tf.tailfriend.global.config.UserPrincipal;
 import tf.tailfriend.user.entity.User;
 import tf.tailfriend.user.entity.dto.LoginRequestDto;
-import tf.tailfriend.user.entity.dto.UserRegisterDto;
+import tf.tailfriend.user.entity.dto.RegisterUserDto;
 import tf.tailfriend.user.service.AuthService;
 import tf.tailfriend.user.service.UserService;
 
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -34,14 +38,18 @@ public class AuthController {
     private static final Logger logger = LoggerFactory.getLogger(AuthController.class);
 
 
-    @PostMapping("/api/auth/register")
-    public ResponseEntity<?> register(@RequestBody UserRegisterDto dto, HttpServletResponse response) {
+    @PostMapping(value="/api/auth/register", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<?> register(@RequestPart("dto") RegisterUserDto dto,
+                                      @RequestPart(value = "images", required = false) List<MultipartFile> images,
+                                      HttpServletResponse response) {
         logger.info("🔥 register() called!");
         logger.debug("📦 DTO received: {}", dto);
 
-
+        if (images == null) {
+            images = new ArrayList<>(); // null 방지
+        }
         // 유저 등록
-        User savedUser = userService.registerUser(dto); // 반환값 Users로 변경
+        User savedUser = userService.registerUser(dto,images); // 반환값 Users로 변경
 
         boolean isNewUser = savedUser == null;
 

@@ -11,6 +11,7 @@ import tf.tailfriend.petsta.entity.dto.PostResponseDto;
 import tf.tailfriend.petsta.service.PetstaPostService;
 import tf.tailfriend.file.entity.File;
 
+import java.io.IOException;
 import java.util.List;
 
 @RestController
@@ -28,7 +29,24 @@ public class PetstaPostController {
     ) throws StorageServiceException {
         Integer userId = userPrincipal.getUserId();
         System.out.println(content);
-        petstaPostService.uploadPost(userId,content,imageFile);
+        petstaPostService.uploadPhoto(userId,content,imageFile);
+        return ResponseEntity.ok("업로드 성공");
+    }
+
+
+    @PostMapping("/add/video")
+    public ResponseEntity<String> addVideo(
+            @AuthenticationPrincipal UserPrincipal userPrincipal,
+            @RequestParam(value = "content") String content,
+            @RequestParam(value = "trimStart") String trimStart,
+            @RequestParam(value = "trimEnd") String trimEnd,
+            @RequestPart(value = "video") MultipartFile videoFile
+    ) throws StorageServiceException, IOException, InterruptedException {
+        Integer userId = userPrincipal.getUserId();
+        System.out.println(content);
+        System.out.println(trimStart);
+        System.out.println(trimEnd);
+        petstaPostService.uploadVideo(userId,content,trimStart,trimEnd,videoFile);
         return ResponseEntity.ok("업로드 성공");
     }
 

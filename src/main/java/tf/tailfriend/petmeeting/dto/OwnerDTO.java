@@ -2,7 +2,6 @@ package tf.tailfriend.petmeeting.dto;
 
 import lombok.Builder;
 import lombok.Getter;
-import tf.tailfriend.pet.entity.Pet;
 import tf.tailfriend.user.entity.User;
 
 @Getter

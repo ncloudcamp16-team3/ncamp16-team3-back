@@ -4,20 +4,26 @@ import lombok.Getter;
 
 @Getter
 public enum Distance {
-    ONE("1"), TWO("2"), THREE("3"), FOUR("4");
 
-    private final String value;
+    ONE("1", 1),
+    TWO("2", 3),
+    THREE("3", 5),
+    FOUR("4", 10);
 
-    Distance(String value) {
-        this.value = value;
+    private final String code;
+    private final int distanceValue;
+
+    Distance(String code, int distanceValue) {
+        this.code = code;
+        this.distanceValue = distanceValue;
     }
 
-    public static Distance fromString(String value) {
-        for (Distance distance : Distance.values()) {
-            if (distance.getValue().equals(value)) {
-                return distance;
+    public static Distance fromString(String dbCode) {
+        for (Distance d : values()) {
+            if (d.code.equals(dbCode)) {
+                return d;
             }
         }
-        throw new IllegalArgumentException("Invalid Distance value: " + value);
+        throw new IllegalArgumentException("Unknown Distance code: " + dbCode);
     }
 }

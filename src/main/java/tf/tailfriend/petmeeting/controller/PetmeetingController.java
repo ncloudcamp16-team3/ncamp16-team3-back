@@ -23,16 +23,17 @@ public class PetmeetingController {
     @PostMapping("/friends")
     public ResponseEntity<?> getFriendList(@RequestBody FindFriendRequestDTO findFriendRequestDTO) {
 
+        log.info("\n\n\n\n\n\n\n\nfindFriendRequestDTO : " + findFriendRequestDTO);
 
         Page<PetFriendDTO> petFriends =  petmeetingService.getFriends(
                 findFriendRequestDTO.getActivityStatus(),
                 findFriendRequestDTO.getDongName(),
                 findFriendRequestDTO.getDistance(),
                 findFriendRequestDTO.getPage(),
-                findFriendRequestDTO.getSize()
+                findFriendRequestDTO.getSize(),
+                findFriendRequestDTO.getLatitude(),
+                findFriendRequestDTO.getLongitude()
         );
-
-        log.info("\n\n\npetFriends : " + petFriends);
 
         return ResponseEntity
                 .status(HttpStatus.OK)

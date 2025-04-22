@@ -8,7 +8,7 @@ public class DistanceConverter implements AttributeConverter<Distance, String> {
 
     @Override
     public String convertToDatabaseColumn(Distance attribute) {
-        return attribute == null ? null : attribute.getValue();
+        return attribute == null ? null : attribute.getCode();
     }
 
     @Override

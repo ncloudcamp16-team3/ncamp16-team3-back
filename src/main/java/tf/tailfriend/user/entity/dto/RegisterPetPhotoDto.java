@@ -16,13 +16,4 @@ public class RegisterPetPhotoDto {
     private String path;
     private boolean thumbnail;
     private String originName;
-
-    public static RegisterPetPhotoDto buildByEntity(PetPhoto photo) {
-        return RegisterPetPhotoDto.builder()
-                .type(photo.getFile().getType())
-                .path(photo.getFile().getPath())
-                .thumbnail(photo.isThumbnail())
-                .build();
-    }
-
 }

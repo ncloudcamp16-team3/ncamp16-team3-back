@@ -17,10 +17,7 @@ import tf.tailfriend.pet.repository.PetPhotoDao;
 import tf.tailfriend.pet.repository.PetTypeDao;
 import tf.tailfriend.user.entity.SnsType;
 import tf.tailfriend.user.entity.User;
-import tf.tailfriend.user.entity.dto.LoginRequestDto;
-import tf.tailfriend.user.entity.dto.RegisterPetDto;
-import tf.tailfriend.user.entity.dto.RegisterPetPhotoDto;
-import tf.tailfriend.user.entity.dto.RegisterUserDto;
+import tf.tailfriend.user.entity.dto.*;
 import tf.tailfriend.user.exception.PetTypeException;
 import tf.tailfriend.user.exception.SnsTypeException;
 import tf.tailfriend.user.exception.UserException;
@@ -56,6 +53,25 @@ public class AuthService {
                 user.getSnsAccountId(),
                 user.getSnsType().getId(),
                 false
+        );
+    }
+
+
+    public UserInfoDto getUserInfoById(Integer userId) {
+        User user = userDao.findById(userId)
+                .orElseThrow(() -> new UserException());
+
+        String fileUrl = storageService.generatePresignedUrl(user.getFile().getPath());
+
+        return new UserInfoDto(
+                user.getId(),
+                user.getNickname(),
+                user.getSnsAccountId(),
+                user.getAddress(),
+                user.getDongName(),
+                user.getLatitude(),
+                user.getLongitude(),
+                fileUrl
         );
     }
 

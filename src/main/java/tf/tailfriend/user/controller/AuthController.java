@@ -1,5 +1,7 @@
 package tf.tailfriend.user.controller;
 
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -11,11 +13,13 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import tf.tailfriend.global.config.JwtAuthenticationFilter;
 import tf.tailfriend.global.config.JwtTokenProvider;
 import tf.tailfriend.global.config.UserPrincipal;
 import tf.tailfriend.user.entity.User;
 import tf.tailfriend.user.entity.dto.LoginRequestDto;
 import tf.tailfriend.user.entity.dto.RegisterUserDto;
+import tf.tailfriend.user.entity.dto.UserInfoDto;
 import tf.tailfriend.user.service.AuthService;
 
 import java.time.Duration;
@@ -33,6 +37,35 @@ public class AuthController {
     private final JwtTokenProvider jwtTokenProvider;
 
     private static final Logger logger = LoggerFactory.getLogger(AuthController.class);
+
+
+    // 기존 프로필 확인
+    @GetMapping("/profile")
+    public ResponseEntity<?> getUserProfile(@AuthenticationPrincipal UserPrincipal userPrincipal) {
+        if (userPrincipal == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("인증되지 않은 사용자입니다.");
+        }
+
+        Map<String, Object> userProfile = new HashMap<>();
+        userProfile.put("userId", userPrincipal.getUserId());
+        userProfile.put("snsAccountId", userPrincipal.getSnsAccountId());
+        userProfile.put("snsTypeId", userPrincipal.getSnsTypeId());
+
+        return ResponseEntity.ok(userProfile);
+    }
+
+    // ✅ 유저 상세정보 조회
+    @GetMapping("/userinfo")
+    public ResponseEntity<?> getUserInfo(@AuthenticationPrincipal UserPrincipal userPrincipal) {
+        if (userPrincipal == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("인증되지 않은 사용자입니다.");
+        }
+
+        Integer userId = userPrincipal.getUserId();
+        UserInfoDto userInfo = authService.getUserInfoById(userId);
+
+        return ResponseEntity.ok(userInfo);
+    }
 
 
     @PostMapping(value="/register", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -114,6 +147,8 @@ public class AuthController {
 
         return ResponseEntity.ok(response);
     }
+
+
 
 
     private ResponseCookie createJwtCookie(String token) {

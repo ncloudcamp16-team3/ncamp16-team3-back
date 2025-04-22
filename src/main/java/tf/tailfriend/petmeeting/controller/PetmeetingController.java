@@ -2,30 +2,40 @@ package tf.tailfriend.petmeeting.controller;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import tf.tailfriend.global.response.CustomResponse;
+import tf.tailfriend.petmeeting.dto.FindFriendRequestDTO;
+import tf.tailfriend.petmeeting.dto.PetFriendDTO;
 import tf.tailfriend.petmeeting.service.PetmeetingService;
 
 import static tf.tailfriend.petmeeting.message.SuccessMessage.GET_FRIENDS_SUCCESS;
 
 @RestController
-@RequestMapping("/api/admin")
+@RequestMapping("/api/petmeeting")
 @RequiredArgsConstructor
 @Slf4j
 public class PetmeetingController {
     private final PetmeetingService petmeetingService;
 
-    @GetMapping
-    public ResponseEntity<?> getFriendList(
-            @RequestParam String activityStatus,
-            @RequestParam String dongName,
-            @RequestParam String distance,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "5") int size) {
+    @PostMapping("/friends")
+    public ResponseEntity<?> getFriendList(@RequestBody FindFriendRequestDTO findFriendRequestDTO) {
 
-        return ResponseEntity.ok(
-                new CustomResponse(GET_FRIENDS_SUCCESS.getMessage(), petmeetingService.getFriends())
+
+        Page<PetFriendDTO> petFriends =  petmeetingService.getFriends(
+                findFriendRequestDTO.getActivityStatus(),
+                findFriendRequestDTO.getDongName(),
+                findFriendRequestDTO.getDistance(),
+                findFriendRequestDTO.getPage(),
+                findFriendRequestDTO.getSize()
         );
+
+        log.info("\n\n\npetFriends : " + petFriends);
+
+        return ResponseEntity
+                .status(HttpStatus.OK)
+                .body(new CustomResponse(GET_FRIENDS_SUCCESS.getMessage(), petFriends));
     }
 }

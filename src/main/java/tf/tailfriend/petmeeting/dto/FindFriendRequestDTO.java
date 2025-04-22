@@ -1,0 +1,16 @@
+package tf.tailfriend.petmeeting.dto;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@AllArgsConstructor
+@NoArgsConstructor
+public class FindFriendRequestDTO {
+    private String activityStatus;
+    private String dongName;
+    private String distance;
+    private int page = 0;
+    private int size = 5;
+}

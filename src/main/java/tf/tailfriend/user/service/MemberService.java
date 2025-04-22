@@ -4,14 +4,17 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import tf.tailfriend.file.entity.File;
-import tf.tailfriend.file.repository.FileRepository;
+import tf.tailfriend.file.repository.FileDao;
+import tf.tailfriend.global.service.StorageService;
 import tf.tailfriend.pet.entity.Pet;
 import tf.tailfriend.pet.entity.PetPhoto;
+import tf.tailfriend.petsitter.repository.PetSitterDao;
 import tf.tailfriend.user.entity.User;
 import tf.tailfriend.user.entity.dto.MypageResponseDto;
 import tf.tailfriend.user.entity.dto.PetResponseDto;
-import tf.tailfriend.user.repository.UserRepository;
-import tf.tailfriend.petsitter.repository.PetSitterRepository;
+import tf.tailfriend.user.repository.UserDao;
+
+
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -19,9 +22,10 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class MemberService {
 
-    private final UserRepository userRepository;
-    private final PetSitterRepository petSitterRepository;
-    private final FileRepository fileRepository;
+    private final UserDao userDao;
+    private final PetSitterDao petSitterDao;
+    private final FileDao fileDao;
+    private final StorageService storageService;
 
     /**
      * 회원의 마이페이지 정보를 조회합니다.
@@ -31,7 +35,7 @@ public class MemberService {
      */
     public MypageResponseDto getMemberInfo(Integer userId) {
         // 1. 회원 정보 조회
-        User user = userRepository.findById(userId)
+        User user = userDao.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회원입니다: " + userId));
 
         // 2. 반려동물 정보 변환
@@ -40,13 +44,13 @@ public class MemberService {
                 .collect(Collectors.toList());
 
         // 3. 펫시터 여부 확인
-        boolean isSitter = petSitterRepository.existsById(userId);
+        boolean isSitter = petSitterDao.existsById(userId);
 
         // 4. 응답 DTO 생성 및 반환
         return MypageResponseDto.builder()
                 .userId(user.getId())
                 .nickname(user.getNickname())
-                .profileImageUrl(user.getFile().getPath())
+                .profileImageUrl(storageService.generatePresignedUrl(user.getFile().getPath()))
                 .pets(petDtos)
                 .isSitter(isSitter)
                 .build();
@@ -72,12 +76,12 @@ public class MemberService {
         }
 
         // 3. 회원 조회
-        User user = userRepository.findById(userId)
+        User user = userDao.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회원입니다: " + userId));
 
         // 4. 닉네임 중복 검사
-        userRepository.findByNickname(newNickname)
-                .filter(u -> !u.getId().equals(userId)) // 자기 자신은 제외
+        userDao.findByNickname(newNickname)
+                .filter(u -> !u.getId().equals(userId))
                 .ifPresent(u -> {
                     throw new IllegalArgumentException("이미 사용 중인 닉네임입니다: " + newNickname);
                 });
@@ -90,7 +94,8 @@ public class MemberService {
         }
 
         // 6. 저장 및 반환
-        userRepository.save(user);
+        user.updateNickname(newNickname);
+        userDao.save(user);
         return newNickname;
     }
 
@@ -104,18 +109,18 @@ public class MemberService {
     @Transactional
     public String updateProfileImage(Integer userId, Integer fileId) {
         // 1. 회원 조회
-        User user = userRepository.findById(userId)
+        User user = userDao.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회원입니다: " + userId));
 
         // 2. 파일 조회
-        File file = fileRepository.findById(fileId)
+        File file = fileDao.findById(fileId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 파일입니다: " + fileId));
 
         // 3. 프로필 이미지 업데이트
         user.updateProfileImage(file);
 
         // 4. 저장 및 URL 반환
-        userRepository.save(user);
+        userDao.save(user);
         return file.getPath();
     }
 
@@ -127,15 +132,14 @@ public class MemberService {
     @Transactional
     public void withdrawMember(Integer userId) {
         // 1. 회원 조회
-        User user = userRepository.findById(userId)
+        User user = userDao.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회원입니다: " + userId));
 
         // 2. 펫시터 정보가 있다면 함께 삭제
-        petSitterRepository.findById(userId).ifPresent(petSitterRepository::delete);
+        petSitterDao.findById(userId).ifPresent(petSitterDao::delete);
 
         // 3. 회원 삭제
-        // 참고: CASCADE 설정에 따라 연관된 엔티티(반려동물 등)도 함께 삭제될 수 있음
-        userRepository.delete(user);
+        userDao.delete(user);
     }
 
     /**
@@ -146,7 +150,8 @@ public class MemberService {
         String petProfileImageUrl = pet.getPhotos().stream()
                 .filter(PetPhoto::isThumbnail)  // 썸네일로 설정된 사진 필터링
                 .findFirst()
-                .map(photo -> photo.getFile().getPath())
+                .or(() -> pet.getPhotos().stream().findFirst())
+                .map(photo -> storageService.generatePresignedUrl(photo.getFile().getPath()))
                 .orElse(null);  // 썸네일이 없으면 null
 
         // 2. PetResponseDto 생성 및 반환

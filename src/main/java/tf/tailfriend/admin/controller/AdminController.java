@@ -9,7 +9,6 @@ import org.springframework.web.bind.annotation.*;
 import tf.tailfriend.admin.dto.AdminLoginRequest;
 import tf.tailfriend.admin.dto.AdminLoginResponse;
 import tf.tailfriend.admin.entity.Admin;
-import tf.tailfriend.admin.exception.EmailException;
 import tf.tailfriend.admin.service.AdminService;
 
 import java.util.HashMap;
@@ -25,12 +24,8 @@ public class AdminController {
 
     @PostMapping("/register")
     public ResponseEntity<?> register(@RequestBody AdminLoginRequest request) {
-        try {
-            Admin admin = adminService.register(request.getEmail(), request.getPassword());
-            return ResponseEntity.ok(Map.of("message", "관리자 등록 성공!", "email", admin.getEmail()));
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
-        }
+        Admin admin = adminService.register(request.getEmail(), request.getPassword());
+        return ResponseEntity.ok(Map.of("message", "관리자 등록 성공!", "email", admin.getEmail()));
     }
 
     @GetMapping("/auth/validate")
@@ -48,16 +43,8 @@ public class AdminController {
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody AdminLoginRequest request) {
         log.info("Login request: {}", request);
-        try {
-            AdminLoginResponse response = adminService.login(request.getEmail(), request.getPassword());
-            return ResponseEntity.ok(response);
-        } catch (EmailException e) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(Map.of("message", e.getMessage()));
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Map.of("message", "로그인 처리 중 오류가 발생했습니다"));
-        }
+        AdminLoginResponse response = adminService.login(request.getEmail(), request.getPassword());
+        return ResponseEntity.ok(response);
     }
 
     @PostMapping("/logout")

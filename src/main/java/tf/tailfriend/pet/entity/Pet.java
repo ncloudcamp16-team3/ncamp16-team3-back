@@ -66,4 +66,14 @@ public class Pet {
     public void removePhoto(File file) {
         photos.removeIf(photo -> photo.getFile().equals(file));
     }
+
+    public void updateInfo(PetType petType, String name, String gender, String birth, Double weight, String info, Boolean neutered) {
+        this.petType = petType;
+        this.name = name;
+        this.gender = gender;
+        this.birth = birth;
+        this.weight = weight;
+        this.info = info;
+        this.neutered = neutered;
+    }
 }

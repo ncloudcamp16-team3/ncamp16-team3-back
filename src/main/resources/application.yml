@@ -1,6 +1,6 @@
 spring:
-  profiles:
-    active: local
+#  profiles:
+#    active: local
 
   application:
     name: tailfriend

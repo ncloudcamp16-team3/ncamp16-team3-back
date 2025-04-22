@@ -9,6 +9,7 @@ import org.springframework.transaction.annotation.Transactional;
 import tf.tailfriend.admin.dto.AdminLoginResponse;
 import tf.tailfriend.admin.entity.Admin;
 import tf.tailfriend.admin.exception.EmailException;
+import tf.tailfriend.admin.exception.ExistEmailException;
 import tf.tailfriend.admin.exception.PasswordException;
 import tf.tailfriend.admin.repository.AdminDao;
 import tf.tailfriend.global.config.JwtTokenProvider;
@@ -37,7 +38,7 @@ public class AdminService {
     @Transactional
     public Admin register(String email, String password) {
         if (adminDao.findByEmail(email).isPresent()) {
-            throw new IllegalArgumentException("이미 등록된 이메일 입니다");
+            throw new ExistEmailException();
         }
 
         String encodedPassword = passwordEncoder.encode(password);
@@ -56,7 +57,6 @@ public class AdminService {
                 .orElseThrow(() -> new EmailException());
 
         if (!passwordEncoder.matches(password, admin.getPassword())) {
-            log.info("비밀번호가 맞지않아");
             throw new PasswordException();
         }
 

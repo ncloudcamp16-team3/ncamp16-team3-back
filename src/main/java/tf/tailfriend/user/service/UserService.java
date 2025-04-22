@@ -15,17 +15,23 @@ import tf.tailfriend.pet.entity.PetType;
 import tf.tailfriend.pet.repository.PetPhotoDao;
 import tf.tailfriend.pet.repository.PetDao;
 import tf.tailfriend.pet.repository.PetTypeDao;
+import tf.tailfriend.petsta.entity.PetstaBookmark;
+import tf.tailfriend.petsta.entity.PetstaPost;
 import tf.tailfriend.petsitter.repository.PetSitterDao;
 import tf.tailfriend.user.entity.SnsType;
 import tf.tailfriend.user.entity.User;
+import tf.tailfriend.user.entity.UserFollow;
 import tf.tailfriend.user.entity.dto.*;
 import tf.tailfriend.user.repository.SnsTypeDao;
 import tf.tailfriend.user.repository.UserDao;
+import tf.tailfriend.user.repository.UserFollowDao;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -38,6 +44,7 @@ public class UserService {
     private final SnsTypeDao snsTypeDao;
     private final PetTypeDao petTypeDao;
     private final PetPhotoDao petPhotoDao;
+    private final UserFollowDao userFollowDao;
     private final FileService fileService;
     private final StorageService storageService;
 
@@ -257,4 +264,23 @@ public class UserService {
                 .build();
     }
 
+    @Transactional
+    public void toggleFollow(Integer followerId, Integer followedId) {
+
+        User followerUser = userDao.findById(followerId)
+                .orElseThrow(() -> new IllegalArgumentException("팔로우하는 유저를 찾을 수 없습니다."));
+
+
+        User followedUser = userDao.findById(followedId)
+                .orElseThrow(() -> new IllegalArgumentException("팔로우받는 유저를 찾을 수 없습니다."));
+
+        Optional<UserFollow> existingFollow = userFollowDao.findByFollowerIdAndFollowedId(followerId, followedId);
+
+        if (existingFollow.isPresent()) {
+            userFollowDao.delete(existingFollow.get());
+        } else {
+            UserFollow newFollow = UserFollow.of(followerUser, followedUser); // << 깔끔
+            userFollowDao.save(newFollow);
+        }
+    }
 }

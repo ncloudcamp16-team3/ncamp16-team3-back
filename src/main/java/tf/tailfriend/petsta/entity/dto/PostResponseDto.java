@@ -22,8 +22,9 @@ public class PostResponseDto {
     private String createdAt;
     private boolean initialLiked;
     private boolean initialBookmarked;
+    private boolean initialFollowed;
 
-    public PostResponseDto(PetstaPost post, boolean initialLiked, boolean initialBookmarked) {
+    public PostResponseDto(PetstaPost post, boolean initialLiked, boolean initialBookmarked, boolean initialFollowed) {
         this.postId = post.getId();  // 게시물 ID
         this.userId = post.getUser().getId();  // User ID
         this.userName = post.getUser().getNickname();  // User의 nickname
@@ -36,6 +37,7 @@ public class PostResponseDto {
         this.createdAt = post.getCreatedAt().toString();  // 생성 일자
         this.initialLiked = initialLiked;
         this.initialBookmarked = initialBookmarked;
+        this.initialFollowed = initialFollowed;
     }
 
 }

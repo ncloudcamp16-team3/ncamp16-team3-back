@@ -30,6 +30,8 @@ public class FileService {
         String uuid = UUID.randomUUID().toString();
         String path = "uploads/" + pathName + "/" + uuid + (extension.isEmpty() ? "" : "." + extension);
 
+        System.out.println("저장된 파일 경로:" + path);
+
         File file = File.builder()
                 .path(path)
                 .type(fileType)

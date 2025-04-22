@@ -5,6 +5,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import tf.tailfriend.file.entity.File;
 import tf.tailfriend.file.repository.FileDao;
+import tf.tailfriend.global.service.StorageService;
 import tf.tailfriend.pet.entity.Pet;
 import tf.tailfriend.pet.entity.PetPhoto;
 import tf.tailfriend.petsitter.repository.PetSitterDao;
@@ -12,8 +13,8 @@ import tf.tailfriend.user.entity.User;
 import tf.tailfriend.user.entity.dto.MypageResponseDto;
 import tf.tailfriend.user.entity.dto.PetResponseDto;
 import tf.tailfriend.user.repository.UserDao;
-import tf.tailfriend.user.repository.UserDao;
-import tf.tailfriend.petsitter.repository.PetSitterDao;
+
+
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -24,6 +25,7 @@ public class MemberService {
     private final UserDao userDao;
     private final PetSitterDao petSitterDao;
     private final FileDao fileDao;
+    private final StorageService storageService;
 
     /**
      * 회원의 마이페이지 정보를 조회합니다.
@@ -48,7 +50,7 @@ public class MemberService {
         return MypageResponseDto.builder()
                 .userId(user.getId())
                 .nickname(user.getNickname())
-                .profileImageUrl(user.getFile().getPath())
+                .profileImageUrl(storageService.generatePresignedUrl(user.getFile().getPath()))
                 .pets(petDtos)
                 .isSitter(isSitter)
                 .build();
@@ -79,7 +81,7 @@ public class MemberService {
 
         // 4. 닉네임 중복 검사
         userDao.findByNickname(newNickname)
-                .filter(u -> !u.getId().equals(userId)) // 자기 자신은 제외
+                .filter(u -> !u.getId().equals(userId))
                 .ifPresent(u -> {
                     throw new IllegalArgumentException("이미 사용 중인 닉네임입니다: " + newNickname);
                 });
@@ -92,6 +94,7 @@ public class MemberService {
         }
 
         // 6. 저장 및 반환
+        user.updateNickname(newNickname);
         userDao.save(user);
         return newNickname;
     }
@@ -136,7 +139,6 @@ public class MemberService {
         petSitterDao.findById(userId).ifPresent(petSitterDao::delete);
 
         // 3. 회원 삭제
-        // 참고: CASCADE 설정에 따라 연관된 엔티티(반려동물 등)도 함께 삭제될 수 있음
         userDao.delete(user);
     }
 
@@ -148,7 +150,8 @@ public class MemberService {
         String petProfileImageUrl = pet.getPhotos().stream()
                 .filter(PetPhoto::isThumbnail)  // 썸네일로 설정된 사진 필터링
                 .findFirst()
-                .map(photo -> photo.getFile().getPath())
+                .or(() -> pet.getPhotos().stream().findFirst())
+                .map(photo -> storageService.generatePresignedUrl(photo.getFile().getPath()))
                 .orElse(null);  // 썸네일이 없으면 null
 
         // 2. PetResponseDto 생성 및 반환

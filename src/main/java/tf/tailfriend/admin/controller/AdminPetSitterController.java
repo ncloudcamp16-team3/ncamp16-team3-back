@@ -26,7 +26,7 @@ public class AdminPetSitterController {
     ) {
         PageRequest pageRequest = PageRequest.of(page, size, Sort.by("id").descending());
 
-        Page<PetSitterResponseDto> petSitters = petSitterService.findAll(pageRequest);
+        Page<PetSitterResponseDto> petSitters = petSitterService.findApprovePetSitter(pageRequest);
 
         return ResponseEntity.ok(petSitters);
     }

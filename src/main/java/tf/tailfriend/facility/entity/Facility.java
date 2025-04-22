@@ -2,7 +2,12 @@ package tf.tailfriend.facility.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import tf.tailfriend.board.entity.BoardPhoto;
+
+import java.sql.Time;
 import java.time.LocalTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "facilities")
@@ -23,12 +28,6 @@ public class Facility {
     @Column(nullable = false)
     private String name;
 
-    @Column(name = "open_time")
-    private LocalTime openTime;
-
-    @Column(name = "close_time")
-    private LocalTime closeTime;
-
     @Column(length = 50)
     private String tel;
 
@@ -37,6 +36,9 @@ public class Facility {
 
     @Column(name = "star_point", nullable = false)
     private Double starPoint = 0.0;
+
+    @Column(name= "review_count", nullable = false)
+    private Integer reviewCount = 0;
 
     @Column(nullable = false)
     private String address;
@@ -49,4 +51,22 @@ public class Facility {
 
     @Column(nullable = false)
     private Double longitude;
+
+    @OneToMany(mappedBy = "facility", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private List<FacilityPhoto> photos = new ArrayList<>();
+
+    @OneToMany(mappedBy = "facility", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<FacilityTimetable> timetables = new ArrayList<>();
+
+    public void addTimetable(FacilityTimetable.Day day, Time openTime, Time closeTime) {
+        FacilityTimetable timetable = FacilityTimetable.builder()
+                .day(day)
+                .openTime(openTime)
+                .closeTime(closeTime)
+                .facility(this)
+                .build();
+
+        timetables.add(timetable);
+    }
 }

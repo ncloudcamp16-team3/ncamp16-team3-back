@@ -5,6 +5,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Lazy;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
@@ -18,6 +19,7 @@ import tf.tailfriend.global.config.JwtTokenProvider;
 import java.io.IOException;
 
 @Component
+@Slf4j
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtTokenProvider jwtTokenProvider;
@@ -35,6 +37,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             throws ServletException, IOException {
       
         String jwt = resolveToken(request);
+
+        log.info("Request URL: {}", request.getRequestURL());
+        log.info("JWT Token: {}", jwt != null ? "exists" : "null");
 
         if (StringUtils.hasText(jwt)) {
             if (adminService.isTokenBlacklisted(jwt)) {

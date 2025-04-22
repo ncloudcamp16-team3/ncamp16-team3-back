@@ -11,18 +11,18 @@ import tf.tailfriend.pet.entity.PetPhoto;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class PetPhotoDto {
+public class RegisterPetPhotoDto {
     private FileType type;
     private String path;
-    private String uuid;
     private boolean thumbnail;
+    private String originName;
 
-    public static PetPhotoDto buildByEntity(PetPhoto photo) {
-        return PetPhotoDto.builder()
+    public static RegisterPetPhotoDto buildByEntity(PetPhoto photo) {
+        return RegisterPetPhotoDto.builder()
                 .type(photo.getFile().getType())
                 .path(photo.getFile().getPath())
-                .uuid(photo.getFile().getUuid())
                 .thumbnail(photo.isThumbnail())
                 .build();
     }
+
 }

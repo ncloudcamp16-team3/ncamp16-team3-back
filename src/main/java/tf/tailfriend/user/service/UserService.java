@@ -3,52 +3,59 @@ package tf.tailfriend.user.service;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 import tf.tailfriend.file.entity.File;
-import tf.tailfriend.file.repository.FileRepository;
+import tf.tailfriend.file.service.FileService;
+import tf.tailfriend.global.service.StorageService;
+import tf.tailfriend.global.service.StorageServiceException;
 import tf.tailfriend.pet.entity.Pet;
 import tf.tailfriend.pet.entity.PetPhoto;
 import tf.tailfriend.pet.entity.PetType;
-import tf.tailfriend.pet.repository.PetPhotoRepository;
-import tf.tailfriend.pet.repository.PetRepository;
-import tf.tailfriend.pet.repository.PetTypeRepository;
+import tf.tailfriend.pet.repository.PetPhotoDao;
+import tf.tailfriend.pet.repository.PetDao;
+import tf.tailfriend.pet.repository.PetTypeDao;
 import tf.tailfriend.user.entity.SnsType;
 import tf.tailfriend.user.entity.User;
-import tf.tailfriend.user.entity.dto.PetPhotoDto;
-import tf.tailfriend.user.entity.dto.PetRegisterDto;
-import tf.tailfriend.user.entity.dto.UserRegisterDto;
-import tf.tailfriend.user.repository.SnsTypeRepository;
-import tf.tailfriend.user.repository.UserRepository;
+import tf.tailfriend.user.entity.dto.RegisterPetPhotoDto;
+import tf.tailfriend.user.entity.dto.RegisterPetDto;
+import tf.tailfriend.user.entity.dto.RegisterUserDto;
+import tf.tailfriend.user.repository.SnsTypeDao;
+import tf.tailfriend.user.repository.UserDao;
 
-import java.util.UUID;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
 public class UserService {
 
-    private final UserRepository userRepository;
-    private final PetRepository petsRepository;
-    private final SnsTypeRepository snsTypeRepository;
-    private final PetTypeRepository petTypesRepository;
-    private final PetPhotoRepository petPhotosRepository;
-    private final FileRepository fileRepository;
+    private final UserDao userDao;
+    private final PetDao petDao;
+    private final SnsTypeDao snsTypeDao;
+    private final PetTypeDao petTypeDao;
+    private final PetPhotoDao petPhotoDao;
+    private final FileService fileService;
+    private final StorageService storageService;
 
     // ✅ 이메일로 userId 반환
     public Integer getUserIdBySnsAccountId(String snsAccountId) {
-        return userRepository.findBySnsAccountId(snsAccountId)
+        return userDao.findBySnsAccountId(snsAccountId)
                 .map(User::getId)
                 .orElse(null);
     }
 
+
+
     @Transactional
-    public User registerUser(UserRegisterDto dto) {
+    public User registerUser(RegisterUserDto dto, List<MultipartFile> images) {
         // 1. SNS 타입 조회
-        SnsType snsType = snsTypeRepository.findById(dto.getSnsTypeId())
+        SnsType snsType = snsTypeDao.findById(dto.getSnsTypeId())
                 .orElseThrow(() -> new RuntimeException("SNS 타입 없음"));
 
         // 2. 기본 프로필 파일
-        File defaultFile = fileRepository.findById(
-                dto.getFileId() != null ? dto.getFileId() : 1
-        ).orElseThrow(() -> new RuntimeException("기본 파일 없음"));
+        File defaultFile = fileService.getOrDefault(dto.getFileId());
 
         // 3. 유저 저장
         User user = User.builder()
@@ -58,12 +65,12 @@ public class UserService {
                 .file(defaultFile)
                 .build();
 
-        userRepository.save(user);
-        userRepository.flush(); // ✅ 즉시 DB 반영해서 user.id 보장
+        userDao.save(user);
+        userDao.flush(); // ✅ 즉시 DB 반영해서 user.id 보장
 
         // 4. 펫 + 사진 등록
-        for (PetRegisterDto petDto : dto.getPets()) {
-            PetType petType = petTypesRepository.findById(petDto.getPetTypeId())
+        for (RegisterPetDto petDto : dto.getPets()) {
+            PetType petType = petTypeDao.findById(petDto.getPetTypeId())
                     .orElseThrow(() -> new RuntimeException("펫 타입 없음"));
 
             Pet pet = Pet.builder()
@@ -78,16 +85,21 @@ public class UserService {
                     .activityStatus(petDto.getActivityStatus())
                     .build();
 
-            petsRepository.save(pet);
+            petDao.save(pet);
 
-            for (PetPhotoDto photoDto : petDto.getPhotos()) {
-                File file = File.builder()
-                        .type(photoDto.getType())
-                        .path(photoDto.getPath())
-                        .uuid(photoDto.getUuid() != null ? photoDto.getUuid() : UUID.randomUUID().toString())
-                        .build();
+                int imageIndex = 0;
 
-                fileRepository.save(file);
+                for (RegisterPetPhotoDto photoDto : petDto.getPhotos()) {
+                    if (imageIndex >= images.size()) break;
+
+                    MultipartFile image = images.get(imageIndex++);
+                    File file = fileService.save(image.getOriginalFilename(), "pet", photoDto.getType());
+
+                    try (InputStream is = image.getInputStream()) {
+                        storageService.upload(file.getPath(), is);
+                    } catch (IOException | StorageServiceException e) {
+                        throw new RuntimeException("파일 업로드 실패: " + e.getMessage(), e);
+                    }
 
                 PetPhoto petPhoto = PetPhoto.builder()
                         .id(new PetPhoto.PetPhotoId(file.getId(), pet.getId()))
@@ -96,7 +108,7 @@ public class UserService {
                         .thumbnail(photoDto.isThumbnail())
                         .build();
 
-                petPhotosRepository.save(petPhoto);
+                petPhotoDao.save(petPhoto);
             }
         }
 

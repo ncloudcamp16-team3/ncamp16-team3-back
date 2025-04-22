@@ -83,4 +83,12 @@ public class User {
         this.following.add(follow);
         userToFollow.getFollowers().add(follow);
     }
+
+    public void updateNickname(String nickname) {
+        this.nickname = nickname;
+    }
+
+    public void updateProfileImage(File file) {
+        this.file = file;
+    }
 }

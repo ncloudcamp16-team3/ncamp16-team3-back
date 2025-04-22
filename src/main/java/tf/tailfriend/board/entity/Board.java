@@ -43,6 +43,9 @@ public class Board {
     @Column(name = "like_count", nullable = false)
     private Integer likeCount = 0;
 
+    @Column(name = "comment_count", nullable = false)
+    private Integer commentCount = 0;
+
     @OneToMany(mappedBy = "board", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private List<BoardPhoto> photos = new ArrayList<>();
@@ -57,5 +60,9 @@ public class Board {
 
     public void removePhoto(File file) {
         photos.removeIf(photo -> photo.getFile().equals(file));
+    }
+
+    public void increaseCommentCount() {
+        commentCount++;
     }
 }

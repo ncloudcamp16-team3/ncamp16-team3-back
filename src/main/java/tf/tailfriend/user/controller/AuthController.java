@@ -1,6 +1,5 @@
 package tf.tailfriend.user.controller;
 
-import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -157,8 +156,6 @@ public class AuthController {
         info.put("snsTypeId", user.getSnsTypeId());
         return info;
     }
-
-
 
 }
 

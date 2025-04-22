@@ -9,7 +9,6 @@ import org.springframework.web.bind.annotation.*;
 import tf.tailfriend.admin.dto.AdminLoginRequest;
 import tf.tailfriend.admin.dto.AdminLoginResponse;
 import tf.tailfriend.admin.entity.Admin;
-import tf.tailfriend.admin.exception.EmailException;
 import tf.tailfriend.admin.service.AdminService;
 
 import java.util.HashMap;

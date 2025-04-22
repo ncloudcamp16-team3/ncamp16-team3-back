@@ -9,12 +9,8 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import tf.tailfriend.global.config.UserPrincipal;
 import tf.tailfriend.user.entity.dto.MypageResponseDto;
-import tf.tailfriend.user.entity.dto.PetResponseDto;
 import tf.tailfriend.user.service.MemberService;
-
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -32,51 +28,26 @@ public class MemberController {
     public ResponseEntity<?> getMyPageInfo(@AuthenticationPrincipal UserPrincipal principal) {
         logger.info("마이페이지 정보 조회 요청");
 
-        // 테스트용: 인증 체크 우회
+        if (principal == null) {
+            logger.error("인증되지 않은 요청");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("error", "로그인이 필요합니다."));
+        }
+
         try {
-            List<PetResponseDto> petsList = new ArrayList<>();
-            petsList.add(new PetResponseDto(
-                    1, "푸바오", "2020년 07월 20일", "판다", "암컷", 100.6,
-                    "대한민국에서 태어난 최초의 판다에요. 이곳저곳을 돌아다니며 탐색을 즐기는 호기심쟁이에요.",
-                    true, "/mock/Global/images/haribo.jpg", null
-            ));
-
-            MypageResponseDto testResponse = new MypageResponseDto(
-                    1, "테스트사용자", "/mock/Global/images/haribo.jpg", petsList, false
-            );
-
-            return ResponseEntity.ok(testResponse);
+            MypageResponseDto response = memberService.getMemberInfo(principal.getUserId());
+            return ResponseEntity.ok(response);
         } catch (Exception e) {
             logger.error("마이페이지 정보 조회 중 오류 발생", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of("error", "정보를 조회하는 중 오류가 발생했습니다."));
         }
     }
-    //실제로 쓸거
-//    @GetMapping("/mypage")
-//    public ResponseEntity<?> getMyPageInfo(@AuthenticationPrincipal UserPrincipal principal) {
-//        logger.info("마이페이지 정보 조회 요청");
-//
-//        if (principal == null) {
-//            logger.error("인증되지 않은 요청");
-//            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-//                    .body(Map.of("error", "로그인이 필요합니다."));
-//        }
-//
-//        try {
-//            MypageResponseDto response = memberService.getMemberInfo(principal.getUserId());
-//            return ResponseEntity.ok(response);
-//        } catch (Exception e) {
-//            logger.error("마이페이지 정보 조회 중 오류 발생", e);
-//            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-//                    .body(Map.of("error", "정보를 조회하는 중 오류가 발생했습니다."));
-//        }
-//    }
 
     /**
      * 닉네임 업데이트 API
      */
-    @PatchMapping("/nickname")
+    @PutMapping("/nickname")
     public ResponseEntity<?> updateNickname(
             @AuthenticationPrincipal UserPrincipal principal,
             @RequestBody Map<String, String> request) {
@@ -106,9 +77,29 @@ public class MemberController {
     }
 
     /**
+     * 회원탈퇴 API
+     */
+    @DeleteMapping("/withdraw")
+    public ResponseEntity<?> withdraw(@AuthenticationPrincipal UserPrincipal principal) {
+
+        if (principal == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("error", "로그인이 필요합니다."));
+        }
+        try {
+            memberService.withdrawMember(principal.getUserId());
+            return ResponseEntity.ok(Map.of("message", "회원 탈퇴가 완료되었습니다."));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "회원 탈퇴 처리 중 오류가 발생했습니다.."));
+        }
+    }
+
+
+    /**
      * 프로필 이미지 업데이트 API
      */
-    @PatchMapping("/profile-image")
+    @PutMapping("/profile-image")
     public ResponseEntity<?> updateProfileImage(
             @AuthenticationPrincipal UserPrincipal principal,
             @RequestBody Map<String, Integer> request) {

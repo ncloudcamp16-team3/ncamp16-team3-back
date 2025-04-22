@@ -9,13 +9,17 @@ import tf.tailfriend.global.service.StorageService;
 import tf.tailfriend.pet.entity.Pet;
 import tf.tailfriend.pet.entity.PetPhoto;
 import tf.tailfriend.petsitter.repository.PetSitterDao;
+import tf.tailfriend.petsta.entity.PetstaBookmark;
 import tf.tailfriend.user.entity.User;
+import tf.tailfriend.user.entity.UserFollow;
 import tf.tailfriend.user.entity.dto.MypageResponseDto;
 import tf.tailfriend.user.entity.dto.PetResponseDto;
 import tf.tailfriend.user.repository.UserDao;
+import tf.tailfriend.user.repository.UserFollowDao;
 
 
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -26,6 +30,7 @@ public class MemberService {
     private final PetSitterDao petSitterDao;
     private final FileDao fileDao;
     private final StorageService storageService;
+    private final UserFollowDao userFollowDao;
 
     /**
      * 회원의 마이페이지 정보를 조회합니다.
@@ -167,4 +172,26 @@ public class MemberService {
                 .profileImageUrl(petProfileImageUrl)
                 .build();
     }
+
+
+    @Transactional
+    public void toggleFollow(Integer followerId, Integer followedId) {
+
+        User followerUser = userDao.findById(followerId)
+                .orElseThrow(() -> new IllegalArgumentException("팔로우하는 유저를 찾을 수 없습니다."));
+
+
+        User followedUser = userDao.findById(followedId)
+                .orElseThrow(() -> new IllegalArgumentException("팔로우받는 유저를 찾을 수 없습니다."));
+
+        Optional<UserFollow> existingFollow = userFollowDao.findByFollowerIdAndFollowedId(followerId, followedId);
+
+        if (existingFollow.isPresent()) {
+            userFollowDao.delete(existingFollow.get());
+        } else {
+            UserFollow newFollow = UserFollow.of(followerUser, followedUser); // << 깔끔
+            userFollowDao.save(newFollow);
+        }
+    }
+
 }

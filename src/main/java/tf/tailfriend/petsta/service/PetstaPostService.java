@@ -21,6 +21,7 @@ import tf.tailfriend.petsta.repository.PetstaLikeDao;
 import tf.tailfriend.petsta.repository.PetstaPostDao;
 import tf.tailfriend.user.entity.User;
 import tf.tailfriend.user.repository.UserDao;
+import tf.tailfriend.user.repository.UserFollowDao;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -36,12 +37,13 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class PetstaPostService {
 
-     private final FileService fileService;
-     private final StorageService storageService;
-     private final PetstaPostDao petstaPostDao;
-     private final PetstaLikeDao petstaLikeDao;
-     private final PetstaBookmarkDao petstaBookmarkDao;
-     private final UserDao userDao;
+    private final FileService fileService;
+    private final StorageService storageService;
+    private final PetstaPostDao petstaPostDao;
+    private final PetstaLikeDao petstaLikeDao;
+    private final PetstaBookmarkDao petstaBookmarkDao;
+    private final UserDao userDao;
+    private final UserFollowDao userFollowDao;
 
     @Transactional
     public void uploadPhoto(Integer userId, String content, MultipartFile imageFile) throws StorageServiceException {
@@ -113,8 +115,10 @@ public class PetstaPostService {
                 .map(post -> {
                     boolean initialLiked = petstaLikeDao.existsByUserIdAndPetstaPostId(loginUserId, post.getId());
                     boolean initialBookmarked = petstaBookmarkDao.existsByUserIdAndPetstaPostId(loginUserId, post.getId());
+                    boolean initialFollowed = userFollowDao.existsByFollowerIdAndFollowedId(loginUserId, post.getUser().getId());
 
-                    PostResponseDto dto = new PostResponseDto(post, initialLiked, initialBookmarked);
+
+                    PostResponseDto dto = new PostResponseDto(post, initialLiked, initialBookmarked, initialFollowed);
 
                     // 게시글 파일 URL
                     String fileUrl = storageService.generatePresignedUrl(post.getFile().getPath());
@@ -142,9 +146,10 @@ public class PetstaPostService {
         // 2. 좋아요, 북마크 여부 조회
         boolean initialLiked = petstaLikeDao.existsByUserIdAndPetstaPostId(loginUserId, post.getId());
         boolean initialBookmarked = petstaBookmarkDao.existsByUserIdAndPetstaPostId(loginUserId, post.getId());
+        boolean initialFollowed = userFollowDao.existsByFollowerIdAndFollowedId(loginUserId, post.getUser().getId());
 
         // 3. DTO 생성
-        PostResponseDto dto = new PostResponseDto(post, initialLiked, initialBookmarked);
+        PostResponseDto dto = new PostResponseDto(post, initialLiked, initialBookmarked, initialFollowed);
 
         // 4. 게시글 파일 presigned URL 생성
         String fileUrl = storageService.generatePresignedUrl(post.getFile().getPath());

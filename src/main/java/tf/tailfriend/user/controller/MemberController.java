@@ -129,12 +129,14 @@ public class MemberController {
     }
 
 
-    @PostMapping("/{postId}/follow")
-    public ResponseEntity<String> toggleBookmark(
+    @PostMapping("/{userId}/follow")
+    public ResponseEntity<String> toggleFollow(
             @AuthenticationPrincipal UserPrincipal userPrincipal,
-            @PathVariable("postId") Integer postId
+            @PathVariable("userId") Integer userId
     ) {
-        Integer userId = userPrincipal.getUserId();
+        Integer followerId = userPrincipal.getUserId();
+        memberService.toggleFollow(followerId, userId);
+
         return ResponseEntity.ok("팔로우 토글 완료");
     }
 

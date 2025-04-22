@@ -18,7 +18,6 @@ import tf.tailfriend.user.entity.User;
 import tf.tailfriend.user.entity.dto.LoginRequestDto;
 import tf.tailfriend.user.entity.dto.RegisterUserDto;
 import tf.tailfriend.user.service.AuthService;
-import tf.tailfriend.user.service.UserService;
 
 import java.time.Duration;
 import java.util.ArrayList;
@@ -27,18 +26,17 @@ import java.util.List;
 import java.util.Map;
 
 @RestController
-@RequestMapping
+@RequestMapping("/api/auth")
 @RequiredArgsConstructor
 public class AuthController {
 
-    private final UserService userService;
     private final AuthService authService;
     private final JwtTokenProvider jwtTokenProvider;
 
     private static final Logger logger = LoggerFactory.getLogger(AuthController.class);
 
 
-    @PostMapping(value="/api/auth/register", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PostMapping(value="/register", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> register(@RequestPart("dto") RegisterUserDto dto,
                                       @RequestPart(value = "images", required = false) List<MultipartFile> images,
                                       HttpServletResponse response) {
@@ -49,7 +47,7 @@ public class AuthController {
             images = new ArrayList<>(); // null 방지
         }
         // 유저 등록
-        User savedUser = userService.registerUser(dto,images); // 반환값 Users로 변경
+        User savedUser = authService.registerUser(dto,images); // 반환값 Users로 변경
 
         boolean isNewUser = savedUser == null;
 
@@ -68,7 +66,7 @@ public class AuthController {
     }
 
 
-    @PostMapping("/api/auth/login")
+    @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequestDto dto, HttpServletResponse response) {
 
 
@@ -83,7 +81,7 @@ public class AuthController {
     }
 
 
-    @GetMapping("/api/auth/me")
+    @GetMapping("/me")
     public ResponseEntity<?> getCurrentUser(@AuthenticationPrincipal UserPrincipal user) {
         if (user == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Unauthorized"));
@@ -92,7 +90,7 @@ public class AuthController {
         return ResponseEntity.ok(buildUserInfo(user));
     }
 
-    @PostMapping("/api/auth/logout")
+    @PostMapping("/logout")
     public ResponseEntity<?> logout(HttpServletResponse response) {
         String osName = System.getProperty("os.name").toLowerCase();
         System.out.println("/api/auth/logout : "+osName);
@@ -101,7 +99,7 @@ public class AuthController {
     }
 
 
-    @GetMapping("/api/auth/check")
+    @GetMapping("/check")
     public ResponseEntity<?> checkLogin(@AuthenticationPrincipal UserPrincipal user) {
         if (user == null) {
             return ResponseEntity.status(401).body(Map.of("loggedIn", false));

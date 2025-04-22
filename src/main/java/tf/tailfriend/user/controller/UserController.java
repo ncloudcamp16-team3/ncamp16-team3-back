@@ -9,17 +9,18 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import tf.tailfriend.global.config.UserPrincipal;
 import tf.tailfriend.user.entity.dto.MypageResponseDto;
-import tf.tailfriend.user.service.MemberService;
+import tf.tailfriend.user.service.UserService;
+
 import java.util.HashMap;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/member")
+@RequestMapping("/api/user")
 @RequiredArgsConstructor
-public class MemberController {
+public class UserController {
 
-    private static final Logger logger = LoggerFactory.getLogger(MemberController.class);
-    private final MemberService memberService;
+    private static final Logger logger = LoggerFactory.getLogger(UserController.class);
+    private final UserService userService;
 
     /**
      * 마이페이지 정보 조회 API
@@ -35,7 +36,7 @@ public class MemberController {
         }
 
         try {
-            MypageResponseDto response = memberService.getMemberInfo(principal.getUserId());
+            MypageResponseDto response = userService.getMemberInfo(principal.getUserId());
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             logger.error("마이페이지 정보 조회 중 오류 발생", e);
@@ -63,7 +64,7 @@ public class MemberController {
         }
 
         try {
-            String updatedNickname = memberService.updateNickname(principal.getUserId(), newNickname);
+            String updatedNickname = userService.updateNickname(principal.getUserId(), newNickname);
             Map<String, Object> response = new HashMap<>();
             response.put("message", "닉네임이 성공적으로 변경되었습니다.");
             response.put("nickname", updatedNickname);
@@ -87,7 +88,7 @@ public class MemberController {
                     .body(Map.of("error", "로그인이 필요합니다."));
         }
         try {
-            memberService.withdrawMember(principal.getUserId());
+            userService.withdrawMember(principal.getUserId());
             return ResponseEntity.ok(Map.of("message", "회원 탈퇴가 완료되었습니다."));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -115,7 +116,7 @@ public class MemberController {
         }
 
         try {
-            String imageUrl = memberService.updateProfileImage(principal.getUserId(), fileId);
+            String imageUrl = userService.updateProfileImage(principal.getUserId(), fileId);
             Map<String, Object> response = new HashMap<>();
             response.put("message", "프로필 이미지가 성공적으로 변경되었습니다.");
             response.put("profileImageUrl", imageUrl);
@@ -127,4 +128,17 @@ public class MemberController {
                     .body(Map.of("error", "프로필 이미지를 변경하는 중 오류가 발생했습니다."));
         }
     }
+
+
+    @PostMapping("/{userId}/follow")
+    public ResponseEntity<String> toggleFollow(
+            @AuthenticationPrincipal UserPrincipal userPrincipal,
+            @PathVariable("userId") Integer userId
+    ) {
+        Integer followerId = userPrincipal.getUserId();
+        userService.toggleFollow(followerId, userId);
+
+        return ResponseEntity.ok("팔로우 토글 완료");
+    }
+
 }

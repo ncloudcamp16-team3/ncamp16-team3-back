@@ -9,7 +9,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.web.authentication.SimpleUrlAuthenticationSuccessHandler;
 import org.springframework.stereotype.Component;
-import tf.tailfriend.user.service.UserService;
+import tf.tailfriend.user.service.AuthService;
 
 import java.io.IOException;
 import java.time.Duration;
@@ -19,7 +19,7 @@ import java.time.Duration;
 public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler {
 
     private final JwtTokenProvider jwtTokenProvider;
-    private final UserService userService;
+    private final AuthService authService;
 
 
     @Value("${URL}")
@@ -38,7 +38,7 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
         Integer snsTypeId = OAuth2AttributeExtractor.getSnsTypeId(attributes);
 
         // 🟡 가입 여부 확인
-        Integer userId = userService.getUserIdBySnsAccountId(snsAccountId);
+        Integer userId = authService.getUserIdBySnsAccountId(snsAccountId);
         boolean isNewUser = (userId == null);
         if (isNewUser) {
             userId = -1; // DB에 아직 없는 유저

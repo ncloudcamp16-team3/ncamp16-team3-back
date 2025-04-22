@@ -1,5 +1,6 @@
 package tf.tailfriend.petsta.service;
 
+import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
@@ -111,16 +112,53 @@ public class PetstaPostService {
         return posts.stream()
                 .map(post -> {
                     boolean initialLiked = petstaLikeDao.existsByUserIdAndPetstaPostId(loginUserId, post.getId());
-                    boolean initialBookmarked = petstaBookmarkDao.existsByUserIdAndPetstaPostId(loginUserId,post.getId());
-                    PostResponseDto dto = new PostResponseDto(post, initialLiked,initialBookmarked);
+                    boolean initialBookmarked = petstaBookmarkDao.existsByUserIdAndPetstaPostId(loginUserId, post.getId());
 
+                    PostResponseDto dto = new PostResponseDto(post, initialLiked, initialBookmarked);
+
+                    // 게시글 파일 URL
                     String fileUrl = storageService.generatePresignedUrl(post.getFile().getPath());
                     dto.setFileName(fileUrl);
 
+                    // 글쓴이(유저) 정보
+                    User writer = post.getUser();
+
+                    String userPhotoUrl = storageService.generatePresignedUrl(writer.getFile().getPath());
+                    dto.setUserPhoto(userPhotoUrl);
+                    System.out.println(userPhotoUrl);
+
                     return dto;
                 })
+
                 .collect(Collectors.toList());
     }
+
+    @Transactional
+    public PostResponseDto getPostById(Integer loginUserId, Integer postId) {
+        // 1. postId로 게시글 조회
+        PetstaPost post = petstaPostDao.findById(postId)
+                .orElseThrow(() -> new EntityNotFoundException("해당 게시글을 찾을 수 없습니다."));
+
+        // 2. 좋아요, 북마크 여부 조회
+        boolean initialLiked = petstaLikeDao.existsByUserIdAndPetstaPostId(loginUserId, post.getId());
+        boolean initialBookmarked = petstaBookmarkDao.existsByUserIdAndPetstaPostId(loginUserId, post.getId());
+
+        // 3. DTO 생성
+        PostResponseDto dto = new PostResponseDto(post, initialLiked, initialBookmarked);
+
+        // 4. 게시글 파일 presigned URL 생성
+        String fileUrl = storageService.generatePresignedUrl(post.getFile().getPath());
+        dto.setFileName(fileUrl);
+
+        // 5. 글쓴이 프로필사진 presigned URL 생성
+        User writer = post.getUser();
+
+        String userPhotoUrl = storageService.generatePresignedUrl(writer.getFile().getPath());
+        dto.setUserPhoto(userPhotoUrl);
+
+        return dto;
+    }
+
 
 
 

@@ -14,6 +14,8 @@ import tf.tailfriend.pet.entity.PetType;
 import tf.tailfriend.pet.repository.PetPhotoDao;
 import tf.tailfriend.pet.repository.PetDao;
 import tf.tailfriend.pet.repository.PetTypeDao;
+import tf.tailfriend.petsta.entity.PetstaBookmark;
+import tf.tailfriend.petsta.entity.PetstaPost;
 import tf.tailfriend.user.entity.SnsType;
 import tf.tailfriend.user.entity.User;
 import tf.tailfriend.user.entity.dto.RegisterPetPhotoDto;
@@ -26,6 +28,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -114,6 +117,9 @@ public class UserService {
 
         return user;
     }
+
+
+
 
 
 }

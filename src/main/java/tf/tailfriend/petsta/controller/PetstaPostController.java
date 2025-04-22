@@ -59,6 +59,18 @@ public class PetstaPostController {
         return ResponseEntity.ok(posts);
     }
 
+
+    @GetMapping("/{postId}")
+    public ResponseEntity<PostResponseDto> getPostbyId(
+            @AuthenticationPrincipal UserPrincipal userPrincipal,
+            @PathVariable("postId") Integer postId) {
+        Integer userId = userPrincipal.getUserId();
+        PostResponseDto post = petstaPostService.getPostById(userId,postId);
+        System.out.println(post);
+        System.out.println("너왜출력을안하냐?");
+        return ResponseEntity.ok(post);
+    }
+
     @PostMapping("/{postId}/like")
     public ResponseEntity<String> toggleLike(
             @AuthenticationPrincipal UserPrincipal userPrincipal,

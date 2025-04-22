@@ -127,4 +127,15 @@ public class MemberController {
                     .body(Map.of("error", "프로필 이미지를 변경하는 중 오류가 발생했습니다."));
         }
     }
+
+
+    @PostMapping("/{postId}/follow")
+    public ResponseEntity<String> toggleBookmark(
+            @AuthenticationPrincipal UserPrincipal userPrincipal,
+            @PathVariable("postId") Integer postId
+    ) {
+        Integer userId = userPrincipal.getUserId();
+        return ResponseEntity.ok("팔로우 토글 완료");
+    }
+
 }

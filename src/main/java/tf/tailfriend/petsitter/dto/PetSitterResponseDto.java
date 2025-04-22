@@ -1,15 +1,13 @@
 package tf.tailfriend.petsitter.dto;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
 import tf.tailfriend.petsitter.entity.PetSitter;
 
 import java.time.LocalDateTime;
 
 @Getter
 @Builder
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 public class PetSitterResponseDto {

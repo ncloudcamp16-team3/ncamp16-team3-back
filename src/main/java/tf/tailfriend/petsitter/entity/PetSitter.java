@@ -63,6 +63,7 @@ public class PetSitter {
     @Column(nullable = false)
     private PetSitterStatus status = PetSitterStatus.NONE;
 
+
     @Getter
     public enum PetCount {
         ONE("1"), TWO("2"), THREE_PLUS("3+");
@@ -79,6 +80,7 @@ public class PetSitter {
         PENDING, APPROVE, DELETE, NONE
     }
 
+
     public void approve() {
         this.status = PetSitterStatus.APPROVE;
         this.applyAt = LocalDateTime.now();
@@ -86,10 +88,10 @@ public class PetSitter {
 
     public void pending() {
         this.status = PetSitterStatus.PENDING;
+        this.applyAt = null; // 신청 날짜 초기화
     }
 
     public void delete() {
         this.status = PetSitterStatus.DELETE;
-        this.applyAt = null;
     }
 }

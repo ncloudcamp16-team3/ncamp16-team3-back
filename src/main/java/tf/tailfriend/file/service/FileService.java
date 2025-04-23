@@ -87,6 +87,10 @@ public class FileService {
         // 5. 잘린 Path만 리턴
         return trimmedPath;
     }
+    @Transactional(readOnly = true)
+    public File getDefaultImage() {
+        return getOrDefault(1); // 1번은 기본 이미지라고 가정
+    }
 
     public double getVideoDurationInSeconds(Path videoPath) throws IOException, InterruptedException {
         String[] command = {

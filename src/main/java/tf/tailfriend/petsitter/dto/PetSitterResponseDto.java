@@ -24,6 +24,7 @@ public class PetSitterResponseDto {
     private String imagePath; // 파일 경로
     private LocalDateTime createdAt;
     private LocalDateTime applyAt;
+    private String status;
 
     // Entity를 DTO로 변환하는 정적 메서드
     public static PetSitterResponseDto fromEntity(PetSitter petSitter) {
@@ -39,6 +40,7 @@ public class PetSitterResponseDto {
                 .imagePath(petSitter.getFile().getPath())
                 .createdAt(petSitter.getCreatedAt())
                 .applyAt(petSitter.getApplyAt() != null ? petSitter.getApplyAt() : null)
+                .status(petSitter.getStatus().toString())
                 .build();
     }
 }

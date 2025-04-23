@@ -29,13 +29,13 @@ public class PetSitterService {
 
     @Transactional(readOnly = true)
     public Page<PetSitterResponseDto> findApprovePetSitter(Pageable pageable) {
-        Page<PetSitter> petSitters = petSitterDao.findByApplyAtIsNotNull(pageable);
+        Page<PetSitter> petSitters = petSitterDao.findByStatus(PetSitter.PetSitterStatus.APPROVE, pageable);
         return convertToDtoPage(petSitters, pageable);
     }
 
     @Transactional(readOnly = true)
-    public Page<PetSitterResponseDto> findPendingPetSitter(Pageable pageable) {
-        Page<PetSitter> petSitters = petSitterDao.findByApplyAtIsNull(pageable);
+    public Page<PetSitterResponseDto> findNonePetSitter(Pageable pageable) {
+        Page<PetSitter> petSitters = petSitterDao.findByStatus(PetSitter.PetSitterStatus.NONE, pageable);
         return convertToDtoPage(petSitters, pageable);
     }
 
@@ -45,6 +45,60 @@ public class PetSitterService {
                 .orElseThrow(() -> new IllegalArgumentException("펫시터가 존재하지 않습니다 " + id));
 
         return PetSitterResponseDto.fromEntity(petSitter);
+    }
+
+    @Transactional
+    public PetSitterResponseDto approvePetSitter(Integer id) {
+        PetSitter petSitter = petSitterDao.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 펫시터입니다"));
+
+        if (petSitter.getStatus() == PetSitter.PetSitterStatus.APPROVE) {
+            throw new IllegalArgumentException("이미 승인한 펫시터입니다");
+        }
+
+        petSitter.approve();
+
+        PetSitter savedPetSitter = petSitterDao.save(petSitter);
+
+        PetSitterResponseDto dto = PetSitterResponseDto.fromEntity(savedPetSitter);
+
+        String savedUrl = storageService.generatePresignedUrl(savedPetSitter.getFile().getPath());
+        dto.setImagePath(savedUrl);
+
+        return dto;
+    }
+
+    @Transactional
+    public PetSitterResponseDto pendingPetSitter(Integer id) {
+        PetSitter petSitter = petSitterDao.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 펫시터입니다"));
+
+        petSitter.pending();
+
+        PetSitter savedPetSitter = petSitterDao.save(petSitter);
+
+        PetSitterResponseDto dto = PetSitterResponseDto.fromEntity(savedPetSitter);
+
+        String savedUrl = storageService.generatePresignedUrl(savedPetSitter.getFile().getPath());
+        dto.setImagePath(savedUrl);
+
+        return dto;
+    }
+
+    @Transactional
+    public PetSitterResponseDto deletePetSitter(Integer id) {
+        PetSitter petSitter = petSitterDao.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 펫시터 입니다"));
+
+        petSitter.delete();
+
+        PetSitter savedPetSitter = petSitterDao.save(petSitter);
+
+        PetSitterResponseDto dto = PetSitterResponseDto.fromEntity(savedPetSitter);
+        String savedUrl = storageService.generatePresignedUrl(savedPetSitter.getFile().getPath());
+        dto.setImagePath(savedUrl);
+
+        return dto;
     }
 
     // 페이지 객체를 DTO로 변환하는 공통 메서드

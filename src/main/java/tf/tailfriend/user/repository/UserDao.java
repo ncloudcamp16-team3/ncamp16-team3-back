@@ -7,6 +7,6 @@ import java.util.Optional;
 
 public interface UserDao extends JpaRepository<User, Integer> {
 
-    User findBySnsAccountId(String snsAccountId);
+    User findBySnsAccountIdAndSnsTypeId(String snsAccountId, Integer snsTypeId);
     Optional<User> findByNickname(String nickname);
 }

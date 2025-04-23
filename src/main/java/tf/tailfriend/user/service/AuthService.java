@@ -60,8 +60,8 @@ public class AuthService {
         );
     }
 
-    public Integer getUserIdBySnsAccountId(String snsAccountId) {
-        User user = userDao.findBySnsAccountId(snsAccountId);
+    public Integer getUserIdBySnsAccountIdAndSnsTypeId(String snsAccountId, Integer snsTypeId) {
+        User user = userDao.findBySnsAccountIdAndSnsTypeId(snsAccountId,snsTypeId);
         if (user != null) {
             return user.getId();
         }

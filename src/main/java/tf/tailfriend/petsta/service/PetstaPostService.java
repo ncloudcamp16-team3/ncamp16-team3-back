@@ -256,6 +256,7 @@ public class PetstaPostService {
                         comment.getUser().getNickname(), // ✨ User의 닉네임만!
                         storageService.generatePresignedUrl(comment.getUser().getFile().getPath()),
                         comment.getCreatedAt(),
+                        null,
                         comment.getReplyCount(),
                         true
                 ))
@@ -275,6 +276,7 @@ public class PetstaPostService {
                         reply.getUser().getNickname(),
                         storageService.generatePresignedUrl(reply.getUser().getFile().getPath()),
                         reply.getCreatedAt(),
+                        reply.getParent().getId(),
                         reply.getReplyCount(),
                         false // 자식 댓글은 isView=false (처음엔 안 펼쳐져 있음)
                 ))

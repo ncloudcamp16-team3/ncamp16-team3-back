@@ -13,6 +13,7 @@ public class CommentResponseDto {
     private String userName;
     private String userPhoto;
     private LocalDateTime createdAt;
+    private Integer parentId;
     private Integer replyCount;
     private Boolean isView;
 }

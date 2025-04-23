@@ -2,7 +2,6 @@ package tf.tailfriend.reserve.dto;
 
 import lombok.Builder;
 import lombok.Getter;
-import tf.tailfriend.global.service.DateTimeInfo;
 
 @Getter
 @Builder

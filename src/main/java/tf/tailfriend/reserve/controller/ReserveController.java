@@ -8,7 +8,6 @@ import org.springframework.web.bind.annotation.RestController;
 import tf.tailfriend.facility.dto.FacilityCardForReserve;
 import tf.tailfriend.facility.service.FacilityService;
 import tf.tailfriend.reserve.dto.FacilityListRequestDto;
-import tf.tailfriend.reserve.dto.ListResponseDto;
 import tf.tailfriend.reserve.service.ReserveService;
 
 @RestController

@@ -1,9 +1,10 @@
-package tf.tailfriend.global.service;
+package tf.tailfriend.facility.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import tf.tailfriend.facility.entity.FacilityTimetable;
+import tf.tailfriend.global.service.DateTimeFormatProvider;
 
 import java.util.List;
 import java.util.stream.Collectors;

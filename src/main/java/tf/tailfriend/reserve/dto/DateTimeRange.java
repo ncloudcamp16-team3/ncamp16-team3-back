@@ -1,4 +1,4 @@
-package tf.tailfriend.global.service;
+package tf.tailfriend.reserve.dto;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.Getter;

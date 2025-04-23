@@ -6,7 +6,6 @@ import lombok.Getter;
 import tf.tailfriend.facility.entity.Facility;
 import tf.tailfriend.global.service.DateTimeFormatProvider;
 import tf.tailfriend.global.service.DistanceFormatProvider;
-import tf.tailfriend.global.service.TimeRangeForWeek;
 import tf.tailfriend.reserve.dto.Card;
 
 import java.util.List;

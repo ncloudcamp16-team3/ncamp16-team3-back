@@ -51,12 +51,12 @@ public class AuthService {
         return new UserInfoDto(
                 user.getId(),
                 user.getNickname(),
-                user.getSnsAccountId(),
                 user.getAddress(),
                 user.getDongName(),
                 user.getLatitude(),
                 user.getLongitude(),
-                fileUrl
+                fileUrl,
+                user.getDistance()
         );
     }
 

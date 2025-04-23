@@ -7,6 +7,8 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import tf.tailfriend.global.config.UserPrincipal;
 import tf.tailfriend.global.service.StorageServiceException;
+import tf.tailfriend.petsta.entity.dto.CommentRequestDto;
+import tf.tailfriend.petsta.entity.dto.CommentResponseDto;
 import tf.tailfriend.petsta.entity.dto.PostResponseDto;
 import tf.tailfriend.petsta.service.PetstaPostService;
 import tf.tailfriend.file.entity.File;
@@ -91,4 +93,30 @@ public class PetstaPostController {
         petstaPostService.toggleBookmark(userId, postId);
         return ResponseEntity.ok("북마크 토글 완료");
     }
+
+    @PostMapping("/{postId}/add/comment")
+    public ResponseEntity<String> addComment(
+            @AuthenticationPrincipal UserPrincipal userPrincipal,
+            @PathVariable Integer postId,
+            @RequestBody CommentRequestDto requestDto
+    ) {
+        petstaPostService.addComment(
+                postId,
+                userPrincipal.getUserId(),
+                requestDto.getContent(),
+                requestDto.getParentId()
+        );
+        return ResponseEntity.ok("댓글이 성공적으로 작성되었습니다.");
+    }
+
+    @GetMapping("/{postId}/comments")
+    public ResponseEntity<List<CommentResponseDto>> getParentComments(
+            @AuthenticationPrincipal UserPrincipal userPrincipal,
+            @PathVariable Integer postId
+    ) {
+        List<CommentResponseDto> parentComments = petstaPostService.getParentCommentsByPostId(postId);
+        return ResponseEntity.ok(parentComments);
+    }
+
+
 }

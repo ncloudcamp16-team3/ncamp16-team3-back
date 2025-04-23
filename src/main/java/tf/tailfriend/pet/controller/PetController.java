@@ -9,6 +9,7 @@ import tf.tailfriend.global.config.UserPrincipal;
 import tf.tailfriend.global.response.CustomResponse;
 import tf.tailfriend.pet.entity.dto.PetRequestDto;
 import tf.tailfriend.pet.service.PetService;
+import tf.tailfriend.user.entity.dto.PetResponseDto;
 
 import java.util.List;
 
@@ -18,6 +19,29 @@ import java.util.List;
 public class PetController {
 
     private final PetService petService;
+
+    //반려동물 상세 정보 조회
+    @GetMapping("/{petId}")
+    public ResponseEntity<?> getPet(
+            @AuthenticationPrincipal UserPrincipal userPrincipal,
+            @PathVariable Integer petId) {
+
+        if (userPrincipal == null) {
+            return ResponseEntity.status(401)
+                    .body(new CustomResponse("로그인이 필요합니다.", null));
+        }
+
+        try {
+            Integer userId = userPrincipal.getUserId();
+            tf.tailfriend.pet.entity.dto.PetDetailResponseDto pet = petService.getPetDetail(userId, petId);
+
+            return ResponseEntity.ok(new CustomResponse("반려동물 정보 조회 성공", pet));
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.badRequest()
+                    .body(new CustomResponse("반려동물 정보 조회 중 오류가 발생했습니다: " + e.getMessage(), null));
+        }
+    }
 
     // 반려동물 추가
     @PostMapping("/add")

@@ -38,7 +38,7 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
         Integer snsTypeId = OAuth2AttributeExtractor.getSnsTypeId(attributes);
 
         // 🟡 가입 여부 확인
-        Integer userId = authService.getUserIdBySnsAccountId(snsAccountId);
+        Integer userId = authService.getUserIdBySnsAccountIdAndSnsTypeId(snsAccountId,snsTypeId);
         boolean isNewUser = (userId == null);
         if (isNewUser) {
             userId = -1; // DB에 아직 없는 유저

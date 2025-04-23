@@ -118,5 +118,14 @@ public class PetstaPostController {
         return ResponseEntity.ok(parentComments);
     }
 
+    @GetMapping("/{commentId}/replies")
+    public ResponseEntity<List<CommentResponseDto>> getReplyComments(
+            @AuthenticationPrincipal UserPrincipal userPrincipal,
+            @PathVariable Integer commentId
+    ) {
+        List<CommentResponseDto> parentComments = petstaPostService.getReplyCommentsByCommentId(commentId);
+        return ResponseEntity.ok(parentComments);
+    }
+
 
 }

@@ -183,11 +183,11 @@ public class PetstaPostService {
 
         if (existingLike.isPresent()) {
             petstaLikeDao.delete(existingLike.get());
-            post.decreaseLikeCount();
+            petstaPostDao.decrementLikeCount(postId);
         } else {
             PetstaLike newLike = PetstaLike.of(user, post); // << 깔끔
             petstaLikeDao.save(newLike);
-            post.increaseLikeCount();
+            petstaPostDao.incrementLikeCount(postId);
         }
     }
 
@@ -210,13 +210,13 @@ public class PetstaPostService {
         }
     }
 
-
+    @Transactional
     public PetstaComment addComment(Integer postId, Integer userId, String content, Integer parentId) {
         PetstaPost post = petstaPostDao.findById(postId)
                 .orElseThrow(() -> new IllegalArgumentException("게시글을 찾을 수 없습니다: " + postId));
 
         User user = userDao.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("회원을 찾을 수 없사옵니다: " + userId));
+                .orElseThrow(() -> new IllegalArgumentException("회원을 찾을 수 없습니다: " + userId));
 
 
         PetstaComment parent = null;
@@ -240,6 +240,8 @@ public class PetstaPostService {
             petstaCommentDao.save(parent); // replyCount 증가 저장
         }
 
+        petstaPostDao.incrementCommentCount(postId);
+
         return savedComment;
     }
 
@@ -256,6 +258,7 @@ public class PetstaPostService {
                         comment.getUser().getNickname(), // ✨ User의 닉네임만!
                         storageService.generatePresignedUrl(comment.getUser().getFile().getPath()),
                         comment.getCreatedAt(),
+                        null,
                         comment.getReplyCount(),
                         true
                 ))
@@ -275,6 +278,7 @@ public class PetstaPostService {
                         reply.getUser().getNickname(),
                         storageService.generatePresignedUrl(reply.getUser().getFile().getPath()),
                         reply.getCreatedAt(),
+                        reply.getParent().getId(),
                         reply.getReplyCount(),
                         false // 자식 댓글은 isView=false (처음엔 안 펼쳐져 있음)
                 ))

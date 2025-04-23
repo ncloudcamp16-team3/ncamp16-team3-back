@@ -1,6 +1,7 @@
 package tf.tailfriend.user.distance;
 
 import lombok.Getter;
+import tf.tailfriend.user.exception.DistanceCodeException;
 
 @Getter
 public enum Distance {
@@ -18,12 +19,12 @@ public enum Distance {
         this.distanceValue = distanceValue;
     }
 
-    public static Distance fromString(String dbCode) {
+    public static Distance fromCode(String dbCode) {
         for (Distance d : values()) {
             if (d.code.equals(dbCode)) {
                 return d;
             }
         }
-        throw new IllegalArgumentException("Unknown Distance code: " + dbCode);
+        throw new DistanceCodeException();
     }
 }

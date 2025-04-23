@@ -16,6 +16,6 @@ public class DistanceConverter implements AttributeConverter<Distance, String> {
         if (dbData == null) {
             return null;
         }
-        return Distance.fromString(dbData);
+        return Distance.fromCode(dbData);
     }
 }

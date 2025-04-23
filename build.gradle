@@ -47,6 +47,10 @@ dependencies {
 		exclude group: 'commons-logging', module: 'commons-logging'
 	}
 
+	//flyway
+	implementation 'org.flywaydb:flyway-core'
+	implementation 'org.flywaydb:flyway-mysql'
+  
 	implementation 'jakarta.annotation:jakarta.annotation-api:2.1.1'
 }
 

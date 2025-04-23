@@ -15,8 +15,6 @@ import tf.tailfriend.pet.entity.PetType;
 import tf.tailfriend.pet.repository.PetPhotoDao;
 import tf.tailfriend.pet.repository.PetDao;
 import tf.tailfriend.pet.repository.PetTypeDao;
-import tf.tailfriend.petsta.entity.PetstaBookmark;
-import tf.tailfriend.petsta.entity.PetstaPost;
 import tf.tailfriend.petsitter.repository.PetSitterDao;
 import tf.tailfriend.user.entity.SnsType;
 import tf.tailfriend.user.entity.User;
@@ -28,7 +26,6 @@ import tf.tailfriend.user.repository.UserFollowDao;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.Optional;
@@ -54,7 +51,6 @@ public class UserService {
                 .map(User::getId)
                 .orElse(null);
     }
-
 
 
     @Transactional
@@ -96,19 +92,19 @@ public class UserService {
 
             petDao.save(pet);
 
-                int imageIndex = 0;
+            int imageIndex = 0;
 
-                for (RegisterPetPhotoDto photoDto : petDto.getPhotos()) {
-                    if (imageIndex >= images.size()) break;
+            for (RegisterPetPhotoDto photoDto : petDto.getPhotos()) {
+                if (imageIndex >= images.size()) break;
 
-                    MultipartFile image = images.get(imageIndex++);
-                    File file = fileService.save(image.getOriginalFilename(), "pet", photoDto.getType());
+                MultipartFile image = images.get(imageIndex++);
+                File file = fileService.save(image.getOriginalFilename(), "pet", photoDto.getType());
 
-                    try (InputStream is = image.getInputStream()) {
-                        storageService.upload(file.getPath(), is);
-                    } catch (IOException | StorageServiceException e) {
-                        throw new RuntimeException("파일 업로드 실패: " + e.getMessage(), e);
-                    }
+                try (InputStream is = image.getInputStream()) {
+                    storageService.upload(file.getPath(), is);
+                } catch (IOException | StorageServiceException e) {
+                    throw new RuntimeException("파일 업로드 실패: " + e.getMessage(), e);
+                }
 
                 PetPhoto petPhoto = PetPhoto.builder()
                         .id(new PetPhoto.PetPhotoId(file.getId(), pet.getId()))
@@ -123,6 +119,7 @@ public class UserService {
 
         return user;
     }
+
     /**
      * 회원의 마이페이지 정보를 조회합니다.
      *
@@ -231,10 +228,24 @@ public class UserService {
         User user = userDao.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회원입니다: " + userId));
 
-        // 2. 펫시터 정보가 있다면 함께 삭제
+
+        // 2. 팔로우 관계 삭제 (팔로워 및 팔로잉)
+        userFollowDao.deleteByFollowerId(userId);
+        userFollowDao.deleteByFollowedId(userId);
+
+        // 3. 펫시터 정보가 있다면 함께 삭제
         petSitterDao.findById(userId).ifPresent(petSitterDao::delete);
 
-        // 3. 회원 삭제
+        // 4. 반려동물 관련 데이터 삭제
+        user.getPet().forEach(pet -> {
+            // 반려동물 사진 삭제
+            petPhotoDao.deleteByPetId(pet.getId());
+
+            // 반려동물 삭제
+            petDao.delete(pet);
+        });
+
+        // 5. 회원 삭제
         userDao.delete(user);
     }
 

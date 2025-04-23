@@ -39,20 +39,7 @@ public class AuthController {
     private static final Logger logger = LoggerFactory.getLogger(AuthController.class);
 
 
-    // 기존 프로필 확인
-    @GetMapping("/profile")
-    public ResponseEntity<?> getUserProfile(@AuthenticationPrincipal UserPrincipal userPrincipal) {
-        if (userPrincipal == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("인증되지 않은 사용자입니다.");
-        }
 
-        Map<String, Object> userProfile = new HashMap<>();
-        userProfile.put("userId", userPrincipal.getUserId());
-        userProfile.put("snsAccountId", userPrincipal.getSnsAccountId());
-        userProfile.put("snsTypeId", userPrincipal.getSnsTypeId());
-
-        return ResponseEntity.ok(userProfile);
-    }
 
     // ✅ 유저 상세정보 조회
     @GetMapping("/userinfo")
@@ -98,29 +85,7 @@ public class AuthController {
     }
 
 
-    @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody LoginRequestDto dto, HttpServletResponse response) {
 
-
-        logger.debug("📥 로그인 요청: {}", dto);
-
-        String token = authService.login(dto);
-        logger.debug("🔐 JWT 발급: {}", token);
-
-        response.addHeader("Set-Cookie", createJwtCookie(token).toString());
-
-        return ResponseEntity.ok(Map.of("message", "로그인 성공"));
-    }
-
-
-    @GetMapping("/me")
-    public ResponseEntity<?> getCurrentUser(@AuthenticationPrincipal UserPrincipal user) {
-        if (user == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Unauthorized"));
-        }
-
-        return ResponseEntity.ok(buildUserInfo(user));
-    }
 
     @PostMapping("/logout")
     public ResponseEntity<?> logout(HttpServletResponse response) {
@@ -132,22 +97,20 @@ public class AuthController {
 
 
     @GetMapping("/check")
-    public ResponseEntity<?> checkLogin(@AuthenticationPrincipal UserPrincipal user) {
-        if (user == null) {
-            return ResponseEntity.status(401).body(Map.of("loggedIn", false));
+    public ResponseEntity<?> checkLogin(@AuthenticationPrincipal UserPrincipal userPrincipal) {
+        if (userPrincipal == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("loggedIn", false));
         }
 
         Map<String, Object> response = new HashMap<>();
-        response.put("isNewUser", user.getIsNewUser());
+        response.put("isNewUser", userPrincipal.getIsNewUser());
+        response.put("userId",  userPrincipal.getUserId());
+        response.put("snsAccountId", userPrincipal.getSnsAccountId());
+        response.put("snsTypeId", userPrincipal.getSnsTypeId());
 
-        if (user.getIsNewUser()) {
-            response.put("snsAccountId", user.getSnsAccountId());
-            response.put("snsTypeId", user.getSnsTypeId());
-        }
 
         return ResponseEntity.ok(response);
     }
-
 
 
 
@@ -181,15 +144,6 @@ public class AuthController {
                 .maxAge(0)
                 .sameSite(isLinux ? "None" : "Lax")
                 .build();
-    }
-
-    // 🔧 사용자 정보 응답 구조화
-    private Map<String, Object> buildUserInfo(UserPrincipal user) {
-        Map<String, Object> info = new HashMap<>();
-        info.put("userId", user.getUserId());
-        info.put("snsAccountId", user.getSnsAccountId());
-        info.put("snsTypeId", user.getSnsTypeId());
-        return info;
     }
 
 }

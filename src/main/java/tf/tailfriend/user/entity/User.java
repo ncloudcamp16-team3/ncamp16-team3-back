@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 import lombok.*;
 import tf.tailfriend.file.entity.File;
 import tf.tailfriend.pet.entity.Pet;
+import tf.tailfriend.user.distance.Distance;
+import tf.tailfriend.user.distance.DistanceConverter;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -45,19 +47,8 @@ public class User {
 
     private Double longitude;
 
-    @Enumerated(EnumType.STRING)
+    @Convert(converter = DistanceConverter.class)
     private Distance distance;
-
-    @Getter
-    public enum Distance {
-        ONE("1"), TWO("2"), THREE("3"), FOUR("4");
-
-        private final String value;
-
-        Distance(String value) {
-            this.value = value;
-        }
-    }
 
     @OneToMany(mappedBy = "follower")
     @Builder.Default

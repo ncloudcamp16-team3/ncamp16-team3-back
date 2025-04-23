@@ -5,6 +5,12 @@ spring:
   application:
     name: tailfriend
 
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+
+
   server:
     forward-headers-strategy: framework
 

@@ -1,0 +1,18 @@
+package tf.tailfriend.petmeeting.exception;
+
+import org.springframework.http.HttpStatus;
+import tf.tailfriend.global.exception.CustomException;
+
+import static tf.tailfriend.petmeeting.message.ErrorMessage.GET_FIlE_FAIL;
+
+public class FindFileException extends CustomException {
+    @Override
+    public HttpStatus getStatus() {
+        return HttpStatus.INTERNAL_SERVER_ERROR;
+    }
+
+    @Override
+    public String getMessage() {
+        return GET_FIlE_FAIL.getMessage();
+    }
+}

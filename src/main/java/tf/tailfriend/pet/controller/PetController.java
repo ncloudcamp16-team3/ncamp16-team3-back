@@ -9,8 +9,6 @@ import tf.tailfriend.global.config.UserPrincipal;
 import tf.tailfriend.global.response.CustomResponse;
 import tf.tailfriend.pet.entity.dto.PetRequestDto;
 import tf.tailfriend.pet.service.PetService;
-import tf.tailfriend.user.entity.dto.PetResponseDto;
-
 import java.util.List;
 
 @RestController

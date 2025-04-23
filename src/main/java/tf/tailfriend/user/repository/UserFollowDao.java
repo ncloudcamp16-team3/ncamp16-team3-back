@@ -4,7 +4,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
-import tf.tailfriend.user.entity.User;
 import tf.tailfriend.user.entity.UserFollow;
 
 import java.util.Optional;

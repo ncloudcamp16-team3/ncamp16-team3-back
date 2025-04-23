@@ -11,7 +11,7 @@ import tf.tailfriend.file.entity.File;
 import tf.tailfriend.file.repository.FileDao;
 import tf.tailfriend.global.entity.Dong;
 import tf.tailfriend.global.service.NCPObjectStorageService;
-import tf.tailfriend.pet.entity.Pet;
+import tf.tailfriend.pet.repository.PetPhotoDao;
 import tf.tailfriend.petmeeting.dto.PetFriendDTO;
 import tf.tailfriend.petmeeting.dto.PetPhotoDTO;
 import tf.tailfriend.petmeeting.exception.FindDongException;
@@ -31,33 +31,36 @@ public class PetmeetingService {
     private final PetmeetingDAO petmeetingDAO;
     private final DongDAO dongDAO;
     private final FileDao fileDao;
+    private final PetPhotoDao petPhotoDao;
     private final NCPObjectStorageService ncpObjectStorageService;
 
     public Page<PetFriendDTO> getFriends(String activityStatus, String dongName,
                                          String distance, int page, int size, double latitude, double longitude) {
 
         Pageable pageable = PageRequest.of(page, size);
-
-
-
         List<String> dongs = getNearbyDongs(dongName, Distance.fromString(distance).getDistanceValue());
 
-        //테스트용 전부 가져오기
-        //Page<Pet> friends = petmeetingDAO.findByActivityStatus(Pet.ActivityStatus.valueOf(activityStatus), pageable);
+        //제대로 요청(동+상태 조건으로 검색)
+        Page<PetFriendDTO> friends = petmeetingDAO.findByDongNamesAndActivityStatus(
+                dongs, activityStatus, latitude, longitude, pageable);
 
-        //인접한 동 리스트 + 활동상태로 가져오기
-        Page<Pet> friends = petmeetingDAO.findByDongNamesAndActivityStatus(dongs, Pet.ActivityStatus.valueOf(activityStatus), pageable);
-        Page<PetFriendDTO> friendsDto = friends.map(pet -> PetFriendDTO.buildByEntity(pet));
+        /*//테스트용 전부 요청
+        Page<PetFriendDTO> friends = petmeetingDAO.findAllWithoutFilters(latitude, longitude, pageable);*/
+
+        for(PetFriendDTO item: friends.getContent()){
+            List<PetPhotoDTO> photos = petPhotoDao.findByPetId(item.getId());
+            item.setPhotosAndThumbnail(photos);
+            log.info("\n\n\n\n"+item);
+        }
 
         File defaultImgFile = fileDao.findById(1)
                 .orElseThrow(() -> new FindFileException());
         String defaultImgUrl = ncpObjectStorageService.generatePresignedUrl(defaultImgFile.getPath());
-
-        for(PetFriendDTO friend: friendsDto.getContent()){
+        for(PetFriendDTO friend: friends.getContent()){
             makePetPhotoPresignedUrl(friend, defaultImgFile, defaultImgUrl);
         }
 
-        return friendsDto;
+        return friends;
     }
 
     private void makePetPhotoPresignedUrl(PetFriendDTO friend, File defaultImgFile, String defaultImgUrl) {

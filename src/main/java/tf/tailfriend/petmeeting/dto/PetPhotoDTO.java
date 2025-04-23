@@ -4,7 +4,6 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import tf.tailfriend.pet.entity.PetPhoto;
 
 @Data
 @Builder
@@ -15,11 +14,9 @@ public class PetPhotoDTO {
     private String path;
     private boolean thumbnail;
 
-    public static PetPhotoDTO buildByEntity(PetPhoto photo) {
-        return PetPhotoDTO.builder()
-                .id(photo.getFile().getId())
-                .path(photo.getFile().getPath())
-                .thumbnail(photo.isThumbnail())
-                .build();
+    public PetPhotoDTO(Integer id, String path, Boolean thumbnail) {
+        this.id = id;
+        this.path = path;
+        this.thumbnail = thumbnail;
     }
 }

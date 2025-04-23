@@ -34,10 +34,10 @@ public class PaymentDaoImpl implements CustomPaymentDao {
         """);
 
         // 날짜 필터링 추가
-        if (requestDto.getStartDate() != null) {
+        if (requestDto.getDatetimeRange().getOpenDateTime() != null) {
             sql.append(" AND p.created_at >= :startDate");
         }
-        if (requestDto.getEndDate() != null) {
+        if (requestDto.getDatetimeRange().getCloseDateTime() != null) {
             sql.append(" AND p.created_at <= :endDate");
         }
 
@@ -48,11 +48,11 @@ public class PaymentDaoImpl implements CustomPaymentDao {
         Query query = em.createNativeQuery(sql.toString());
         query.setParameter("userId", requestDto.getUserId());
 
-        if (requestDto.getStartDate() != null) {
-            query.setParameter("startDate", requestDto.getStartDate());
+        if (requestDto.getDatetimeRange().getOpenDateTime() != null) {
+            query.setParameter("startDate", requestDto.getDatetimeRange().getOpenDateTime());
         }
-        if (requestDto.getEndDate() != null) {
-            query.setParameter("endDate", requestDto.getEndDate());
+        if (requestDto.getDatetimeRange().getCloseDateTime() != null) {
+            query.setParameter("endDate", requestDto.getDatetimeRange().getCloseDateTime());
         }
 
         // 데이터 조회
@@ -77,10 +77,10 @@ public class PaymentDaoImpl implements CustomPaymentDao {
             WHERE r.user_id = :userId
         """;
 
-        if (requestDto.getStartDate() != null) {
+        if (requestDto.getDatetimeRange().getOpenDateTime() != null) {
             countSql += " AND p.created_at >= :startDate";
         }
-        if (requestDto.getEndDate() != null) {
+        if (requestDto.getDatetimeRange().getCloseDateTime() != null) {
             countSql += " AND p.created_at <= :endDate";
         }
 
@@ -88,22 +88,22 @@ public class PaymentDaoImpl implements CustomPaymentDao {
         Query countQuery = em.createNativeQuery(countSql);
         countQuery.setParameter("userId", requestDto.getUserId());
 
-        if (requestDto.getStartDate() != null) {
-            countQuery.setParameter("startDate", requestDto.getStartDate());
+        if (requestDto.getDatetimeRange().getOpenDateTime() != null) {
+            countQuery.setParameter("startDate", requestDto.getDatetimeRange().getOpenDateTime());
         }
-        if (requestDto.getEndDate() != null) {
-            countQuery.setParameter("endDate", requestDto.getEndDate());
+        if (requestDto.getDatetimeRange().getCloseDateTime() != null) {
+            countQuery.setParameter("endDate", requestDto.getDatetimeRange().getCloseDateTime());
         }
 
         long totalElements = ((Number) countQuery.getSingleResult()).longValue();
-        int totalPages = (int) Math.ceil((double) totalElements / requestDto.getSize());
+        boolean lastPage = (requestDto.getPage() + 1) * requestDto.getSize() >= totalElements;
 
         // ListResponseDto 반환
         return ListResponseDto.<PaymentInfoResponseDto>builder()
                 .data(dtoList)
                 .currentPage(requestDto.getPage())
                 .size(requestDto.getSize())
-                .totalPages(totalPages)
+                .last(lastPage)
                 .totalElements(totalElements)
                 .build();
     }

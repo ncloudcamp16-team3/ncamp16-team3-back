@@ -2,11 +2,9 @@ package tf.tailfriend.reserve.dto;
 
 import lombok.Builder;
 import lombok.Getter;
-import lombok.Setter;
-import tf.tailfriend.reserve.entity.Payment;
+import tf.tailfriend.global.service.DateTimeInfo;
 
 @Getter
-@Setter
 @Builder
 public class PaymentInfoResponseDto {
 

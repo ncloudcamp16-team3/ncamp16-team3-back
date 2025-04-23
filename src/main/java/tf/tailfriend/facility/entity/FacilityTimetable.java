@@ -41,7 +41,7 @@ public class FacilityTimetable {
         TUESDAY("TUE"),
         WEDNESDAY("WED"),
         THURSDAY("THU"),
-        FRIDAY("FR"),
+        FRIDAY("FRI"),
         SATURDAY("SAT"),
         SUNDAY("SUN");
 

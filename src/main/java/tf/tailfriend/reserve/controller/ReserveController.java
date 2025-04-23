@@ -1,48 +1,47 @@
 package tf.tailfriend.reserve.controller;
 
+import org.springframework.data.domain.Slice;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import tf.tailfriend.facility.dto.FacilityCardForReserve;
+import tf.tailfriend.facility.service.FacilityService;
+import tf.tailfriend.reserve.dto.FacilityListRequestDto;
 import tf.tailfriend.reserve.dto.ListResponseDto;
-import tf.tailfriend.reserve.dto.ReserveInfoResponseDto;
-import tf.tailfriend.reserve.dto.ReserveListRequestDto;
 import tf.tailfriend.reserve.service.ReserveService;
-
-import java.time.LocalDateTime;
-import java.time.LocalTime;
-import java.time.format.DateTimeFormatter;
 
 @RestController
 @RequestMapping("/api/reserve")
 public class ReserveController {
 
-    private final ReserveService service;
+    private final FacilityService facilityService;
+    private final ReserveService reserveService;
 
-    public ReserveController(ReserveService service) {
-        this.service = service;
+    public ReserveController(FacilityService facilityService, ReserveService reserveService) {
+        this.facilityService = facilityService;
+        this.reserveService = reserveService;
     }
 
-    @RequestMapping("/get")
-    public ListResponseDto<ReserveInfoResponseDto> getReserveList(
-            @RequestParam("localDateTime") String localDateTime,
+    @GetMapping("/get")
+    public Slice<FacilityCardForReserve> getFacilityList(
             @RequestParam("latitude") double latitude,
             @RequestParam("longitude") double longitude,
-            @RequestParam("page") int page,
-            @RequestParam("size") int size) {
+            @RequestParam("category") String category,
+            @RequestParam("SortBy") String sortBy,
+            @RequestParam(value = "page", defaultValue = "0") int page,
+            @RequestParam(value = "size", defaultValue = "10") int size) {
 
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-
-        LocalDateTime parsedLocalDateTime = LocalDateTime.parse(localDateTime, formatter);
-
-        ReserveListRequestDto requestDto = ReserveListRequestDto.builder()
-                .localDateTime(parsedLocalDateTime)
-                .latitude(latitude)
-                .longitude(longitude)
+        FacilityListRequestDto requestDto = FacilityListRequestDto.builder()
+                .userLatitude(latitude)
+                .userLongitude(longitude)
+                .category(category)
+                .sortBy(sortBy)
                 .page(page)
                 .size(size)
                 .build();
 
-        return service.getReserveList(requestDto);
+        return facilityService.getFacilityCardsForReserve(requestDto);
     }
 
 }

@@ -5,6 +5,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import tf.tailfriend.global.service.DateTimeRange;
 import tf.tailfriend.reserve.dto.ListResponseDto;
 import tf.tailfriend.reserve.dto.PaymentInfoResponseDto;
 import tf.tailfriend.reserve.dto.PaymentListRequestDto;
@@ -47,8 +48,7 @@ public class PaymentController {
 
         PaymentListRequestDto requestDto = PaymentListRequestDto.builder()
                 .userId(userId)
-                .startDate(parsedStartDate)
-                .endDate(parsedEndDate)
+                .datetimeRange(new DateTimeRange(parsedStartDate, parsedEndDate))
                 .page(page)
                 .size(size)
                 .build();

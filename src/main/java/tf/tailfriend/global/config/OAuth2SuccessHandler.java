@@ -9,7 +9,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.web.authentication.SimpleUrlAuthenticationSuccessHandler;
 import org.springframework.stereotype.Component;
-import tf.tailfriend.user.service.UserService;
+import tf.tailfriend.user.service.AuthService;
 
 import java.io.IOException;
 import java.time.Duration;
@@ -19,7 +19,7 @@ import java.time.Duration;
 public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler {
 
     private final JwtTokenProvider jwtTokenProvider;
-    private final UserService userService;
+    private final AuthService authService;
 
 
     @Value("${URL}")
@@ -38,7 +38,7 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
         Integer snsTypeId = OAuth2AttributeExtractor.getSnsTypeId(attributes);
 
         // 🟡 가입 여부 확인
-        Integer userId = userService.getUserIdBySnsAccountId(snsAccountId);
+        Integer userId = authService.getUserIdBySnsAccountId(snsAccountId);
         boolean isNewUser = (userId == null);
         if (isNewUser) {
             userId = -1; // DB에 아직 없는 유저
@@ -46,15 +46,18 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
         // 🔐 JWT 생성
         String token = jwtTokenProvider.createToken(userId, snsAccountId, snsTypeId, isNewUser);
 
-        // 🍪 accessToken 쿠키 설정
+
+        String osName = System.getProperty("os.name").toLowerCase();
+        boolean isLinux = osName.contains("linux");
+
         ResponseCookie accessTokenCookie = ResponseCookie.from("accessToken", token)
                 .httpOnly(true)
-                .secure(false) // 👉 배포 시 반드시 true
+                .secure(isLinux)
                 .path("/")
                 .maxAge(Duration.ofHours(1))
-                .sameSite("Lax")
+                .sameSite(isLinux ? "None" : "Lax")
                 .build();
-        response.addHeader("Set-Cookie", accessTokenCookie.toString());
+            response.addHeader("Set-Cookie", accessTokenCookie.toString());
 
 
         String redirectUrl = mainUrl+"/oauth2/success";

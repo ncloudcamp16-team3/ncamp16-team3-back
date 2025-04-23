@@ -1,10 +1,19 @@
 spring:
-  profiles:
-    active: local
+#  profiles:
+#    active: local
 
   application:
     name: tailfriend
-    
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+
+
+  server:
+    forward-headers-strategy: framework
+
   datasource:
     url: jdbc:mysql://db-33p2cg-kr.vpc-pub-cdb.ntruss.com/tailfriends?serverTimezone=Asia/Seoul&characterEncoding=UTF-8
     driver-class-name: com.mysql.cj.jdbc.Driver
@@ -17,10 +26,15 @@ spring:
       idle-timeout: 30000
       max-lifetime: 1800000
       connection-timeout: 3000
-  
+
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
+
   jpa:
     database-platform: org.hibernate.dialect.MySQL8Dialect
-  
+
   security:
     oauth2:
       client:
@@ -79,8 +93,18 @@ jwt:
 
 logging:
   level:
+    org.springframework.security: DEBUG
+    org.springframework.security.oauth2: DEBUG
     tf.tailfriend.user.controller: DEBUG
     org.springframework.web: DEBUG
     org.springframework.http.converter.json: DEBUG
 
 URL: ${baseUrl}
+
+ncp:
+  end-point: ${NCP_END_POINT}
+  region-name: ${NCP_REGION_NAME}
+  access-key: ${NCR_USERNAME}
+  secret-key: ${NCR_PASSWORD}
+  bucket-name: ${NCP_BUCKET_NAME}
+

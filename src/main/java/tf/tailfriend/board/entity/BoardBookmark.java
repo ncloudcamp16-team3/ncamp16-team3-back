@@ -23,9 +23,9 @@ public class BoardBookmark {
     @JoinColumn(name = "user_id")
     private User user;
 
-    @MapsId("boardId")
+    @MapsId("boardPostId")
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "board_id")
+    @JoinColumn(name = "board_post_id")
     private Board board;
 
     @Embeddable
@@ -38,8 +38,8 @@ public class BoardBookmark {
         @Column(name = "user_id")
         private Integer userId;
 
-        @Column(name = "board_id")
-        private Integer boardId;
+        @Column(name = "board_post_id")
+        private Integer boardPostId;
 
         @Override
         public boolean equals(Object obj) {
@@ -50,19 +50,19 @@ public class BoardBookmark {
                 return false;
             }
             BoardBookmarkId that = (BoardBookmarkId) obj;
-            return userId.equals(that.userId) && boardId.equals(that.boardId);
+            return userId.equals(that.userId) && boardPostId.equals(that.boardPostId);
         }
 
         @Override
         public int hashCode() {
-            return Objects.hash(userId, boardId);
+            return Objects.hash(userId, boardPostId);
         }
     }
 
     public static BoardBookmark of(Board board, User user) {
         BoardBookmarkId id = BoardBookmarkId.builder()
                 .userId(user.getId())
-                .boardId(board.getId())
+                .boardPostId(board.getId())
                 .build();
 
         return BoardBookmark.builder()

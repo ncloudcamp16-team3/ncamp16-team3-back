@@ -60,11 +60,12 @@ public class AuthService {
         );
     }
 
-    // ✅ 이메일로 userId 반환
     public Integer getUserIdBySnsAccountId(String snsAccountId) {
-        return userDao.findBySnsAccountId(snsAccountId)
-                .map(User::getId)
-                .orElseThrow(() -> new UserException());
+        User user = userDao.findBySnsAccountId(snsAccountId);
+        if (user != null) {
+            return user.getId();
+        }
+        return null; // 또는 예외 던지기 등 원하는 처리
     }
 
 

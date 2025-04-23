@@ -11,10 +11,10 @@ import tf.tailfriend.file.entity.File;
 import tf.tailfriend.file.repository.FileDao;
 import tf.tailfriend.global.entity.Dong;
 import tf.tailfriend.global.service.NCPObjectStorageService;
-import tf.tailfriend.pet.entity.Pet;
+import tf.tailfriend.pet.repository.PetPhotoDao;
 import tf.tailfriend.petmeeting.dto.PetFriendDTO;
 import tf.tailfriend.petmeeting.dto.PetPhotoDTO;
-import tf.tailfriend.petmeeting.exception.FIndDongException;
+import tf.tailfriend.petmeeting.exception.FindDongException;
 import tf.tailfriend.petmeeting.exception.FindFileException;
 import tf.tailfriend.petmeeting.repository.DongDAO;
 import tf.tailfriend.petmeeting.repository.PetmeetingDAO;
@@ -31,38 +31,40 @@ public class PetmeetingService {
     private final PetmeetingDAO petmeetingDAO;
     private final DongDAO dongDAO;
     private final FileDao fileDao;
+    private final PetPhotoDao petPhotoDao;
     private final NCPObjectStorageService ncpObjectStorageService;
 
     public Page<PetFriendDTO> getFriends(String activityStatus, String dongName,
                                          String distance, int page, int size, double latitude, double longitude) {
 
         Pageable pageable = PageRequest.of(page, size);
-
         List<String> dongs = getNearbyDongs(dongName, Distance.fromString(distance).getDistanceValue());
 
-        //테스트용 전부 가져오기
-        //Page<Pet> friends = petmeetingDAO.findByActivityStatus(Pet.ActivityStatus.valueOf(activityStatus), pageable);
+        Page<PetFriendDTO> friends = petmeetingDAO.findByDongNamesAndActivityStatus(
+                dongs, activityStatus, latitude, longitude, pageable);
 
-        //인접한 동 리스트 + 활동상태로 가져오기
-        Page<Pet> friends = petmeetingDAO.findByDongNamesAndActivityStatus(dongs, Pet.ActivityStatus.valueOf(activityStatus), pageable);
-        Page<PetFriendDTO> friendsDto = friends.map(pet -> PetFriendDTO.buildByEntity(pet));
+        /*//테스트용 전부 요청
+        Page<PetFriendDTO> friends = petmeetingDAO.findAllWithoutFilters(latitude, longitude, pageable);*/
 
-        for(PetFriendDTO friend: friendsDto.getContent()){
-            makePetPhotoPresignedUrl(friend);
+        for(PetFriendDTO item: friends.getContent()){
+            List<PetPhotoDTO> photos = petPhotoDao.findByPetId(item.getId());
+            item.setPhotosAndThumbnail(photos);
+            log.info("\n\n\n\n"+item);
         }
 
-        return friendsDto;
+        File defaultImgFile = fileDao.findById(1)
+                .orElseThrow(() -> new FindFileException());
+        String defaultImgUrl = ncpObjectStorageService.generatePresignedUrl(defaultImgFile.getPath());
+        for(PetFriendDTO friend: friends.getContent()){
+            setPresignedUrl(friend, defaultImgFile, defaultImgUrl);
+        }
+
+        return friends;
     }
 
-    private void makePetPhotoPresignedUrl(PetFriendDTO friend) {
+    private void setPresignedUrl(PetFriendDTO friend, File defaultImgFile, String defaultImgUrl) {
 
         if(friend.getThumbnail() == null){
-            File defaultImgFile = fileDao.findById(1)
-                    .orElseThrow(() -> new FindFileException());
-
-            String defaultImgUrl;
-            defaultImgUrl = ncpObjectStorageService.generatePresignedUrl(defaultImgFile.getPath());
-
             friend.setThumbnail(defaultImgFile.getId());
             friend.getPhotos().add(PetPhotoDTO.builder()
                     .id(defaultImgFile.getId())
@@ -81,7 +83,7 @@ public class PetmeetingService {
 
     private List<String> getNearbyDongs(String name, int count) {
         Dong current = dongDAO.findByName(name)
-                .orElseThrow(() -> new FIndDongException());
+                .orElseThrow(() -> new FindDongException());
 
         return dongDAO.findNearbyDongs(
                 current.getLatitude(),

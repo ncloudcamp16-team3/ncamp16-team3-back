@@ -5,7 +5,7 @@ import tf.tailfriend.global.exception.CustomException;
 
 import static tf.tailfriend.petmeeting.message.ErrorMessage.FIND_DONG_FAIL;
 
-public class FIndDongException extends CustomException {
+public class FindDongException extends CustomException {
     @Override
     public HttpStatus getStatus() {
         return HttpStatus.BAD_REQUEST;

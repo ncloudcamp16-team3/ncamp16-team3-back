@@ -1,10 +1,13 @@
 package tf.tailfriend.petmeeting.dto;
 
-import lombok.Builder;
-import lombok.Getter;
+import lombok.*;
 import tf.tailfriend.user.entity.User;
 
 @Getter
+@Setter
+@ToString
+@NoArgsConstructor
+@AllArgsConstructor
 @Builder
 public class OwnerDTO {
     private Integer id;

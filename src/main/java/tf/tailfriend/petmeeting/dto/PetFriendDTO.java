@@ -1,14 +1,17 @@
 package tf.tailfriend.petmeeting.dto;
 
-import lombok.Builder;
-import lombok.Data;
+import lombok.*;
 import tf.tailfriend.pet.entity.Pet;
 import tf.tailfriend.pet.entity.PetPhoto;
 
 import java.util.List;
 import java.util.stream.Collectors;
 
-@Data
+@Getter
+@Setter
+@ToString
+@NoArgsConstructor
+@AllArgsConstructor
 @Builder
 public class PetFriendDTO {
     private Integer id;
@@ -24,29 +27,36 @@ public class PetFriendDTO {
     private Integer thumbnail;
     private Double distance;
 
-    public static PetFriendDTO buildByEntity(Pet pet) {
-        List<PetPhotoDTO> photoDTOs = pet.getPhotos().stream()
-                .map(PetPhotoDTO::buildByEntity)
-                .collect(Collectors.toList());
-
-        Integer thumbnailId = pet.getPhotos().stream()
-                .filter(PetPhoto::isThumbnail)
-                .map(photo -> photo.getFile().getId())
-                .findFirst()
-                .orElse(null);
-
-        return PetFriendDTO.builder()
-                .id(pet.getId())
-                .name(pet.getName())
-                .gender(pet.getGender())
-                .birth(pet.getBirth())
-                .weight(pet.getWeight())
-                .info(pet.getInfo())
-                .neutered(pet.getNeutered())
-                .activityStatus(pet.getActivityStatus().toString())
-                .owner(OwnerDTO.buildByEntity(pet.getUser()))
-                .photos(photoDTOs)
-                .thumbnail(thumbnailId)
+    public PetFriendDTO(Integer id, String name, String gender, String birth, Double weight, String info,
+                        Boolean neutered, String activityStatus, Integer ownerId, String nickname,
+                        String address, String dongName, Double latitude, Double longitude, Double distance) {
+        this.id = id;
+        this.name = name;
+        this.gender = gender;
+        this.birth = birth;
+        this.weight = weight;
+        this.info = info;
+        this.neutered = neutered;
+        this.activityStatus = activityStatus;
+        this.owner = OwnerDTO.builder()
+                .id(ownerId)
+                .nickname(nickname)
+                .address(address)
+                .dongName(dongName)
+                .latitude(latitude)
+                .longitude(longitude)
                 .build();
+        this.distance = distance;
+    }
+
+    public void setPhotosAndThumbnail(List<PetPhotoDTO> photos) {
+        this.photos = photos;
+
+        for(PetPhotoDTO photoDTO: photos){
+            if(photoDTO.isThumbnail()) {
+                this.thumbnail = photoDTO.getId();
+                return;
+            }
+        }
     }
 }

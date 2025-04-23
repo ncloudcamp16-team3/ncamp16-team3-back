@@ -8,7 +8,6 @@ import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import tf.tailfriend.petsitter.dto.PetSitterResponseDto;
-import tf.tailfriend.petsitter.entity.PetSitter;
 import tf.tailfriend.petsitter.service.PetSitterService;
 
 @RestController

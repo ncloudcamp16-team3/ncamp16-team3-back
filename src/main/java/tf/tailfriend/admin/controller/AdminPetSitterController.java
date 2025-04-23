@@ -39,13 +39,13 @@ public class AdminPetSitterController {
     }
 
     @GetMapping("/petsitter/pending")
-    public ResponseEntity<?> pendingList(
+    public ResponseEntity<?> noneList(
             @RequestParam(required = false, defaultValue = "0") int page,
             @RequestParam(required = false, defaultValue = "10") int size
     ) {
         PageRequest pageRequest = PageRequest.of(page, size, Sort.by("id").descending());
 
-        Page<PetSitterResponseDto> petSitters = petSitterService.findPendingPetSitter(pageRequest);
+        Page<PetSitterResponseDto> petSitters = petSitterService.findNonePetSitter(pageRequest);
 
         return ResponseEntity.ok(petSitters);
     }
@@ -53,6 +53,24 @@ public class AdminPetSitterController {
     @GetMapping("/petsitter/pending/{id}")
     public ResponseEntity<?> getPendingPetSitterById(@PathVariable Integer id) {
         PetSitterResponseDto petSitter = petSitterService.findById(id);
+        return ResponseEntity.ok(petSitter);
+    }
+
+    @PostMapping("/petsitter/pending/{id}/approve")
+    public ResponseEntity<?> approvePetSitter(@PathVariable Integer id) {
+        PetSitterResponseDto petSitter = petSitterService.approvePetSitter(id);
+        return ResponseEntity.ok(petSitter);
+    }
+
+    @PostMapping("/petsitter/pending/{id}/pending")
+    public ResponseEntity<?> pendingPetSitter(@PathVariable Integer id) {
+        PetSitterResponseDto petSitter = petSitterService.pendingPetSitter(id);
+        return ResponseEntity.ok(petSitter);
+    }
+
+    @PostMapping("/petsitter/pending/{id}/delete")
+    public ResponseEntity<?> deletePetSitter(@PathVariable Integer id) {
+        PetSitterResponseDto petSitter = petSitterService.deletePetSitter(id);
         return ResponseEntity.ok(petSitter);
     }
 }

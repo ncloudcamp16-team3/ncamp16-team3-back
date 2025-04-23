@@ -48,7 +48,7 @@ public class PetSitter {
     @Column(name = "sitter_exp", nullable = false)
     private Boolean sitterExp = false;
 
-    @OneToOne(fetch = FetchType.LAZY)
+    @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.REMOVE)
     @JoinColumn(name = "file_id", nullable = false)
     private File file;
 
@@ -59,6 +59,10 @@ public class PetSitter {
     @Column(name = "apply_at")
     private LocalDateTime applyAt;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private PetSitterStatus status = PetSitterStatus.NONE;
+
     @Getter
     public enum PetCount {
         ONE("1"), TWO("2"), THREE_PLUS("3+");
@@ -68,5 +72,24 @@ public class PetSitter {
         PetCount(String value) {
             this.value = value;
         }
+    }
+
+    @Getter
+    public enum PetSitterStatus {
+        PENDING, APPROVE, DELETE, NONE
+    }
+
+    public void approve() {
+        this.status = PetSitterStatus.APPROVE;
+        this.applyAt = LocalDateTime.now();
+    }
+
+    public void pending() {
+        this.status = PetSitterStatus.PENDING;
+    }
+
+    public void delete() {
+        this.status = PetSitterStatus.DELETE;
+        this.applyAt = null;
     }
 }

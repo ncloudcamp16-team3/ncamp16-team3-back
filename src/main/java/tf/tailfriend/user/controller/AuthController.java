@@ -109,7 +109,7 @@ public class AuthController {
         }
 
         Map<String, Object> response = new HashMap<>();
-
+        System.out.println("잉잉");
         response.put("isNewUser", userPrincipal.getIsNewUser());
         response.put("userId",  userPrincipal.getUserId());
         response.put("snsAccountId", userPrincipal.getSnsAccountId());

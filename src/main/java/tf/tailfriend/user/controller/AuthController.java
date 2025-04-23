@@ -16,10 +16,13 @@ import org.springframework.web.multipart.MultipartFile;
 import tf.tailfriend.global.config.JwtAuthenticationFilter;
 import tf.tailfriend.global.config.JwtTokenProvider;
 import tf.tailfriend.global.config.UserPrincipal;
+import tf.tailfriend.global.service.NCPObjectStorageService;
+import tf.tailfriend.global.service.StorageService;
 import tf.tailfriend.user.entity.User;
 import tf.tailfriend.user.entity.dto.LoginRequestDto;
 import tf.tailfriend.user.entity.dto.RegisterUserDto;
 import tf.tailfriend.user.entity.dto.UserInfoDto;
+import tf.tailfriend.user.repository.UserDao;
 import tf.tailfriend.user.service.AuthService;
 
 import java.time.Duration;
@@ -35,8 +38,10 @@ public class AuthController {
 
     private final AuthService authService;
     private final JwtTokenProvider jwtTokenProvider;
-
+    private final UserDao userDao;
+    private final StorageService storageService;
     private static final Logger logger = LoggerFactory.getLogger(AuthController.class);
+
 
 
 
@@ -103,10 +108,15 @@ public class AuthController {
         }
 
         Map<String, Object> response = new HashMap<>();
+        User user = userDao.findById(userPrincipal.getUserId())
+                .orElseThrow(() -> new IllegalArgumentException("회원이 존재하지 않습니다."));
+
         response.put("isNewUser", userPrincipal.getIsNewUser());
         response.put("userId",  userPrincipal.getUserId());
         response.put("snsAccountId", userPrincipal.getSnsAccountId());
         response.put("snsTypeId", userPrincipal.getSnsTypeId());
+        response.put("userName", user.getNickname());
+        response.put("userPhoto", storageService.generatePresignedUrl(user.getFile().getPath()));
 
 
         return ResponseEntity.ok(response);

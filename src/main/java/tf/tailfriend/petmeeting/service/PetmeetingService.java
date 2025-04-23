@@ -40,7 +40,6 @@ public class PetmeetingService {
         Pageable pageable = PageRequest.of(page, size);
         List<String> dongs = getNearbyDongs(dongName, Distance.fromString(distance).getDistanceValue());
 
-        //제대로 요청(동+상태 조건으로 검색)
         Page<PetFriendDTO> friends = petmeetingDAO.findByDongNamesAndActivityStatus(
                 dongs, activityStatus, latitude, longitude, pageable);
 
@@ -57,13 +56,13 @@ public class PetmeetingService {
                 .orElseThrow(() -> new FindFileException());
         String defaultImgUrl = ncpObjectStorageService.generatePresignedUrl(defaultImgFile.getPath());
         for(PetFriendDTO friend: friends.getContent()){
-            makePetPhotoPresignedUrl(friend, defaultImgFile, defaultImgUrl);
+            setPresignedUrl(friend, defaultImgFile, defaultImgUrl);
         }
 
         return friends;
     }
 
-    private void makePetPhotoPresignedUrl(PetFriendDTO friend, File defaultImgFile, String defaultImgUrl) {
+    private void setPresignedUrl(PetFriendDTO friend, File defaultImgFile, String defaultImgUrl) {
 
         if(friend.getThumbnail() == null){
             friend.setThumbnail(defaultImgFile.getId());

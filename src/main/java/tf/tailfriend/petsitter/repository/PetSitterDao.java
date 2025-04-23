@@ -10,4 +10,6 @@ public interface PetSitterDao extends JpaRepository<PetSitter, Integer> {
     Page<PetSitter> findByApplyAtIsNotNull(Pageable pageable);
 
     Page<PetSitter> findByApplyAtIsNull(Pageable pageable);
+
+    Page<PetSitter> findByStatus(PetSitter.PetSitterStatus status, Pageable pageable);
 }

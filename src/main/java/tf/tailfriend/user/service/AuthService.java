@@ -40,21 +40,6 @@ public class AuthService {
 
     private final FileService fileService;
     private final StorageService storageService;
-    private final JwtTokenProvider jwtTokenProvider;
-
-    public String login(LoginRequestDto dto) {
-        String snsAccountId = dto.getSnsAccountId();
-
-        User user = userDao.findBySnsAccountId(snsAccountId)
-                .orElseThrow(() -> new UserException());
-
-        return jwtTokenProvider.createToken(
-                user.getId(),
-                user.getSnsAccountId(),
-                user.getSnsType().getId(),
-                false
-        );
-    }
 
 
     public UserInfoDto getUserInfoById(Integer userId) {
@@ -75,12 +60,12 @@ public class AuthService {
         );
     }
 
-
-    // ✅ 이메일로 userId 반환
-    public Integer getUserIdBySnsAccountId(String snsAccountId) {
-        return userDao.findBySnsAccountId(snsAccountId)
-                .map(User::getId)
-                .orElseThrow(() -> new UserException());
+    public Integer getUserIdBySnsAccountIdAndSnsTypeId(String snsAccountId, Integer snsTypeId) {
+        User user = userDao.findBySnsAccountIdAndSnsTypeId(snsAccountId,snsTypeId);
+        if (user != null) {
+            return user.getId();
+        }
+        return null; // 또는 예외 던지기 등 원하는 처리
     }
 
 
@@ -102,7 +87,6 @@ public class AuthService {
                 .build();
 
         userDao.save(user);
-        userDao.flush(); // ✅ 즉시 DB 반영해서 user.id 보장
 
         // 4. 펫 + 사진 등록
         for (RegisterPetDto petDto : dto.getPets()) {
@@ -129,7 +113,7 @@ public class AuthService {
                 if (imageIndex >= images.size()) break;
 
                 MultipartFile image = images.get(imageIndex++);
-                File file = fileService.save(image.getOriginalFilename(), "pet", photoDto.getType());
+                File file = fileService.save(image.getOriginalFilename(), "user", photoDto.getType());
 
                 try (InputStream is = image.getInputStream()) {
                     storageService.upload(file.getPath(), is);

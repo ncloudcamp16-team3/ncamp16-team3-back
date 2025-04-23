@@ -109,8 +109,6 @@ public class AuthController {
         }
 
         Map<String, Object> response = new HashMap<>();
-        User user = userDao.findById(userPrincipal.getUserId())
-                .orElseThrow(() -> new IllegalArgumentException("회원이 존재하지 않습니다."));
 
         response.put("isNewUser", userPrincipal.getIsNewUser());
         response.put("userId",  userPrincipal.getUserId());

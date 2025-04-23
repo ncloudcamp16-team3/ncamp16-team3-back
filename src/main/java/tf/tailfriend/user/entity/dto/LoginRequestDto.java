@@ -8,5 +8,6 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class LoginRequestDto {
-    private String snsAccountId;
+    private Integer userId;
+//    private String snsAccountId;
 }

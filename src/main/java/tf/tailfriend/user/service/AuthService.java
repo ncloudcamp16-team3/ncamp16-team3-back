@@ -40,21 +40,6 @@ public class AuthService {
 
     private final FileService fileService;
     private final StorageService storageService;
-    private final JwtTokenProvider jwtTokenProvider;
-
-    public String login(LoginRequestDto dto) {
-        String snsAccountId = dto.getSnsAccountId();
-
-        User user = userDao.findBySnsAccountId(snsAccountId)
-                .orElseThrow(() -> new UserException());
-
-        return jwtTokenProvider.createToken(
-                user.getId(),
-                user.getSnsAccountId(),
-                user.getSnsType().getId(),
-                false
-        );
-    }
 
 
     public UserInfoDto getUserInfoById(Integer userId) {
@@ -74,7 +59,6 @@ public class AuthService {
                 fileUrl
         );
     }
-
 
     // ✅ 이메일로 userId 반환
     public Integer getUserIdBySnsAccountId(String snsAccountId) {
@@ -102,7 +86,6 @@ public class AuthService {
                 .build();
 
         userDao.save(user);
-        userDao.flush(); // ✅ 즉시 DB 반영해서 user.id 보장
 
         // 4. 펫 + 사진 등록
         for (RegisterPetDto petDto : dto.getPets()) {
@@ -129,7 +112,7 @@ public class AuthService {
                 if (imageIndex >= images.size()) break;
 
                 MultipartFile image = images.get(imageIndex++);
-                File file = fileService.save(image.getOriginalFilename(), "pet", photoDto.getType());
+                File file = fileService.save(image.getOriginalFilename(), "user", photoDto.getType());
 
                 try (InputStream is = image.getInputStream()) {
                     storageService.upload(file.getPath(), is);

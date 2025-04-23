@@ -11,9 +11,11 @@ import tf.tailfriend.file.entity.File;
 import tf.tailfriend.file.repository.FileDao;
 import tf.tailfriend.global.entity.Dong;
 import tf.tailfriend.global.service.NCPObjectStorageService;
+import tf.tailfriend.pet.entity.Pet;
 import tf.tailfriend.pet.repository.PetPhotoDao;
 import tf.tailfriend.petmeeting.dto.PetFriendDTO;
 import tf.tailfriend.petmeeting.dto.PetPhotoDTO;
+import tf.tailfriend.petmeeting.exception.ActivityStatusNoneException;
 import tf.tailfriend.petmeeting.exception.FindDongException;
 import tf.tailfriend.petmeeting.exception.FindFileException;
 import tf.tailfriend.petmeeting.repository.DongDAO;
@@ -36,6 +38,10 @@ public class PetmeetingService {
 
     public Page<PetFriendDTO> getFriends(String activityStatus, String dongName,
                                          String distance, int page, int size, double latitude, double longitude) {
+
+        if( Pet.ActivityStatus.valueOf(activityStatus) == Pet.ActivityStatus.NONE){
+            throw new ActivityStatusNoneException();
+        }
 
         Pageable pageable = PageRequest.of(page, size);
         List<String> dongs = getNearbyDongs(dongName, Distance.fromCode(distance).getDistanceValue());

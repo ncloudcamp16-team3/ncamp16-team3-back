@@ -13,10 +13,13 @@ import tf.tailfriend.file.service.FileService;
 import tf.tailfriend.global.service.StorageService;
 import tf.tailfriend.global.service.StorageServiceException;
 import tf.tailfriend.petsta.entity.PetstaBookmark;
+import tf.tailfriend.petsta.entity.PetstaComment;
 import tf.tailfriend.petsta.entity.PetstaLike;
 import tf.tailfriend.petsta.entity.PetstaPost;
+import tf.tailfriend.petsta.entity.dto.CommentResponseDto;
 import tf.tailfriend.petsta.entity.dto.PostResponseDto;
 import tf.tailfriend.petsta.repository.PetstaBookmarkDao;
+import tf.tailfriend.petsta.repository.PetstaCommentDao;
 import tf.tailfriend.petsta.repository.PetstaLikeDao;
 import tf.tailfriend.petsta.repository.PetstaPostDao;
 import tf.tailfriend.user.entity.User;
@@ -44,6 +47,7 @@ public class PetstaPostService {
     private final PetstaBookmarkDao petstaBookmarkDao;
     private final UserDao userDao;
     private final UserFollowDao userFollowDao;
+    private final PetstaCommentDao petstaCommentDao;
 
     @Transactional
     public void uploadPhoto(Integer userId, String content, MultipartFile imageFile) throws StorageServiceException {
@@ -205,6 +209,79 @@ public class PetstaPostService {
             petstaBookmarkDao.save(newBookmark);
         }
     }
+
+
+    public PetstaComment addComment(Integer postId, Integer userId, String content, Integer parentId) {
+        PetstaPost post = petstaPostDao.findById(postId)
+                .orElseThrow(() -> new IllegalArgumentException("게시글을 찾을 수 없습니다: " + postId));
+
+        User user = userDao.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("회원을 찾을 수 없사옵니다: " + userId));
+
+
+        PetstaComment parent = null;
+        if (parentId != null) {
+            parent = petstaCommentDao.findById(parentId)
+                    .orElseThrow(() -> new IllegalArgumentException("부모 댓글을 찾을 수 없습니다: " + parentId));
+        }
+
+        PetstaComment comment = PetstaComment.builder()
+                .post(post)
+                .user(user)
+                .content(content)
+                .parent(parent)
+                .build();
+
+        PetstaComment savedComment = petstaCommentDao.save(comment);
+
+        // 부모 댓글이 있으면, 대댓글 추가 처리
+        if (parent != null) {
+            parent.addReply(savedComment);
+            petstaCommentDao.save(parent); // replyCount 증가 저장
+        }
+
+        return savedComment;
+    }
+
+    @Transactional
+    public List<CommentResponseDto> getParentCommentsByPostId(Integer postId) {
+        PetstaPost post = petstaPostDao.findById(postId)
+                .orElseThrow(() -> new IllegalArgumentException("게시글을 찾을 수 없습니다: " + postId));
+
+        return petstaCommentDao.findByPostAndParentIsNullOrderByCreatedAtDesc(post)
+                .stream()
+                .map(comment -> new CommentResponseDto(
+                        comment.getId(),
+                        comment.getContent(),
+                        comment.getUser().getNickname(), // ✨ User의 닉네임만!
+                        storageService.generatePresignedUrl(comment.getUser().getFile().getPath()),
+                        comment.getCreatedAt(),
+                        comment.getReplyCount(),
+                        true
+                ))
+                .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public List<CommentResponseDto> getReplyCommentsByCommentId(Integer commentId) {
+        PetstaComment parentComment = petstaCommentDao.findById(commentId)
+                .orElseThrow(() -> new IllegalArgumentException("댓글을 찾을 수 없습니다: " + commentId));
+
+        return petstaCommentDao.findByParentOrderByCreatedAtAsc(parentComment)
+                .stream()
+                .map(reply -> new CommentResponseDto(
+                        reply.getId(),
+                        reply.getContent(),
+                        reply.getUser().getNickname(),
+                        storageService.generatePresignedUrl(reply.getUser().getFile().getPath()),
+                        reply.getCreatedAt(),
+                        reply.getReplyCount(),
+                        false // 자식 댓글은 isView=false (처음엔 안 펼쳐져 있음)
+                ))
+                .collect(Collectors.toList());
+    }
+
+
 
 
 }

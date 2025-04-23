@@ -43,6 +43,7 @@ public class PetstaComment {
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
+    @Builder.Default
     @Column(name = "reply_count", nullable = false)
     private Integer replyCount = 0;
 

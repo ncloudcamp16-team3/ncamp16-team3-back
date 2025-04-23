@@ -30,6 +30,10 @@ public class PetstaPost {
     @JoinColumn(name = "file_id", nullable = false)
     private File file;
 
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "thumbnail_file_id")
+    private File thumbnailFile;
+
     @Column(nullable = false, columnDefinition = "TEXT")
     private String content;
 

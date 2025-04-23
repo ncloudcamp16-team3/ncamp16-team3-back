@@ -200,10 +200,8 @@ public class UserService {
 
     @Transactional
     public void toggleFollow(Integer followerId, Integer followedId) {
-
         User followerUser = userDao.findById(followerId)
                 .orElseThrow(() -> new IllegalArgumentException("팔로우하는 유저를 찾을 수 없습니다."));
-
 
         User followedUser = userDao.findById(followedId)
                 .orElseThrow(() -> new IllegalArgumentException("팔로우받는 유저를 찾을 수 없습니다."));
@@ -212,9 +210,23 @@ public class UserService {
 
         if (existingFollow.isPresent()) {
             userFollowDao.delete(existingFollow.get());
+
+            userDao.decrementFollowCount(followerId);   // 내가 언팔 → 팔로우 수 감소
+            userDao.decrementFollowerCount(followedId); // 상대방 → 팔로워 수 감소
+
         } else {
-            UserFollow newFollow = UserFollow.of(followerUser, followedUser); // << 깔끔
+            UserFollow newFollow = UserFollow.of(followerUser, followedUser);
             userFollowDao.save(newFollow);
+
+            userDao.incrementFollowCount(followerId);   // 내가 팔로우 → 팔로우 수 증가
+            userDao.incrementFollowerCount(followedId); // 상대방 → 팔로워 수 증가
         }
+    }
+
+    @Transactional
+    public String getUsername(Integer userId) {
+        return userDao.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("유저를 찾을 수 없습니다."))
+                .getNickname(); // ← 여기서 닉네임만 추출
     }
 }

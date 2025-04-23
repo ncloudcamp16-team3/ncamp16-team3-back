@@ -6,7 +6,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import tf.tailfriend.global.config.UserPrincipal;
+import tf.tailfriend.petsta.entity.dto.PetstaUserpageResponseDto;
 import tf.tailfriend.petsta.service.PetstaService;
+import tf.tailfriend.user.service.UserService;
 
 @RestController
 @RequestMapping("/api/petsta")
@@ -14,6 +16,7 @@ import tf.tailfriend.petsta.service.PetstaService;
 public class PetstaController {
 
     private final PetstaService petstaService;
+    private final UserService userService;
 
     @Value("${URL}")
     private String mainUrl;
@@ -24,6 +27,22 @@ public class PetstaController {
         return "hello";
     }
 
+    @GetMapping("/users/{userId}/page")
+    public ResponseEntity<PetstaUserpageResponseDto> getUserPage(
+            @AuthenticationPrincipal UserPrincipal userPrincipal,
+            @PathVariable Integer userId
+    ){
+        int currentId = userPrincipal.getUserId();
+        return ResponseEntity.ok(petstaService.getUserPage(currentId, userId));
+    }
+
+
+    @GetMapping("/users/{userId}/name")
+    public ResponseEntity<String> getName(
+            @PathVariable Integer userId
+    ){
+        return ResponseEntity.ok(userService.getUsername(userId));
+    }
 
 
 }

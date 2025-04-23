@@ -7,10 +7,11 @@ import java.time.LocalDateTime;
 
 @Getter
 @AllArgsConstructor
-public class CommentResponseDto {
+public class PetstaCommentResponseDto {
     private Integer id;
     private String content;
     private String userName;
+    private Integer userId;
     private String userPhoto;
     private LocalDateTime createdAt;
     private Integer parentId;

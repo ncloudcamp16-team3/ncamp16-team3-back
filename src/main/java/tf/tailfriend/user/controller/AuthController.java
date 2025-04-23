@@ -55,6 +55,7 @@ public class AuthController {
 
         Integer userId = userPrincipal.getUserId();
         UserInfoDto userInfo = authService.getUserInfoById(userId);
+        System.out.println(userInfo);
 
         return ResponseEntity.ok(userInfo);
     }
@@ -115,8 +116,6 @@ public class AuthController {
         response.put("userId",  userPrincipal.getUserId());
         response.put("snsAccountId", userPrincipal.getSnsAccountId());
         response.put("snsTypeId", userPrincipal.getSnsTypeId());
-        response.put("userName", user.getNickname());
-        response.put("userPhoto", storageService.generatePresignedUrl(user.getFile().getPath()));
 
 
         return ResponseEntity.ok(response);

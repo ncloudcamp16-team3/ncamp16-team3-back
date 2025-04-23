@@ -8,7 +8,6 @@ import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import tf.tailfriend.petsitter.dto.PetSitterResponseDto;
-import tf.tailfriend.petsitter.entity.PetSitter;
 import tf.tailfriend.petsitter.service.PetSitterService;
 
 @RestController
@@ -73,4 +72,36 @@ public class AdminPetSitterController {
         PetSitterResponseDto petSitter = petSitterService.deletePetSitter(id);
         return ResponseEntity.ok(petSitter);
     }
+
+
+    @PostMapping("/petsitter/approve/{id}")
+    public ResponseEntity<?> approve(@PathVariable Integer id) {
+        try {
+            PetSitterResponseDto result = petSitterService.approvePetSitter(id);
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("승인 실패: " + e.getMessage());
+        }
+    }
+
+    @PostMapping("/petsitter/pending/{id}")
+    public ResponseEntity<?> pending(@PathVariable Integer id) {
+        try {
+            PetSitterResponseDto result = petSitterService.pendingPetSitter(id);
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("보류 처리 실패: " + e.getMessage());
+        }
+    }
+
+    @PostMapping("/petsitter/delete/{id}")
+    public ResponseEntity<?> delete(@PathVariable Integer id) {
+        try {
+            PetSitterResponseDto result = petSitterService.deletePetSitter(id);
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("삭제 처리 실패: " + e.getMessage());
+        }
+    }
+
 }

@@ -16,8 +16,8 @@ import tf.tailfriend.petsta.entity.PetstaBookmark;
 import tf.tailfriend.petsta.entity.PetstaComment;
 import tf.tailfriend.petsta.entity.PetstaLike;
 import tf.tailfriend.petsta.entity.PetstaPost;
-import tf.tailfriend.petsta.entity.dto.CommentResponseDto;
-import tf.tailfriend.petsta.entity.dto.PostResponseDto;
+import tf.tailfriend.petsta.entity.dto.PetstaCommentResponseDto;
+import tf.tailfriend.petsta.entity.dto.PetstaPostResponseDto;
 import tf.tailfriend.petsta.repository.PetstaBookmarkDao;
 import tf.tailfriend.petsta.repository.PetstaCommentDao;
 import tf.tailfriend.petsta.repository.PetstaLikeDao;
@@ -30,10 +30,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
@@ -73,44 +71,62 @@ public class PetstaPostService {
                 .build();
 
         petstaPostDao.save(post);
+        userDao.incrementPostCount(userId);
+
     }
 
 
     @Transactional
-    public void uploadVideo(Integer userId, String content, String trimStart, String trimEnd, MultipartFile videoFile) throws StorageServiceException, IOException, InterruptedException {
+    public void uploadVideo(Integer userId, String content, String trimStart, String trimEnd, MultipartFile videoFile)
+            throws StorageServiceException, IOException, InterruptedException {
+
         // 1. 동영상 잘라내기
         Path trimmedVideo = fileService.trimVideo(videoFile, trimStart, trimEnd);
 
         // 2. 파일 엔티티 저장 (파일명은 Path에서 가져와야 함)
         File savedFile = fileService.save(trimmedVideo.getFileName().toString(), "post", File.FileType.VIDEO);
 
-        // 3. S3 업로드
-        try (InputStream is = Files.newInputStream(trimmedVideo)) {
-            storageService.upload(savedFile.getPath(), is);
+        // 3. 썸네일 추출 (중간 시간)
+        double duration = fileService.getVideoDurationInSeconds(trimmedVideo); // ffprobe 필요
+        Path thumbnailPath = fileService.extractThumbnail(trimmedVideo, duration / 2);
+
+        File thumbnailFile = fileService.save(thumbnailPath.getFileName().toString(), "post", File.FileType.PHOTO);
+
+        // 4. 업로드
+        try (InputStream videoIs = Files.newInputStream(trimmedVideo);
+             InputStream thumbIs = Files.newInputStream(thumbnailPath)) {
+
+            storageService.upload(savedFile.getPath(), videoIs);
+            storageService.upload(thumbnailFile.getPath(), thumbIs);
+
         } catch (IOException | StorageServiceException e) {
             throw new StorageServiceException(e);
         } finally {
-            // 3-1. 업로드 끝났으면 임시 파일 삭제 (깨끗하게)
+            // 5. 임시 파일 삭제
             Files.deleteIfExists(trimmedVideo);
+            Files.deleteIfExists(thumbnailPath);
         }
 
-        // 4. 유저 조회
+        // 6. 유저 조회
         User user = userDao.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
 
-        // 5. 게시글 저장
+        // 7. 게시글 저장
         PetstaPost post = PetstaPost.builder()
                 .user(user)
                 .file(savedFile)
+                .thumbnailFile(thumbnailFile) // ✅ 썸네일 연결
                 .content(content)
                 .build();
 
         petstaPostDao.save(post);
+        userDao.incrementPostCount(userId);
     }
 
 
+
     @Transactional
-    public List<PostResponseDto> getAllPosts(Integer loginUserId) {
+    public List<PetstaPostResponseDto> getAllPosts(Integer loginUserId) {
         Pageable pageable = PageRequest.of(0, 5, Sort.by(Sort.Direction.DESC, "createdAt"));
         List<PetstaPost> posts = petstaPostDao.findAllByOrderByCreatedAtDesc(pageable).getContent();
 
@@ -122,7 +138,7 @@ public class PetstaPostService {
                     boolean initialFollowed = userFollowDao.existsByFollowerIdAndFollowedId(loginUserId, post.getUser().getId());
 
 
-                    PostResponseDto dto = new PostResponseDto(post, initialLiked, initialBookmarked, initialFollowed);
+                    PetstaPostResponseDto dto = new PetstaPostResponseDto(post, initialLiked, initialBookmarked, initialFollowed);
 
                     // 게시글 파일 URL
                     String fileUrl = storageService.generatePresignedUrl(post.getFile().getPath());
@@ -142,7 +158,7 @@ public class PetstaPostService {
     }
 
     @Transactional
-    public PostResponseDto getPostById(Integer loginUserId, Integer postId) {
+    public PetstaPostResponseDto getPostById(Integer loginUserId, Integer postId) {
         // 1. postId로 게시글 조회
         PetstaPost post = petstaPostDao.findById(postId)
                 .orElseThrow(() -> new EntityNotFoundException("해당 게시글을 찾을 수 없습니다."));
@@ -153,7 +169,7 @@ public class PetstaPostService {
         boolean initialFollowed = userFollowDao.existsByFollowerIdAndFollowedId(loginUserId, post.getUser().getId());
 
         // 3. DTO 생성
-        PostResponseDto dto = new PostResponseDto(post, initialLiked, initialBookmarked, initialFollowed);
+        PetstaPostResponseDto dto = new PetstaPostResponseDto(post, initialLiked, initialBookmarked, initialFollowed);
 
         // 4. 게시글 파일 presigned URL 생성
         String fileUrl = storageService.generatePresignedUrl(post.getFile().getPath());
@@ -211,7 +227,7 @@ public class PetstaPostService {
     }
 
     @Transactional
-    public PetstaComment addComment(Integer postId, Integer userId, String content, Integer parentId) {
+    public void addComment(Integer postId, Integer userId, String content, Integer parentId) {
         PetstaPost post = petstaPostDao.findById(postId)
                 .orElseThrow(() -> new IllegalArgumentException("게시글을 찾을 수 없습니다: " + postId));
 
@@ -242,20 +258,20 @@ public class PetstaPostService {
 
         petstaPostDao.incrementCommentCount(postId);
 
-        return savedComment;
     }
 
     @Transactional
-    public List<CommentResponseDto> getParentCommentsByPostId(Integer postId) {
+    public List<PetstaCommentResponseDto> getParentCommentsByPostId(Integer postId) {
         PetstaPost post = petstaPostDao.findById(postId)
                 .orElseThrow(() -> new IllegalArgumentException("게시글을 찾을 수 없습니다: " + postId));
 
         return petstaCommentDao.findByPostAndParentIsNullOrderByCreatedAtDesc(post)
                 .stream()
-                .map(comment -> new CommentResponseDto(
+                .map(comment -> new PetstaCommentResponseDto(
                         comment.getId(),
                         comment.getContent(),
-                        comment.getUser().getNickname(), // ✨ User의 닉네임만!
+                        comment.getUser().getNickname(),
+                        comment.getUser().getId(),
                         storageService.generatePresignedUrl(comment.getUser().getFile().getPath()),
                         comment.getCreatedAt(),
                         null,
@@ -266,16 +282,17 @@ public class PetstaPostService {
     }
 
     @Transactional
-    public List<CommentResponseDto> getReplyCommentsByCommentId(Integer commentId) {
+    public List<PetstaCommentResponseDto> getReplyCommentsByCommentId(Integer commentId) {
         PetstaComment parentComment = petstaCommentDao.findById(commentId)
                 .orElseThrow(() -> new IllegalArgumentException("댓글을 찾을 수 없습니다: " + commentId));
 
         return petstaCommentDao.findByParentOrderByCreatedAtAsc(parentComment)
                 .stream()
-                .map(reply -> new CommentResponseDto(
+                .map(reply -> new PetstaCommentResponseDto(
                         reply.getId(),
                         reply.getContent(),
                         reply.getUser().getNickname(),
+                        reply.getUser().getId(),
                         storageService.generatePresignedUrl(reply.getUser().getFile().getPath()),
                         reply.getCreatedAt(),
                         reply.getParent().getId(),

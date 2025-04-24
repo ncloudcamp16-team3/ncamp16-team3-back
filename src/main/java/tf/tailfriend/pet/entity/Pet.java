@@ -11,7 +11,7 @@ import java.util.List;
 @Entity
 @Table(name = "pets")
 @Getter
-@Builder
+@Builder(toBuilder = true)
 @NoArgsConstructor
 @AllArgsConstructor
 public class Pet {

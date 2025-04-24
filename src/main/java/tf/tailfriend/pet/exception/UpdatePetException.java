@@ -3,9 +3,9 @@ package tf.tailfriend.pet.exception;
 import org.springframework.http.HttpStatus;
 import tf.tailfriend.global.exception.CustomException;
 
-import static tf.tailfriend.pet.message.ErrorMessage.GET_FIlE_FAIL;
+import static tf.tailfriend.pet.message.ErrorMessage.PET_UPDATE_ERROR;
 
-public class FindFileException extends CustomException {
+public class UpdatePetException extends CustomException {
     @Override
     public HttpStatus getStatus() {
         return HttpStatus.INTERNAL_SERVER_ERROR;
@@ -13,6 +13,6 @@ public class FindFileException extends CustomException {
 
     @Override
     public String getMessage() {
-        return GET_FIlE_FAIL.getMessage();
+        return PET_UPDATE_ERROR.getMessage();
     }
 }

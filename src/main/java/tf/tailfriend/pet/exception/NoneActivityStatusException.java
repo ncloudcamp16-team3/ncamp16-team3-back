@@ -5,7 +5,7 @@ import tf.tailfriend.global.exception.CustomException;
 
 import static tf.tailfriend.pet.message.ErrorMessage.ACTIVITY_STATUS_NONE_UNAVAILABLE;
 
-public class ActivityStatusNoneException extends CustomException {
+public class NoneActivityStatusException extends CustomException {
     @Override
     public HttpStatus getStatus() {
         return HttpStatus.BAD_REQUEST;

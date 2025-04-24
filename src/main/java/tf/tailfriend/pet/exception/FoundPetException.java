@@ -3,16 +3,16 @@ package tf.tailfriend.pet.exception;
 import org.springframework.http.HttpStatus;
 import tf.tailfriend.global.exception.CustomException;
 
-import static tf.tailfriend.pet.message.ErrorMessage.FIND_DONG_FAIL;
+import static tf.tailfriend.pet.message.ErrorMessage.PET_FOUND_ERROR;
 
-public class FindDongException extends CustomException {
+public class FoundPetException extends CustomException {
     @Override
     public HttpStatus getStatus() {
-        return HttpStatus.BAD_REQUEST;
+        return HttpStatus.INTERNAL_SERVER_ERROR;
     }
 
     @Override
     public String getMessage() {
-        return FIND_DONG_FAIL.getMessage();
+        return PET_FOUND_ERROR.getMessage();
     }
 }

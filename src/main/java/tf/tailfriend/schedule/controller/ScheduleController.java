@@ -22,20 +22,20 @@ public class ScheduleController {
     private final ScheduleService scheduleService;
 
     @GetMapping
-    public ResponseEntity<?> getAllSchedules(Integer id) {
+    public ResponseEntity<?> getAllSchedules(Integer userId) {
 
-        List<ScheduleGetDTO> schedules = scheduleService.getAllSchedules(id);
+        List<ScheduleGetDTO> schedules = scheduleService.getAllSchedules(userId);
 
         return new ResponseEntity<>(schedules, HttpStatus.OK);
     }
 
     @GetMapping("/date")
     public ResponseEntity<?> getOneSchedules(@RequestParam("selectDateTime") @DateTimeFormat(pattern = "yyyy-MM-dd") String selectDate,
-                                             @RequestParam("id") Integer id) {
+                                             Integer userId) {
 
         LocalDate localDate = LocalDate.parse(selectDate);
 
-        List<ScheduleGetDTO> schedules = scheduleService.getOneSchedules(localDate,id);
+        List<ScheduleGetDTO> schedules = scheduleService.getOneSchedules(localDate,userId);
 
         return new ResponseEntity<>(schedules, HttpStatus.OK);
     }

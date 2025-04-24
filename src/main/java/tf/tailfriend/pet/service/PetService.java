@@ -1,22 +1,31 @@
 package tf.tailfriend.pet.service;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import tf.tailfriend.file.entity.File;
 import tf.tailfriend.file.repository.FileDao;
 import tf.tailfriend.file.service.FileService;
+import tf.tailfriend.global.entity.Dong;
 import tf.tailfriend.global.service.NCPObjectStorageService;
 import tf.tailfriend.pet.entity.dto.PetDetailResponseDto;
 import tf.tailfriend.pet.entity.dto.PetRequestDto;
 import tf.tailfriend.pet.entity.Pet;
 import tf.tailfriend.pet.entity.PetType;
 import tf.tailfriend.pet.repository.PetDao;
+import tf.tailfriend.pet.repository.PetPhotoDao;
 import tf.tailfriend.pet.repository.PetTypeDao;
-import tf.tailfriend.petmeeting.dto.PetFriendDTO;
-import tf.tailfriend.petmeeting.dto.PetPhotoDTO;
-import tf.tailfriend.petmeeting.exception.FindFileException;
+import tf.tailfriend.pet.entity.dto.PetFriendDto;
+import tf.tailfriend.pet.entity.dto.PetPhotoDto;
+import tf.tailfriend.pet.exception.ActivityStatusNoneException;
+import tf.tailfriend.pet.exception.FindDongException;
+import tf.tailfriend.pet.exception.FindFileException;
+import tf.tailfriend.global.repository.DongDao;
+import tf.tailfriend.user.distance.Distance;
 import tf.tailfriend.user.entity.User;
 import tf.tailfriend.user.repository.UserDao;
 
@@ -33,64 +42,25 @@ public class PetService {
     private final FileDao fileDao;
     private final FileService fileService;
     private final NCPObjectStorageService ncpObjectStorageService;
-
-    //본인 반려동물 조회
-    @Transactional(readOnly = true)
-    public PetDetailResponseDto getPetDetail(Integer userId, Integer petId) {
-        // 1. 유저 확인
-        User user = userDao.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회원입니다: " + userId));
-
-        // 2. 반려동물 조회
-        Pet pet = petDao.findById(petId)
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 반려동물입니다: " + petId));
-
-        // 3. 권한 확인 (자신의 반려동물만 조회 가능)
-        if (!pet.getUser().getId().equals(userId)) {
-            throw new IllegalArgumentException("해당 반려동물의 정보를 조회할 권한이 없습니다.");
-        }
-
-        // 4. 반려동물 엔티티로 dto 생성 후 반환
-        return makePetDetailResponseDto(pet);
-    }
+    private final PetPhotoDao petPhotoDao;
+    private final DongDao dongDao;
 
     //반려동물 상세조회
     @Transactional(readOnly = true)
-    public PetDetailResponseDto getFriend(Integer petId) {
+    public PetDetailResponseDto getPetDetail(Integer petId) {
         Pet pet = petDao.findById(petId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 반려동물입니다: " + petId));
 
         return makePetDetailResponseDto(pet);
-    }
-
-    //NCP파일 접근 url생성
-    private void setPresignedUrl(List<PetDetailResponseDto.PetPhotoDto> photoDtos) {
-
-        if (photoDtos.isEmpty()) {
-            File defaultImgFile = fileDao.findById(1)
-                    .orElseThrow(() -> new FindFileException());
-
-            PetDetailResponseDto.PetPhotoDto defaultPhotoDto = PetDetailResponseDto.PetPhotoDto.builder()
-                    .id(defaultImgFile.getId())
-                    .url(ncpObjectStorageService.generatePresignedUrl(defaultImgFile.getPath()))
-                    .isThumbnail(true)
-                    .build();
-
-            photoDtos.add(defaultPhotoDto);
-        } else {
-            for (PetDetailResponseDto.PetPhotoDto petPhotoDto : photoDtos) {
-                petPhotoDto.setUrl(ncpObjectStorageService.generatePresignedUrl(petPhotoDto.getUrl()));
-            }
-        }
     }
 
     //반려동물 상세정보 반환 dto생성
     private PetDetailResponseDto makePetDetailResponseDto(Pet pet) {
-        List<PetDetailResponseDto.PetPhotoDto> photoDtos = pet.getPhotos().stream()
-                .map(photo -> PetDetailResponseDto.PetPhotoDto.builder()
+        List<PetPhotoDto> photoDtos = pet.getPhotos().stream()
+                .map(photo -> PetPhotoDto.builder()
                         .id(photo.getFile().getId())
-                        .url(photo.getFile().getPath())
-                        .isThumbnail(photo.isThumbnail())
+                        .path(photo.getFile().getPath())
+                        .thumbnail(photo.isThumbnail())
                         .build())
                 .collect(Collectors.toList());
 
@@ -105,9 +75,67 @@ public class PetService {
                 .isNeutered(pet.getNeutered())
                 .weight(pet.getWeight())
                 .introduction(pet.getInfo())
-                .isFavorite(false)
                 .photos(photoDtos)
+                .activityStatus(pet.getActivityStatus().toString())
                 .build();
+    }
+
+    @Transactional(readOnly = true)
+    public Page<PetFriendDto> getFriends(String activityStatus, String dongName,
+                                         String distance, int page, int size, double latitude, double longitude) {
+
+        if( Pet.ActivityStatus.valueOf(activityStatus) == Pet.ActivityStatus.NONE){
+            throw new ActivityStatusNoneException();
+        }
+
+        Pageable pageable = PageRequest.of(page, size);
+        List<String> dongs = getNearbyDongs(dongName, Distance.valueOf(distance).getValue());
+
+        Page<PetFriendDto> friends = petDao.findByDongNamesAndActivityStatus(
+                dongs, activityStatus, latitude, longitude, pageable);
+
+        for(PetFriendDto item: friends.getContent()){
+            List<PetPhotoDto> photos = petPhotoDao.findByPetId(item.getId());
+            item.setPhotos(photos);
+        }
+
+        for(PetFriendDto friend: friends.getContent()){
+            setPresignedUrl(friend.getPhotos());
+        }
+
+        return friends;
+    }
+
+    private List<String> getNearbyDongs(String name, int count) {
+        Dong currentDong = dongDao.findByName(name)
+                .orElseThrow(() -> new FindDongException());
+
+        return dongDao.findNearbyDongs(
+                currentDong.getLatitude(),
+                currentDong.getLongitude(),
+                count
+        );
+    }
+
+    //NCP파일 접근url생성
+    private void setPresignedUrl(List<PetPhotoDto> photoDtos) {
+
+        if (photoDtos.isEmpty()) {
+            File defaultImgFile = fileDao.findById(1)
+                    .orElseThrow(() -> new FindFileException());
+
+            PetPhotoDto defaultPhotoDto = PetPhotoDto.builder()
+                    .id(defaultImgFile.getId())
+                    .path(ncpObjectStorageService.generatePresignedUrl(defaultImgFile.getPath()))
+                    .thumbnail(true)
+                    .build();
+
+            photoDtos.add(defaultPhotoDto);
+        } else {
+            for (PetPhotoDto petPhotoDto : photoDtos) {
+                petPhotoDto.setPath(ncpObjectStorageService.generatePresignedUrl(petPhotoDto.getPath()));
+            }
+        }
     }
 
     //수정
@@ -252,4 +280,8 @@ public class PetService {
             default -> "ETC";
         };
     }
+
+    /*public List<PetDetailResponseDto> getMyPets(Integer userId) {
+
+    }*/
 }

@@ -1,4 +1,4 @@
-package tf.tailfriend.petmeeting.dto;
+package tf.tailfriend.pet.entity.dto;
 
 import lombok.*;
 
@@ -10,7 +10,7 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class PetFriendDTO {
+public class PetFriendDto {
     private Integer id;
     private String name;
     private String gender;
@@ -20,11 +20,10 @@ public class PetFriendDTO {
     private Boolean neutered;
     private String activityStatus;
     private OwnerDTO owner;
-    private List<PetPhotoDTO> photos;
-    private Integer thumbnail;
+    private List<PetPhotoDto> photos;
     private Double distance;
 
-    public PetFriendDTO(Integer id, String name, String gender, String birth, Double weight, String info,
+    public PetFriendDto(Integer id, String name, String gender, String birth, Double weight, String info,
                         Boolean neutered, String activityStatus, Integer ownerId, String nickname,
                         String address, String dongName, Double latitude, Double longitude, Double distance) {
         this.id = id;
@@ -44,17 +43,6 @@ public class PetFriendDTO {
                 .longitude(longitude)
                 .build();
         this.distance = distance;
-    }
-
-    public void setPhotosAndThumbnail(List<PetPhotoDTO> photos) {
-        this.photos = photos;
-
-        for(PetPhotoDTO photoDTO: photos){
-            if(photoDTO.isThumbnail()) {
-                this.thumbnail = photoDTO.getId();
-                return;
-            }
-        }
     }
 
     @Getter

@@ -19,16 +19,6 @@ public class PetDetailResponseDto {
     private Boolean isNeutered;
     private Double weight;
     private String introduction;
-    private Boolean isFavorite;
+    private String activityStatus;
     private List<PetPhotoDto> photos;
-
-    @Data
-    @Builder
-    @NoArgsConstructor
-    @AllArgsConstructor
-    public static class PetPhotoDto {
-        private Integer id;
-        private String url;
-        private Boolean isThumbnail;
-    }
 }

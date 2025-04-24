@@ -1,9 +1,9 @@
-package tf.tailfriend.petmeeting.exception;
+package tf.tailfriend.pet.exception;
 
 import org.springframework.http.HttpStatus;
 import tf.tailfriend.global.exception.CustomException;
 
-import static tf.tailfriend.petmeeting.message.ErrorMessage.ACTIVITY_STATUS_NONE_UNAVAILABLE;
+import static tf.tailfriend.pet.message.ErrorMessage.ACTIVITY_STATUS_NONE_UNAVAILABLE;
 
 public class ActivityStatusNoneException extends CustomException {
     @Override

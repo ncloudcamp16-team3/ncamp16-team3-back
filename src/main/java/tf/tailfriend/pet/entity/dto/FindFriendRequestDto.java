@@ -1,4 +1,4 @@
-package tf.tailfriend.petmeeting.dto;
+package tf.tailfriend.pet.entity.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -7,7 +7,7 @@ import lombok.NoArgsConstructor;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class FindFriendRequestDTO {
+public class FindFriendRequestDto {
     private String activityStatus;
     private String dongName;
     private String distance;

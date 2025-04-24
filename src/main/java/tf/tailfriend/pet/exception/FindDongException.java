@@ -1,9 +1,9 @@
-package tf.tailfriend.petmeeting.exception;
+package tf.tailfriend.pet.exception;
 
 import org.springframework.http.HttpStatus;
 import tf.tailfriend.global.exception.CustomException;
 
-import static tf.tailfriend.petmeeting.message.ErrorMessage.FIND_DONG_FAIL;
+import static tf.tailfriend.pet.message.ErrorMessage.FIND_DONG_FAIL;
 
 public class FindDongException extends CustomException {
     @Override

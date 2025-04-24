@@ -1,6 +1,7 @@
 package tf.tailfriend.user.controller;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -8,15 +9,21 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import tf.tailfriend.global.config.UserPrincipal;
+import tf.tailfriend.global.response.CustomResponse;
+import tf.tailfriend.user.entity.User;
 import tf.tailfriend.user.entity.dto.MypageResponseDto;
+import tf.tailfriend.user.entity.dto.UserInfoDto;
 import tf.tailfriend.user.service.UserService;
 
 import java.util.HashMap;
 import java.util.Map;
 
+import static tf.tailfriend.user.message.SuccessMessage.USER_INFO_SAVE_SUCCESS;
+
 @RestController
 @RequestMapping("/api/user")
 @RequiredArgsConstructor
+@Slf4j
 public class UserController {
 
     private static final Logger logger = LoggerFactory.getLogger(UserController.class);
@@ -141,4 +148,11 @@ public class UserController {
         return ResponseEntity.ok("팔로우 토글 완료");
     }
 
+    @PutMapping("/save")
+    public ResponseEntity<?> save(@RequestBody UserInfoDto userInfoDto) {
+        userService.userInfoSave(userInfoDto);
+
+        return ResponseEntity.status(HttpStatus.OK)
+                .body(new CustomResponse(USER_INFO_SAVE_SUCCESS.getMessage(), null));
+    }
 }

@@ -1,5 +1,7 @@
 package tf.tailfriend.user.entity.dto;
 
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -19,6 +21,5 @@ public class UserInfoDto {
     private Double latitude;
     private Double longitude;
     private String Path;
-    private Distance distance;
-
+    private String distance;
 }

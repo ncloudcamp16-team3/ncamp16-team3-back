@@ -16,5 +16,5 @@ public class PetstaCommentResponseDto {
     private LocalDateTime createdAt;
     private Integer parentId;
     private Integer replyCount;
-    private Boolean isView;
+    private Boolean isVisited;
 }

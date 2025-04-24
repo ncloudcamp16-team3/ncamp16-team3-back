@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import tf.tailfriend.file.entity.File;
 import tf.tailfriend.file.service.FileService;
+import tf.tailfriend.global.service.RedisService;
 import tf.tailfriend.global.service.StorageService;
 import tf.tailfriend.global.service.StorageServiceException;
 import tf.tailfriend.petsta.entity.PetstaBookmark;
@@ -46,6 +47,7 @@ public class PetstaPostService {
     private final UserDao userDao;
     private final UserFollowDao userFollowDao;
     private final PetstaCommentDao petstaCommentDao;
+    private final RedisService redisService;
 
     @Transactional
     public void uploadPhoto(Integer userId, String content, MultipartFile imageFile) throws StorageServiceException {
@@ -72,6 +74,7 @@ public class PetstaPostService {
 
         petstaPostDao.save(post);
         userDao.incrementPostCount(userId);
+        redisService.setStoryFlag(userId);
 
     }
 
@@ -121,6 +124,7 @@ public class PetstaPostService {
 
         petstaPostDao.save(post);
         userDao.incrementPostCount(userId);
+        redisService.setStoryFlag(userId);
     }
 
 
@@ -136,9 +140,10 @@ public class PetstaPostService {
                     boolean initialLiked = petstaLikeDao.existsByUserIdAndPetstaPostId(loginUserId, post.getId());
                     boolean initialBookmarked = petstaBookmarkDao.existsByUserIdAndPetstaPostId(loginUserId, post.getId());
                     boolean initialFollowed = userFollowDao.existsByFollowerIdAndFollowedId(loginUserId, post.getUser().getId());
+                    boolean isVisited = redisService.hasVisitedStory(post.getUser().getId(), loginUserId); // ✅ 방문 여부 조회
 
 
-                    PetstaPostResponseDto dto = new PetstaPostResponseDto(post, initialLiked, initialBookmarked, initialFollowed);
+                    PetstaPostResponseDto dto = new PetstaPostResponseDto(post, initialLiked, initialBookmarked, initialFollowed, isVisited);
 
                     // 게시글 파일 URL
                     String fileUrl = storageService.generatePresignedUrl(post.getFile().getPath());
@@ -169,7 +174,7 @@ public class PetstaPostService {
         boolean initialFollowed = userFollowDao.existsByFollowerIdAndFollowedId(loginUserId, post.getUser().getId());
 
         // 3. DTO 생성
-        PetstaPostResponseDto dto = new PetstaPostResponseDto(post, initialLiked, initialBookmarked, initialFollowed);
+        PetstaPostResponseDto dto = new PetstaPostResponseDto(post, initialLiked, initialBookmarked, initialFollowed, true);
 
         // 4. 게시글 파일 presigned URL 생성
         String fileUrl = storageService.generatePresignedUrl(post.getFile().getPath());
@@ -261,46 +266,58 @@ public class PetstaPostService {
     }
 
     @Transactional
-    public List<PetstaCommentResponseDto> getParentCommentsByPostId(Integer postId) {
+    public List<PetstaCommentResponseDto> getParentCommentsByPostId(Integer currentId, Integer postId) {
         PetstaPost post = petstaPostDao.findById(postId)
                 .orElseThrow(() -> new IllegalArgumentException("게시글을 찾을 수 없습니다: " + postId));
 
         return petstaCommentDao.findByPostAndParentIsNullOrderByCreatedAtDesc(post)
                 .stream()
-                .map(comment -> new PetstaCommentResponseDto(
-                        comment.getId(),
-                        comment.getContent(),
-                        comment.getUser().getNickname(),
-                        comment.getUser().getId(),
-                        storageService.generatePresignedUrl(comment.getUser().getFile().getPath()),
-                        comment.getCreatedAt(),
-                        null,
-                        comment.getReplyCount(),
-                        true
-                ))
+                .map(comment -> {
+                    Integer commentUserId = comment.getUser().getId();
+                    boolean isVisited = redisService.hasVisitedStory(commentUserId, currentId); // ✅ 방문 여부 조회
+
+                    return new PetstaCommentResponseDto(
+                            comment.getId(),
+                            comment.getContent(),
+                            comment.getUser().getNickname(),
+                            commentUserId,
+                            storageService.generatePresignedUrl(comment.getUser().getFile().getPath()),
+                            comment.getCreatedAt(),
+                            null,
+                            comment.getReplyCount(),
+                            isVisited
+                    );
+                })
                 .collect(Collectors.toList());
     }
 
+
     @Transactional
-    public List<PetstaCommentResponseDto> getReplyCommentsByCommentId(Integer commentId) {
+    public List<PetstaCommentResponseDto> getReplyCommentsByCommentId(Integer commentId, Integer currentUserId) {
         PetstaComment parentComment = petstaCommentDao.findById(commentId)
                 .orElseThrow(() -> new IllegalArgumentException("댓글을 찾을 수 없습니다: " + commentId));
 
         return petstaCommentDao.findByParentOrderByCreatedAtAsc(parentComment)
                 .stream()
-                .map(reply -> new PetstaCommentResponseDto(
-                        reply.getId(),
-                        reply.getContent(),
-                        reply.getUser().getNickname(),
-                        reply.getUser().getId(),
-                        storageService.generatePresignedUrl(reply.getUser().getFile().getPath()),
-                        reply.getCreatedAt(),
-                        reply.getParent().getId(),
-                        reply.getReplyCount(),
-                        false // 자식 댓글은 isView=false (처음엔 안 펼쳐져 있음)
-                ))
+                .map(reply -> {
+                    Integer replyUserId = reply.getUser().getId();
+                    boolean isVisited = redisService.hasVisitedStory(replyUserId, currentUserId);
+
+                    return new PetstaCommentResponseDto(
+                            reply.getId(),
+                            reply.getContent(),
+                            reply.getUser().getNickname(),
+                            replyUserId,
+                            storageService.generatePresignedUrl(reply.getUser().getFile().getPath()),
+                            reply.getCreatedAt(),
+                            reply.getParent().getId(),
+                            reply.getReplyCount(),
+                            isVisited // 🔄 이제 동적으로 처리
+                    );
+                })
                 .collect(Collectors.toList());
     }
+
 
 
 

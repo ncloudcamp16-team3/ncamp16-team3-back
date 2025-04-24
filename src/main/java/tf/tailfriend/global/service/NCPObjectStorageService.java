@@ -57,7 +57,7 @@ public class NCPObjectStorageService implements StorageService {
             metadata.setContentType("application/octet-stream");
 
             PutObjectRequest request = new PutObjectRequest(bucketName, filePath, fileIn, metadata)
-                    .withCannedAcl(CannedAccessControlList.PublicRead);
+                    .withCannedAcl(CannedAccessControlList.Private);
 
             s3.putObject(request);
         } catch (Exception e) {

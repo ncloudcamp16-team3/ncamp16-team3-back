@@ -27,4 +27,10 @@ public interface UserFollowDao extends JpaRepository<UserFollow, Integer> {
     @Query("SELECT uf.followed FROM UserFollow uf WHERE uf.follower.id = :followerId")
     List<User> findTop10ByFollowerId(@Param("followerId") Integer followerId, Pageable pageable);
 
+
+    List<UserFollow> findByFollowerIdAndFollowedIdIn(Integer currentUserId, List<Integer> collect);
+
+    List<UserFollow> findTop20ByFollowedId(Integer targetUserId, Pageable limit);
+
+    List<UserFollow> findTop20ByFollowerId(Integer targetUserId, Pageable limit);
 }

@@ -15,4 +15,5 @@ public class PetstaUserpageResponseDto {
     private Integer followerCount;
     private Integer followCount;
     private List<PetstaSimplePostDto> posts;
+    private Boolean isFollow;
 }

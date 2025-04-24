@@ -20,11 +20,12 @@ public class PetstaPostResponseDto {
     private Integer comments;
     private String content;
     private String createdAt;
-    private boolean initialLiked;
-    private boolean initialBookmarked;
-    private boolean initialFollowed;
+    private Boolean initialLiked;
+    private Boolean initialBookmarked;
+    private Boolean initialFollowed;
+    private Boolean isVisited;
 
-    public PetstaPostResponseDto(PetstaPost post, boolean initialLiked, boolean initialBookmarked, boolean initialFollowed) {
+    public PetstaPostResponseDto(PetstaPost post, boolean initialLiked, boolean initialBookmarked, boolean initialFollowed, boolean isVisited) {
         this.postId = post.getId();  // 게시물 ID
         this.userId = post.getUser().getId();  // User ID
         this.userName = post.getUser().getNickname();  // User의 nickname
@@ -38,6 +39,7 @@ public class PetstaPostResponseDto {
         this.initialLiked = initialLiked;
         this.initialBookmarked = initialBookmarked;
         this.initialFollowed = initialFollowed;
+        this.isVisited = isVisited;
     }
 
 }

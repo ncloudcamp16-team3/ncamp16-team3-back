@@ -1,4 +1,4 @@
-package tf.tailfriend.petmeeting.repository;
+package tf.tailfriend.global.repository;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -8,7 +8,7 @@ import tf.tailfriend.global.entity.Dong;
 import java.util.List;
 import java.util.Optional;
 
-public interface DongDAO extends JpaRepository<Dong, Integer> {
+public interface DongDao extends JpaRepository<Dong, Integer> {
 
     @Query(value = """
     SELECT d.name

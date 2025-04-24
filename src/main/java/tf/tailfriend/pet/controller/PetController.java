@@ -2,6 +2,8 @@ package tf.tailfriend.pet.controller;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -11,9 +13,13 @@ import tf.tailfriend.global.response.CustomResponse;
 import tf.tailfriend.pet.entity.dto.PetDetailResponseDto;
 import tf.tailfriend.pet.entity.dto.PetRequestDto;
 import tf.tailfriend.pet.service.PetService;
+import tf.tailfriend.pet.entity.dto.FindFriendRequestDto;
+import tf.tailfriend.pet.entity.dto.PetFriendDto;
+
 import java.util.List;
 
 import static tf.tailfriend.pet.message.ErrorMessage.PET_FOUND_ERROR;
+import static tf.tailfriend.pet.message.SuccessMessage.GET_FRIENDS_SUCCESS;
 import static tf.tailfriend.pet.message.SuccessMessage.PET_FOUND_SUCCESS;
 
 @RestController
@@ -26,33 +32,10 @@ public class PetController {
 
     //반려동물 상세 정보 조회
     @GetMapping("/{petId}")
-    public ResponseEntity<?> getPet(
-            @AuthenticationPrincipal UserPrincipal userPrincipal,
-            @PathVariable Integer petId) {
-
-        if (userPrincipal == null) {
-            return ResponseEntity.status(401)
-                    .body(new CustomResponse("로그인이 필요합니다.", null));
-        }
-
+    public ResponseEntity<?> getPet(@PathVariable Integer petId) {
         try {
-            Integer userId = userPrincipal.getUserId();
-            PetDetailResponseDto pet = petService.getPetDetail(userId, petId);
+            PetDetailResponseDto pet = petService.getPetDetail(petId);
 
-            return ResponseEntity.ok(new CustomResponse(PET_FOUND_SUCCESS.getMessage(), pet));
-        } catch (Exception e) {
-            return ResponseEntity.badRequest()
-                    .body(new CustomResponse(PET_FOUND_ERROR.getMessage(), null));
-        }
-    }
-
-    //반려동물 친구 정보 조회
-    @GetMapping("/friend/{petId}")
-    public ResponseEntity<?> getFriend(
-            @PathVariable Integer petId) {
-
-        try {
-            PetDetailResponseDto pet = petService.getFriend(petId);
             return ResponseEntity.ok(new CustomResponse(PET_FOUND_SUCCESS.getMessage(), pet));
         } catch (Exception e) {
             return ResponseEntity.badRequest()
@@ -130,5 +113,22 @@ public class PetController {
             return ResponseEntity.badRequest()
                     .body(new CustomResponse("반려동물 정보 삭제 중 오류가 발생했습니다: " + e.getMessage(), null));
         }
+    }
+
+    @PostMapping("/friends")
+    public ResponseEntity<?> getFriendList(@RequestBody FindFriendRequestDto findFriendRequestDTO) {
+        Page<PetFriendDto> petFriends = petService.getFriends(
+                findFriendRequestDTO.getActivityStatus(),
+                findFriendRequestDTO.getDongName(),
+                findFriendRequestDTO.getDistance(),
+                findFriendRequestDTO.getPage(),
+                findFriendRequestDTO.getSize(),
+                findFriendRequestDTO.getLatitude(),
+                findFriendRequestDTO.getLongitude()
+        );
+
+        return ResponseEntity
+                .status(HttpStatus.OK)
+                .body(new CustomResponse(GET_FRIENDS_SUCCESS.getMessage(), petFriends));
     }
 }

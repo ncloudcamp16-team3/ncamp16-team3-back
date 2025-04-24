@@ -1,4 +1,4 @@
-package tf.tailfriend.petmeeting.dto;
+package tf.tailfriend.pet.entity.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -9,12 +9,12 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class PetPhotoDTO {
+public class PetPhotoDto {
     private Integer id;
     private String path;
     private boolean thumbnail;
 
-    public PetPhotoDTO(Integer id, String path, Boolean thumbnail) {
+    public PetPhotoDto(Integer id, String path, Boolean thumbnail) {
         this.id = id;
         this.path = path;
         this.thumbnail = thumbnail;

@@ -1,4 +1,4 @@
-package tf.tailfriend.user.message.error;
+package tf.tailfriend.user.message;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;

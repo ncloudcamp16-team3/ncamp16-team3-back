@@ -7,6 +7,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import tf.tailfriend.global.config.UserPrincipal;
 //import tf.tailfriend.global.service.RedisService;
+import tf.tailfriend.global.service.RedisService;
 import tf.tailfriend.petsta.entity.dto.PetstaFollowingUserDto;
 import tf.tailfriend.petsta.entity.dto.PetstaUserpageResponseDto;
 import tf.tailfriend.petsta.service.PetstaService;
@@ -21,7 +22,7 @@ public class PetstaController {
 
     private final PetstaService petstaService;
     private final UserService userService;
-//    private final RedisService redisService;
+    private final RedisService redisService;
 
     @Value("${URL}")
     private String mainUrl;

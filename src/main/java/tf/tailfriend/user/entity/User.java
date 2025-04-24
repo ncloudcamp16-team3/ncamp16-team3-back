@@ -47,8 +47,12 @@ public class User {
 
     private Double longitude;
 
-    @Convert(converter = DistanceConverter.class)
+    @Enumerated(EnumType.STRING)
     private Distance distance;
+
+    public enum Distance {
+        LEVEL1, LEVEL2, LEVEL3, LEVEL4
+    }
 
     @OneToMany(mappedBy = "follower")
     @Builder.Default

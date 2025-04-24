@@ -11,9 +11,11 @@ import tf.tailfriend.file.entity.File;
 import tf.tailfriend.file.repository.FileDao;
 import tf.tailfriend.global.entity.Dong;
 import tf.tailfriend.global.service.NCPObjectStorageService;
+import tf.tailfriend.pet.entity.Pet;
 import tf.tailfriend.pet.repository.PetPhotoDao;
 import tf.tailfriend.petmeeting.dto.PetFriendDTO;
 import tf.tailfriend.petmeeting.dto.PetPhotoDTO;
+import tf.tailfriend.petmeeting.exception.ActivityStatusNoneException;
 import tf.tailfriend.petmeeting.exception.FindDongException;
 import tf.tailfriend.petmeeting.exception.FindFileException;
 import tf.tailfriend.petmeeting.repository.DongDAO;
@@ -37,8 +39,12 @@ public class PetmeetingService {
     public Page<PetFriendDTO> getFriends(String activityStatus, String dongName,
                                          String distance, int page, int size, double latitude, double longitude) {
 
+        if( Pet.ActivityStatus.valueOf(activityStatus) == Pet.ActivityStatus.NONE){
+            throw new ActivityStatusNoneException();
+        }
+
         Pageable pageable = PageRequest.of(page, size);
-        List<String> dongs = getNearbyDongs(dongName, Distance.fromString(distance).getDistanceValue());
+        List<String> dongs = getNearbyDongs(dongName, Distance.valueOf(distance).getValue());
 
         Page<PetFriendDTO> friends = petmeetingDAO.findByDongNamesAndActivityStatus(
                 dongs, activityStatus, latitude, longitude, pageable);
@@ -49,7 +55,6 @@ public class PetmeetingService {
         for(PetFriendDTO item: friends.getContent()){
             List<PetPhotoDTO> photos = petPhotoDao.findByPetId(item.getId());
             item.setPhotosAndThumbnail(photos);
-            log.info("\n\n\n\n"+item);
         }
 
         File defaultImgFile = fileDao.findById(1)
@@ -82,12 +87,12 @@ public class PetmeetingService {
     }
 
     private List<String> getNearbyDongs(String name, int count) {
-        Dong current = dongDAO.findByName(name)
+        Dong currentDong = dongDAO.findByName(name)
                 .orElseThrow(() -> new FindDongException());
 
         return dongDAO.findNearbyDongs(
-                current.getLatitude(),
-                current.getLongitude(),
+                currentDong.getLatitude(),
+                currentDong.getLongitude(),
                 count
         );
     }

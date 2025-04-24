@@ -2,6 +2,7 @@ package tf.tailfriend.user.service;
 
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import tf.tailfriend.file.entity.File;
@@ -16,10 +17,13 @@ import tf.tailfriend.pet.repository.PetPhotoDao;
 import tf.tailfriend.pet.repository.PetDao;
 import tf.tailfriend.pet.repository.PetTypeDao;
 import tf.tailfriend.petsitter.repository.PetSitterDao;
+import tf.tailfriend.user.distance.Distance;
 import tf.tailfriend.user.entity.SnsType;
 import tf.tailfriend.user.entity.User;
 import tf.tailfriend.user.entity.UserFollow;
 import tf.tailfriend.user.entity.dto.*;
+import tf.tailfriend.user.exception.UserException;
+import tf.tailfriend.user.exception.UserSaveException;
 import tf.tailfriend.user.repository.SnsTypeDao;
 import tf.tailfriend.user.repository.UserDao;
 import tf.tailfriend.user.repository.UserFollowDao;
@@ -32,6 +36,7 @@ import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class UserService {
 
     private final UserDao userDao;
@@ -228,5 +233,26 @@ public class UserService {
         return userDao.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("유저를 찾을 수 없습니다."))
                 .getNickname(); // ← 여기서 닉네임만 추출
+  
+    public void userInfoSave(UserInfoDto userInfoDto) {
+
+        User userEntity = userDao.findById(userInfoDto.getId())
+                .orElseThrow(() -> new UserException());
+
+        try {
+            User updatedUser = userEntity.toBuilder()
+                    .nickname(userInfoDto.getNickname())
+                    .distance(userInfoDto.getDistance())
+                    .latitude(userInfoDto.getLatitude())
+                    .longitude(userInfoDto.getLongitude())
+                    .address(userInfoDto.getAddress())
+                    .dongName(userInfoDto.getDongName())
+                    .build();
+
+            userDao.save(updatedUser);
+
+        }  catch (Exception e) {
+            throw new UserSaveException();
+        }
     }
 }

@@ -1,29 +1,24 @@
 package tf.tailfriend.user.distance;
 
 import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @Getter
 public enum Distance {
 
-    ONE("1", 1),
-    TWO("2", 3),
-    THREE("3", 5),
-    FOUR("4", 10);
+    LEVEL1(1),
+    LEVEL2(3),
+    LEVEL3(5),
+    LEVEL4(10);
 
-    private final String code;
-    private final int distanceValue;
+    private final int value;
 
-    Distance(String code, int distanceValue) {
-        this.code = code;
-        this.distanceValue = distanceValue;
+    Distance(int value) {
+        this.value = value;
     }
 
-    public static Distance fromString(String dbCode) {
-        for (Distance d : values()) {
-            if (d.code.equals(dbCode)) {
-                return d;
-            }
-        }
-        throw new IllegalArgumentException("Unknown Distance code: " + dbCode);
+    public int getValue() {
+        return value;
     }
 }

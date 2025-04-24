@@ -111,7 +111,7 @@ public class AuthService {
                 if (imageIndex >= images.size()) break;
 
                 MultipartFile image = images.get(imageIndex++);
-                File file = fileService.save(image.getOriginalFilename(), "user", photoDto.getType());
+                File file = fileService.save(image.getOriginalFilename(), "pet", photoDto.getType());
 
                 try (InputStream is = image.getInputStream()) {
                     storageService.upload(file.getPath(), is);

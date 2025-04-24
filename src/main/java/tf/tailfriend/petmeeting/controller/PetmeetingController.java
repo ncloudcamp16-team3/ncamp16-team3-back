@@ -22,9 +22,6 @@ public class PetmeetingController {
 
     @PostMapping("/friends")
     public ResponseEntity<?> getFriendList(@RequestBody FindFriendRequestDTO findFriendRequestDTO) {
-
-        log.info("\n\n\n\n\n\n\n\nfindFriendRequestDTO : " + findFriendRequestDTO);
-
         Page<PetFriendDTO> petFriends =  petmeetingService.getFriends(
                 findFriendRequestDTO.getActivityStatus(),
                 findFriendRequestDTO.getDongName(),

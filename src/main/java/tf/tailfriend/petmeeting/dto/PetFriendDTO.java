@@ -1,11 +1,8 @@
 package tf.tailfriend.petmeeting.dto;
 
 import lombok.*;
-import tf.tailfriend.pet.entity.Pet;
-import tf.tailfriend.pet.entity.PetPhoto;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Getter
 @Setter
@@ -58,5 +55,21 @@ public class PetFriendDTO {
                 return;
             }
         }
+    }
+
+    @Getter
+    @Setter
+    @ToString
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
+    public static class OwnerDTO {
+        private Integer id;
+        private String nickname;
+        private String address;
+        private String dongName;
+        private Double latitude;
+        private Double longitude;
+        private String distance;
     }
 }

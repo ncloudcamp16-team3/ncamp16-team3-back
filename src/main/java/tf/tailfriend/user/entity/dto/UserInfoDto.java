@@ -7,7 +7,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 
-import tf.tailfriend.user.entity.User.Distance;
+import tf.tailfriend.user.distance.Distance;
 import tf.tailfriend.user.entity.SnsType;
 
 @Data

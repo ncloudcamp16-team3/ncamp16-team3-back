@@ -22,16 +22,16 @@ public class ScheduleService {
     private final ScheduleDao scheduleDao;
 
     @Transactional(readOnly = true)
-    public List<ScheduleGetDTO> getAllSchedules(Integer id) {
-        return scheduleDao.findById(id)
+    public List<ScheduleGetDTO> getAllSchedules(Integer userId) {
+        return scheduleDao.findByUserId(userId)
                 .stream()
                 .map(ScheduleGetDTO::new)
                 .collect(Collectors.toList());
     }
 
     @Transactional(readOnly = true)
-    public List<ScheduleGetDTO> getOneSchedules(LocalDate selectedDate, Integer id) {
-        return scheduleDao.findById(id)
+    public List<ScheduleGetDTO> getOneSchedules(LocalDate selectedDate, Integer userId) {
+        return scheduleDao.findByUserId(userId)
                 .stream()
                 .map(ScheduleGetDTO::new)
                 .filter(dto -> dto.getDateList().contains(selectedDate)) // 선택 날짜 포함 여부 확인

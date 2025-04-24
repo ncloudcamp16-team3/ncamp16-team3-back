@@ -51,5 +51,35 @@ public class ScheduleController {
         }
     }
 
+    @PutMapping
+    public ResponseEntity<?> modifySchedule(@RequestBody SchedulePutDTO dto) {
+        try {
+            // 서비스 레이어에서 일정 추가 처리
+            scheduleService.putSchedule(dto);
+
+            // 일정 추가 성공 시
+            return new ResponseEntity<>("일정이 성공적으로 수정되었습니다.", HttpStatus.OK);
+        } catch (Exception e) {
+            // 예외 처리: 서버 오류 등
+            System.out.println(e); //
+            return new ResponseEntity<>("일정 등록에 실패했습니다. 다시 시도해주세요.", HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<?> removeSchedule(@PathVariable Integer id) {
+        try {
+            // 서비스 레이어에서 일정 추가 처리
+            scheduleService.deleteSchedule(id);
+
+            // 일정 추가 성공 시
+            return new ResponseEntity<>("일정이 성공적으로 삭제되었습니다.", HttpStatus.OK);
+        } catch (Exception e) {
+            // 예외 처리: 서버 오류 등
+            System.out.println(e); //
+            return new ResponseEntity<>("일정 삭제에 실패했습니다. 다시 시도해주세요.", HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
 
 }

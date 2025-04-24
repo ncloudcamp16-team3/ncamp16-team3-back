@@ -61,4 +61,28 @@ public class ScheduleService {
         scheduleDao.save(schedule);
     }
 
+    public void putSchedule(SchedulePutDTO dto) {
+
+        User user = userDao.findById(dto.getUserId())
+                .orElseThrow(() -> new IllegalArgumentException("유효하지 않은 사용자 ID입니다."));
+
+        Schedule schedule = Schedule.builder()
+                .id(dto.getId())
+                .user(user)
+                .title(dto.getTitle())
+                .content(dto.getContent())
+                .startDate(dto.getStartDate())
+                .address(dto.getAddress())
+                .endDate(dto.getEndDate())
+                .longitude(dto.getLongitude())
+                .latitude(dto.getLatitude())
+                .build();
+
+        scheduleDao.save(schedule);
+    }
+
+    public void deleteSchedule(Integer id) {
+        scheduleDao.deleteById(id);
+    }
+
 }

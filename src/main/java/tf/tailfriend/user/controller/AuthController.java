@@ -38,11 +38,7 @@ public class AuthController {
 
     private final AuthService authService;
     private final JwtTokenProvider jwtTokenProvider;
-    private final UserDao userDao;
-    private final StorageService storageService;
     private static final Logger logger = LoggerFactory.getLogger(AuthController.class);
-
-
 
 
 

@@ -48,6 +48,7 @@ public class AuthService {
 
         String fileUrl = storageService.generatePresignedUrl(user.getFile().getPath());
 
+
         return new UserInfoDto(
                 user.getId(),
                 user.getNickname(),

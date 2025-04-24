@@ -5,7 +5,6 @@ import lombok.*;
 import tf.tailfriend.file.entity.File;
 import tf.tailfriend.pet.entity.Pet;
 import tf.tailfriend.user.distance.Distance;
-import tf.tailfriend.user.distance.DistanceConverter;
 
 import java.util.ArrayList;
 import java.util.HashSet;

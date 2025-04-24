@@ -51,6 +51,7 @@ public class ScheduleDTO {
     @NoArgsConstructor
     @AllArgsConstructor
     public static class SchedulePostDTO {
+        private Integer userId;
         private String title;
         private LocalDateTime startDate;
         private LocalDateTime endDate;

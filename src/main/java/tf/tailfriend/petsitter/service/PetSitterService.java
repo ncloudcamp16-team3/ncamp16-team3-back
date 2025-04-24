@@ -47,6 +47,33 @@ public class PetSitterService {
         return PetSitterResponseDto.fromEntity(petSitter);
     }
 
+    @Transactional(readOnly = true)
+    public Page<PetSitterResponseDto> findBySearchCriteria(String searchTerm, String searchField, Pageable pageable) {
+        Page<PetSitter> petSitters;
+
+        switch (searchField) {
+            case "nickname":
+                petSitters = petSitterDao.findByUserNicknameContainingAndStatusEquals(
+                        searchTerm, PetSitter.PetSitterStatus.APPROVE, pageable);
+                break;
+            case "age":
+                petSitters = petSitterDao.findByAgeContainingAndStatusEquals(
+                        searchTerm, PetSitter.PetSitterStatus.APPROVE, pageable);
+                break;
+            case "houseType":
+                petSitters = petSitterDao.findByHouseTypeContainingAndStatusEquals(
+                        searchTerm, PetSitter.PetSitterStatus.APPROVE, pageable);
+                break;
+            case "comment":
+                petSitters = petSitterDao.findByCommentContainingAndStatusEquals(
+                        searchTerm, PetSitter.PetSitterStatus.APPROVE, pageable);
+                break;
+            default:
+                petSitters = petSitterDao.findByStatus(PetSitter.PetSitterStatus.APPROVE, pageable);
+        }
+        return convertToDtoPage(petSitters, pageable);
+    }
+
     @Transactional
     public PetSitterResponseDto approvePetSitter(Integer id) {
         PetSitter petSitter = petSitterDao.findById(id)

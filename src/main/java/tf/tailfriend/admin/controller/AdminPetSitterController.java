@@ -22,11 +22,20 @@ public class AdminPetSitterController {
     @GetMapping("/petsitter/list")
     public ResponseEntity<?> petSitterList(
             @RequestParam(required = false, defaultValue = "0") int page,
-            @RequestParam(required = false, defaultValue = "10") int size
+            @RequestParam(required = false, defaultValue = "10") int size,
+            @RequestParam(required = false) String searchTerm,
+            @RequestParam(required = false) String searchField
     ) {
         PageRequest pageRequest = PageRequest.of(page, size, Sort.by("id").descending());
+        Page<PetSitterResponseDto> petSitters;
 
-        Page<PetSitterResponseDto> petSitters = petSitterService.findApprovePetSitter(pageRequest);
+        if (searchTerm != null && !searchTerm.isEmpty()) {
+            // 검색어가 있을 경우
+            petSitters = petSitterService.findBySearchCriteria(searchTerm, searchField, pageRequest);
+        } else {
+            // 검색어가 없을 경우 모든 펫시터 불러오기
+            petSitters = petSitterService.findApprovePetSitter(pageRequest);
+        }
 
         return ResponseEntity.ok(petSitters);
     }

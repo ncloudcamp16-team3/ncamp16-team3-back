@@ -2,9 +2,11 @@ package tf.tailfriend.facility.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.CurrentTimestamp;
 import tf.tailfriend.board.entity.BoardPhoto;
 
 import java.sql.Time;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -51,6 +53,10 @@ public class Facility {
 
     @Column(nullable = false)
     private Double longitude;
+
+    @CurrentTimestamp
+    @Column(name = "created_at", nullable = false)
+    private LocalDateTime createdAt;
 
     @OneToMany(mappedBy = "facility", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default

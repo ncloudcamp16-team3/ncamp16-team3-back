@@ -21,5 +21,5 @@ public class UserInfoDto {
     private Double latitude;
     private Double longitude;
     private String Path;
-    private String distance;
+    private Distance distance;
 }

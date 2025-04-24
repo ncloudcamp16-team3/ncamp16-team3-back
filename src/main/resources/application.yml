@@ -32,8 +32,20 @@ spring:
       max-file-size: 10MB
       max-request-size: 10MB
 
+#  jpa:
+#    database-platform: org.hibernate.dialect.MySQL8Dialect
   jpa:
-    database-platform: org.hibernate.dialect.MySQL8Dialect
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        jdbc:
+          batch_size: 50
+        format_sql: true
+        dialect: org.hibernate.dialect.MySQLDialect
+        order_inserts: true
+        order_updates: true
 
   security:
     oauth2:

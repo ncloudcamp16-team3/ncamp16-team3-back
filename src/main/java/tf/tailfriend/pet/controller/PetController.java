@@ -1,19 +1,25 @@
 package tf.tailfriend.pet.controller;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import tf.tailfriend.global.config.UserPrincipal;
 import tf.tailfriend.global.response.CustomResponse;
+import tf.tailfriend.pet.entity.dto.PetDetailResponseDto;
 import tf.tailfriend.pet.entity.dto.PetRequestDto;
 import tf.tailfriend.pet.service.PetService;
 import java.util.List;
 
+import static tf.tailfriend.pet.message.ErrorMessage.PET_FOUND_ERROR;
+import static tf.tailfriend.pet.message.SuccessMessage.PET_FOUND_SUCCESS;
+
 @RestController
 @RequestMapping("/api/pet")
 @RequiredArgsConstructor
+@Slf4j
 public class PetController {
 
     private final PetService petService;
@@ -31,13 +37,26 @@ public class PetController {
 
         try {
             Integer userId = userPrincipal.getUserId();
-            tf.tailfriend.pet.entity.dto.PetDetailResponseDto pet = petService.getPetDetail(userId, petId);
+            PetDetailResponseDto pet = petService.getPetDetail(userId, petId);
 
-            return ResponseEntity.ok(new CustomResponse("반려동물 정보 조회 성공", pet));
+            return ResponseEntity.ok(new CustomResponse(PET_FOUND_SUCCESS.getMessage(), pet));
         } catch (Exception e) {
-            e.printStackTrace();
             return ResponseEntity.badRequest()
-                    .body(new CustomResponse("반려동물 정보 조회 중 오류가 발생했습니다: " + e.getMessage(), null));
+                    .body(new CustomResponse(PET_FOUND_ERROR.getMessage(), null));
+        }
+    }
+
+    //반려동물 친구 정보 조회
+    @GetMapping("/friend/{petId}")
+    public ResponseEntity<?> getFriend(
+            @PathVariable Integer petId) {
+
+        try {
+            PetDetailResponseDto pet = petService.getFriend(petId);
+            return ResponseEntity.ok(new CustomResponse(PET_FOUND_SUCCESS.getMessage(), pet));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest()
+                    .body(new CustomResponse(PET_FOUND_ERROR.getMessage(), null));
         }
     }
 

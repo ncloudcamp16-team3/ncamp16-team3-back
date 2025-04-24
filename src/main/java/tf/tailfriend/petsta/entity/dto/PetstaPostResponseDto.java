@@ -9,7 +9,7 @@ import tf.tailfriend.petsta.entity.PetstaPost;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class PostResponseDto {
+public class PetstaPostResponseDto {
     private Integer postId;
     private Integer userId;
     private String userName;
@@ -24,7 +24,7 @@ public class PostResponseDto {
     private boolean initialBookmarked;
     private boolean initialFollowed;
 
-    public PostResponseDto(PetstaPost post, boolean initialLiked, boolean initialBookmarked, boolean initialFollowed) {
+    public PetstaPostResponseDto(PetstaPost post, boolean initialLiked, boolean initialBookmarked, boolean initialFollowed) {
         this.postId = post.getId();  // 게시물 ID
         this.userId = post.getUser().getId();  // User ID
         this.userName = post.getUser().getNickname();  // User의 nickname

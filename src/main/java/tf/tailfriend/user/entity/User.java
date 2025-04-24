@@ -49,6 +49,19 @@ public class User {
     @Enumerated(EnumType.STRING)
     private Distance distance;
 
+    @Column(name = "post_count", nullable = false)
+    @Builder.Default
+    private Integer postCount = 0;
+
+    @Column(name = "follower_count", nullable = false)
+    @Builder.Default
+    private Integer followerCount = 0;
+
+    @Column(name = "follow_count", nullable = false)
+    @Builder.Default
+    private Integer followCount = 0;
+
+
     @OneToMany(mappedBy = "follower")
     @Builder.Default
     private Set<UserFollow> following = new HashSet<>();

@@ -56,7 +56,7 @@ public class AuthService {
                 user.getLatitude(),
                 user.getLongitude(),
                 fileUrl,
-                user.getDistance().getCode()
+                user.getDistance()
         );
     }
 

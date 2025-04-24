@@ -232,7 +232,7 @@ public class UserService {
         try {
             User updatedUser = userEntity.toBuilder()
                     .nickname(userInfoDto.getNickname())
-                    .distance(Distance.fromCode(userInfoDto.getDistance()))
+                    .distance(userInfoDto.getDistance())
                     .latitude(userInfoDto.getLatitude())
                     .longitude(userInfoDto.getLongitude())
                     .address(userInfoDto.getAddress())

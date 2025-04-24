@@ -44,7 +44,7 @@ public class PetmeetingService {
         }
 
         Pageable pageable = PageRequest.of(page, size);
-        List<String> dongs = getNearbyDongs(dongName, Distance.fromCode(distance).getValue());
+        List<String> dongs = getNearbyDongs(dongName, Distance.valueOf(distance).getValue());
 
         Page<PetFriendDTO> friends = petmeetingDAO.findByDongNamesAndActivityStatus(
                 dongs, activityStatus, latitude, longitude, pageable);

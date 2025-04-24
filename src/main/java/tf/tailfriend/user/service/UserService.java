@@ -233,6 +233,7 @@ public class UserService {
         return userDao.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("유저를 찾을 수 없습니다."))
                 .getNickname(); // ← 여기서 닉네임만 추출
+    }
   
     public void userInfoSave(UserInfoDto userInfoDto) {
 

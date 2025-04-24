@@ -27,7 +27,6 @@ import java.util.List;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-@Transactional
 public class PetmeetingService {
 
     private final PetmeetingDAO petmeetingDAO;
@@ -36,6 +35,7 @@ public class PetmeetingService {
     private final PetPhotoDao petPhotoDao;
     private final NCPObjectStorageService ncpObjectStorageService;
 
+    @Transactional(readOnly = true)
     public Page<PetFriendDTO> getFriends(String activityStatus, String dongName,
                                          String distance, int page, int size, double latitude, double longitude) {
 
@@ -48,9 +48,6 @@ public class PetmeetingService {
 
         Page<PetFriendDTO> friends = petmeetingDAO.findByDongNamesAndActivityStatus(
                 dongs, activityStatus, latitude, longitude, pageable);
-
-        /*//테스트용 전부 요청
-        Page<PetFriendDTO> friends = petmeetingDAO.findAllWithoutFilters(latitude, longitude, pageable);*/
 
         for(PetFriendDTO item: friends.getContent()){
             List<PetPhotoDTO> photos = petPhotoDao.findByPetId(item.getId());

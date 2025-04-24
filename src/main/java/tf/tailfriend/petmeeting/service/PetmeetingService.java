@@ -44,7 +44,7 @@ public class PetmeetingService {
         }
 
         Pageable pageable = PageRequest.of(page, size);
-        List<String> dongs = getNearbyDongs(dongName, Distance.fromCode(distance).getDistanceValue());
+        List<String> dongs = getNearbyDongs(dongName, Distance.fromCode(distance).getValue());
 
         Page<PetFriendDTO> friends = petmeetingDAO.findByDongNamesAndActivityStatus(
                 dongs, activityStatus, latitude, longitude, pageable);
@@ -55,7 +55,6 @@ public class PetmeetingService {
         for(PetFriendDTO item: friends.getContent()){
             List<PetPhotoDTO> photos = petPhotoDao.findByPetId(item.getId());
             item.setPhotosAndThumbnail(photos);
-            log.info("\n\n\n\n"+item);
         }
 
         File defaultImgFile = fileDao.findById(1)
@@ -88,12 +87,12 @@ public class PetmeetingService {
     }
 
     private List<String> getNearbyDongs(String name, int count) {
-        Dong current = dongDAO.findByName(name)
+        Dong currentDong = dongDAO.findByName(name)
                 .orElseThrow(() -> new FindDongException());
 
         return dongDAO.findNearbyDongs(
-                current.getLatitude(),
-                current.getLongitude(),
+                currentDong.getLatitude(),
+                currentDong.getLongitude(),
                 count
         );
     }

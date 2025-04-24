@@ -58,7 +58,7 @@ public class PetstaPostController {
         Integer userId = userPrincipal.getUserId();
 
         List<PetstaPostResponseDto> posts = petstaPostService.getAllPosts(userId);
-        List<PetstaUpdatedUserDto> followings = petstaService.getFollowedUsers(userId);
+        List<PetstaUpdatedUserDto> followings = petstaService.getTopFollowedUsers(userId);
 
         PetstaMainPageResponseDto response = new PetstaMainPageResponseDto(posts, followings);
         return ResponseEntity.ok(response);
@@ -118,7 +118,8 @@ public class PetstaPostController {
             @AuthenticationPrincipal UserPrincipal userPrincipal,
             @PathVariable Integer postId
     ) {
-        List<PetstaCommentResponseDto> parentComments = petstaPostService.getParentCommentsByPostId(postId);
+        int currentId = userPrincipal.getUserId();
+        List<PetstaCommentResponseDto> parentComments = petstaPostService.getParentCommentsByPostId(currentId, postId);
         return ResponseEntity.ok(parentComments);
     }
 
@@ -127,9 +128,9 @@ public class PetstaPostController {
             @AuthenticationPrincipal UserPrincipal userPrincipal,
             @PathVariable Integer commentId
     ) {
-        List<PetstaCommentResponseDto> parentComments = petstaPostService.getReplyCommentsByCommentId(commentId);
+        int currentId = userPrincipal.getUserId();
+        List<PetstaCommentResponseDto> parentComments = petstaPostService.getReplyCommentsByCommentId(currentId,commentId);
         return ResponseEntity.ok(parentComments);
     }
-
 
 }

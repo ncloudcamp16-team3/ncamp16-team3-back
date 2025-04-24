@@ -44,11 +44,13 @@ public class ScheduleService {
 
     public void postSchedule(SchedulePostDTO dto) {
 
-        User user = userDao.findById(dto.getUserId()).orElse(null);
+        User user = userDao.findById(dto.getUserId())
+                .orElseThrow(() -> new IllegalArgumentException("유효하지 않은 사용자 ID입니다."));
 
         Schedule schedule = Schedule.builder()
                 .user(user)
                 .title(dto.getTitle())
+                .content(dto.getContent())
                 .startDate(dto.getStartDate())
                 .address(dto.getAddress())
                 .endDate(dto.getEndDate())
@@ -56,6 +58,7 @@ public class ScheduleService {
                 .latitude(dto.getLatitude())
                 .build();
 
+        scheduleDao.save(schedule);
     }
 
 }

@@ -4,15 +4,11 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+
 import tf.tailfriend.schedule.entity.dto.ScheduleDTO.*;
 import tf.tailfriend.schedule.service.ScheduleService;
-
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.List;
 
 @RestController
@@ -39,5 +35,21 @@ public class ScheduleController {
 
         return new ResponseEntity<>(schedules, HttpStatus.OK);
     }
+
+    @PostMapping
+    public ResponseEntity<?> addSchedule(@RequestBody SchedulePostDTO dto) {
+        try {
+            // 서비스 레이어에서 일정 추가 처리
+            scheduleService.postSchedule(dto);
+
+            // 일정 추가 성공 시
+            return new ResponseEntity<>("일정이 성공적으로 등록되었습니다.", HttpStatus.CREATED);
+        } catch (Exception e) {
+            // 예외 처리: 서버 오류 등
+            System.out.println(e); //
+            return new ResponseEntity<>("일정 등록에 실패했습니다. 다시 시도해주세요.", HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
 
 }

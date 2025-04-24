@@ -1,6 +1,7 @@
 package tf.tailfriend.schedule.entity.dto;
 
 ;
+import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.*;
 import tf.tailfriend.schedule.entity.Schedule;
 
@@ -56,7 +57,9 @@ public class ScheduleDTO {
         private Integer userId;
         private String title;
         private String content;
+        @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
         private LocalDateTime startDate;
+        @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
         private LocalDateTime endDate;
         private String address;
         private Double latitude;

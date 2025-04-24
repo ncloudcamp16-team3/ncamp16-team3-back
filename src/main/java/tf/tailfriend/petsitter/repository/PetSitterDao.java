@@ -7,9 +7,17 @@ import tf.tailfriend.petsitter.entity.PetSitter;
 
 public interface PetSitterDao extends JpaRepository<PetSitter, Integer> {
 
-    Page<PetSitter> findByApplyAtIsNotNull(Pageable pageable);
-
-    Page<PetSitter> findByApplyAtIsNull(Pageable pageable);
-
     Page<PetSitter> findByStatus(PetSitter.PetSitterStatus status, Pageable pageable);
+
+    Page<PetSitter> findByUserNicknameContainingAndStatusEquals(
+            String nickname, PetSitter.PetSitterStatus status, Pageable pageable);
+
+    Page<PetSitter> findByAgeContainingAndStatusEquals(
+            String age, PetSitter.PetSitterStatus status, Pageable pageable);
+
+    Page<PetSitter> findByHouseTypeContainingAndStatusEquals(
+            String houseType, PetSitter.PetSitterStatus status, Pageable pageable);
+
+    Page<PetSitter> findByCommentContainingAndStatusEquals(
+            String comment, PetSitter.PetSitterStatus status, Pageable pageable);
 }

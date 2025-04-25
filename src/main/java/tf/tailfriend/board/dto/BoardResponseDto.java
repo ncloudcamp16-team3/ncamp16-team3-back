@@ -19,6 +19,7 @@ public class BoardResponseDto {
     private String title;
     private String content;
     private String authorNickname;
+    private Integer authorId;
     private LocalDateTime createdAt;
     private Integer likeCount;
     private Integer commentCount;
@@ -56,6 +57,7 @@ public class BoardResponseDto {
                 .title(board.getTitle())
                 .content(board.getContent())
                 .authorNickname(board.getUser().getNickname())
+                .authorId(board.getUser().getId())
                 .createdAt(board.getCreatedAt())
                 .likeCount(board.getLikeCount())
                 .commentCount(board.getCommentCount())
@@ -77,5 +79,10 @@ public class BoardResponseDto {
                         .collect(Collectors.toList()))
                 .comments(comments)
                 .build();
+    }
+
+    public static class AuthorDto {
+        private Integer id;
+        private String nickname;
     }
 }

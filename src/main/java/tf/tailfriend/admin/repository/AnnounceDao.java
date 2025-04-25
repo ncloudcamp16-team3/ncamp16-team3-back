@@ -26,4 +26,5 @@ public interface AnnounceDao extends JpaRepository<Announce, Integer> {
     // 제목 또는 내용으로 공지사항 검색
     List<Announce> findByTitleContainingOrContentContainingOrderByCreatedAtDesc(String titleKeyword, String contentKeyword);
 
+    List<Announce> findByBoardType_Id(Integer boardTypeId);
 }

@@ -110,7 +110,3 @@ ncp:
   access-key: ${NCR_USERNAME}
   secret-key: ${NCR_PASSWORD}
   bucket-name: ${NCP_BUCKET_NAME}
-
-  chat:
-    project-id: 8e8e626c-08d8-40e4-826f-185b1d1b8c4a
-    access-token: ${NCP_CHAT_ACCESS_TOKEN}

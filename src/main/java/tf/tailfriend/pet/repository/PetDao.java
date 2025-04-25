@@ -24,6 +24,7 @@ public interface PetDao extends JpaRepository<Pet, Integer> {
       AND p.activity_status = :activityStatus
       AND u.latitude IS NOT NULL
       AND u.longitude IS NOT NULL 
+      AND p.owner_id != :myId
     ORDER BY distance
     """,
             countQuery = """
@@ -33,6 +34,7 @@ public interface PetDao extends JpaRepository<Pet, Integer> {
       AND p.activity_status = :activityStatus
       AND u.latitude IS NOT NULL
       AND u.longitude IS NOT NULL 
+      AND p.owner_id != :myId
     """,
             nativeQuery = true)
     Page<PetFriendDto> findByDongNamesAndActivityStatus(
@@ -40,7 +42,8 @@ public interface PetDao extends JpaRepository<Pet, Integer> {
             @Param("activityStatus") String activityStatus,
             @Param("latitude") double latitude,
             @Param("longitude") double longitude,
-            Pageable pageable);
+            Pageable pageable,
+            @Param("myId") Integer myId);
 
     List<Pet> findByUserId(Integer userId);
 }

@@ -33,7 +33,7 @@ spring:
       max-request-size: 10MB
 
   jpa:
-    database-platform: org.hibernate.dialect.MySQL8Dialect
+    database-platform: org.hibernate.dialect.MySQLDialect
 
   security:
     oauth2:

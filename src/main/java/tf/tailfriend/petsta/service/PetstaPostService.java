@@ -130,8 +130,8 @@ public class PetstaPostService {
 
 
     @Transactional
-    public List<PetstaPostResponseDto> getAllPosts(Integer loginUserId) {
-        Pageable pageable = PageRequest.of(0, 5, Sort.by(Sort.Direction.DESC, "createdAt"));
+    public List<PetstaPostResponseDto> getAllPosts(Integer loginUserId, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
         List<PetstaPost> posts = petstaPostDao.findAllByOrderByCreatedAtDesc(pageable).getContent();
 
 

@@ -30,7 +30,7 @@ public interface UserFollowDao extends JpaRepository<UserFollow, Integer> {
 
     List<UserFollow> findByFollowerIdAndFollowedIdIn(Integer currentUserId, List<Integer> collect);
 
-    List<UserFollow> findTop20ByFollowedId(Integer targetUserId, Pageable limit);
+    List<UserFollow> findByFollowedId(Integer followedId, Pageable pageable);
+    List<UserFollow> findByFollowerId(Integer followerId, Pageable pageable);
 
-    List<UserFollow> findTop20ByFollowerId(Integer targetUserId, Pageable limit);
 }

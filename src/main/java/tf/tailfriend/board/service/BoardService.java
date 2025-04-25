@@ -51,6 +51,15 @@ public class BoardService {
     }
 
     @Transactional(readOnly = true)
+    public Page<BoardResponseDto> getBoardsByTypeAndKeyword(Integer boardTypeId, String keyword,Pageable pageable) {
+        BoardType boardType = boardTypeDao.findById(boardTypeId)
+                .orElseThrow(() -> new IllegalArgumentException("Board type not found"));
+
+        Page<Board> boards = boardDao.findByTitleContainingAndBoardType(keyword, boardType, pageable);
+        return convertToDtoPage(boards);
+    }
+
+    @Transactional(readOnly = true)
     public BoardResponseDto getBoardById(Integer boardId) {
         Board board = boardDao.findById(boardId)
                 .orElseThrow(() -> new IllegalArgumentException("게시글이 존재하지 않습니다: " + boardId));
@@ -173,4 +182,6 @@ public class BoardService {
 //        log.info("boards: {}", boards.getContent());
         return boards.map(this::convertToDto);
     }
+
+
 }

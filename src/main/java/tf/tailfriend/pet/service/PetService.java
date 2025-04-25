@@ -1,7 +1,6 @@
 package tf.tailfriend.pet.service;
 
 import lombok.RequiredArgsConstructor;
-import org.hibernate.service.UnknownServiceException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -12,24 +11,23 @@ import tf.tailfriend.file.entity.File;
 import tf.tailfriend.file.repository.FileDao;
 import tf.tailfriend.file.service.FileService;
 import tf.tailfriend.global.entity.Dong;
+import tf.tailfriend.global.repository.DongDao;
 import tf.tailfriend.global.service.NCPObjectStorageService;
-import tf.tailfriend.pet.entity.dto.PetDetailResponseDto;
-import tf.tailfriend.pet.entity.dto.PetRequestDto;
 import tf.tailfriend.pet.entity.Pet;
 import tf.tailfriend.pet.entity.PetType;
+import tf.tailfriend.pet.entity.dto.PetDetailResponseDto;
+import tf.tailfriend.pet.entity.dto.PetFriendDto;
+import tf.tailfriend.pet.entity.dto.PetPhotoDto;
+import tf.tailfriend.pet.entity.dto.PetRequestDto;
+import tf.tailfriend.pet.exception.FoundDongException;
+import tf.tailfriend.pet.exception.FoundFileException;
 import tf.tailfriend.pet.exception.FoundPetException;
+import tf.tailfriend.pet.exception.NoneActivityStatusException;
 import tf.tailfriend.pet.repository.PetDao;
 import tf.tailfriend.pet.repository.PetPhotoDao;
 import tf.tailfriend.pet.repository.PetTypeDao;
-import tf.tailfriend.pet.entity.dto.PetFriendDto;
-import tf.tailfriend.pet.entity.dto.PetPhotoDto;
-import tf.tailfriend.pet.exception.NoneActivityStatusException;
-import tf.tailfriend.pet.exception.FoundDongException;
-import tf.tailfriend.pet.exception.FoundFileException;
-import tf.tailfriend.global.repository.DongDao;
 import tf.tailfriend.user.distance.Distance;
 import tf.tailfriend.user.entity.User;
-import tf.tailfriend.user.exception.UserException;
 import tf.tailfriend.user.repository.UserDao;
 
 import java.util.ArrayList;
@@ -99,7 +97,7 @@ public class PetService {
 
     @Transactional(readOnly = true)
     public Page<PetFriendDto> getFriends(String activityStatus, String dongName,
-                                         String distance, int page, int size, double latitude, double longitude) {
+                                         String distance, int page, int size, double latitude, double longitude, Integer myId) {
 
         if( Pet.ActivityStatus.valueOf(activityStatus) == Pet.ActivityStatus.NONE){
             throw new NoneActivityStatusException();
@@ -109,7 +107,7 @@ public class PetService {
         List<String> dongs = getNearbyDongs(dongName, Distance.valueOf(distance).getValue());
 
         Page<PetFriendDto> friends = petDao.findByDongNamesAndActivityStatus(
-                dongs, activityStatus, latitude, longitude, pageable);
+                dongs, activityStatus, latitude, longitude, pageable, myId);
 
         for(PetFriendDto item: friends.getContent()){
             List<PetPhotoDto> photos = petPhotoDao.findByPetId(item.getId());

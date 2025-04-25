@@ -6,6 +6,7 @@ import org.springframework.transaction.annotation.Transactional;
 import tf.tailfriend.board.entity.BoardType;
 import tf.tailfriend.board.repository.BoardTypeDao;
 
+import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -23,5 +24,10 @@ public class BoardTypeService {
     @Transactional(readOnly = true)
     public Optional<BoardType> getBoardTypeByName(String name) {
         return boardTypeDao.findByName(name);
+    }
+
+    @Transactional(readOnly = true)
+    public List<BoardType> getBoardTypeList() {
+        return boardTypeDao.findAll();
     }
 }

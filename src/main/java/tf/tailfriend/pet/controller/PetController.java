@@ -13,6 +13,7 @@ import tf.tailfriend.global.response.CustomResponse;
 import tf.tailfriend.pet.entity.dto.PetDetailResponseDto;
 import tf.tailfriend.pet.entity.dto.PetRequestDto;
 import tf.tailfriend.pet.exception.FoundPetException;
+import tf.tailfriend.pet.exception.GetMyPetException;
 import tf.tailfriend.pet.exception.UpdatePetException;
 import tf.tailfriend.pet.service.PetService;
 import tf.tailfriend.pet.entity.dto.FindFriendRequestDto;
@@ -117,7 +118,7 @@ public class PetController {
     }
 
     @PostMapping("/friends")
-    public ResponseEntity<?> getFriendList(@RequestBody FindFriendRequestDto findFriendRequestDTO) {
+    public ResponseEntity<?> getFriendList(@RequestBody FindFriendRequestDto findFriendRequestDTO, @AuthenticationPrincipal UserPrincipal userPrincipal) {
         Page<PetFriendDto> petFriends = petService.getFriends(
                 findFriendRequestDTO.getActivityStatus(),
                 findFriendRequestDTO.getDongName(),
@@ -125,7 +126,8 @@ public class PetController {
                 findFriendRequestDTO.getPage(),
                 findFriendRequestDTO.getSize(),
                 findFriendRequestDTO.getLatitude(),
-                findFriendRequestDTO.getLongitude()
+                findFriendRequestDTO.getLongitude(),
+                userPrincipal.getUserId()
         );
 
         return ResponseEntity
@@ -145,7 +147,7 @@ public class PetController {
 
             return ResponseEntity.ok(new CustomResponse(GET_MY_PETS_SUCCESS.getMessage(), myPets));
         } catch (Exception e) {
-            throw new FoundPetException();
+            throw new GetMyPetException();
         }
     }
 

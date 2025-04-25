@@ -91,7 +91,29 @@ public class PetSitter {
         this.applyAt = null; // 신청 날짜 초기화
     }
 
+    public void waitForApproval() {
+        this.status = PetSitterStatus.NONE;
+        this.applyAt = null;
+    }
+
     public void delete() {
         this.status = PetSitterStatus.DELETE;
+    }
+
+    public void updateInformation(String age, String houseType, String comment,
+                                  Boolean grown, PetCount petCount, Boolean sitterExp,
+                                  File file, PetType petType) {
+        this.age = age;
+        this.houseType = houseType;
+        this.comment = comment;
+        this.grown = grown;
+        this.petCount = petCount;
+        this.sitterExp = sitterExp;
+        if (file != null) {
+            this.file = file;
+        }
+        if (petType != null) {
+            this.petType = petType;
+        }
     }
 }

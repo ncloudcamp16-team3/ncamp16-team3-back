@@ -11,6 +11,8 @@ import org.springframework.web.bind.annotation.*;
 import tf.tailfriend.global.config.UserPrincipal;
 import tf.tailfriend.global.response.CustomResponse;
 import tf.tailfriend.user.entity.User;
+import tf.tailfriend.pet.service.PetService;
+import tf.tailfriend.petsitter.service.PetSitterService;
 import tf.tailfriend.user.entity.dto.MypageResponseDto;
 import tf.tailfriend.user.entity.dto.UserInfoDto;
 import tf.tailfriend.user.service.UserService;
@@ -28,6 +30,8 @@ public class UserController {
 
     private static final Logger logger = LoggerFactory.getLogger(UserController.class);
     private final UserService userService;
+    private final PetSitterService petSitterService;
+
 
     /**
      * 마이페이지 정보 조회 API
@@ -44,13 +48,40 @@ public class UserController {
 
         try {
             MypageResponseDto response = userService.getMemberInfo(principal.getUserId());
-            return ResponseEntity.ok(response);
+
+            // 펫시터 상태 추가
+            try {
+                var sitterDto = petSitterService.getPetSitterStatus(principal.getUserId());
+                System.out.println("익거머임"+sitterDto);
+                Map<String, Object> responseMap = new HashMap<>();
+                responseMap.put("userId", response.getUserId());
+                responseMap.put("nickname", response.getNickname());
+                responseMap.put("profileImageUrl", response.getProfileImageUrl());
+                responseMap.put("pets", response.getPets());
+                responseMap.put("petSitterStatus", sitterDto.getStatus());
+                responseMap.put("petSitterInfo", sitterDto);
+
+                return ResponseEntity.ok(responseMap);
+            } catch (Exception e) {
+                // 펫시터가 아닌 경우
+                Map<String, Object> responseMap = new HashMap<>();
+                responseMap.put("userId", response.getUserId());
+                responseMap.put("nickname", response.getNickname());
+                responseMap.put("profileImageUrl", response.getProfileImageUrl());
+                responseMap.put("pets", response.getPets());
+
+                responseMap.put("petSitterStatus", "");
+
+                return ResponseEntity.ok(responseMap);
+            }
+
         } catch (Exception e) {
             logger.error("마이페이지 정보 조회 중 오류 발생", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of("error", "정보를 조회하는 중 오류가 발생했습니다."));
         }
     }
+
 
     /**
      * 닉네임 업데이트 API

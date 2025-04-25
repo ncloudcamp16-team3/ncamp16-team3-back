@@ -20,4 +20,5 @@ public interface PetSitterDao extends JpaRepository<PetSitter, Integer> {
 
     Page<PetSitter> findByCommentContainingAndStatusEquals(
             String comment, PetSitter.PetSitterStatus status, Pageable pageable);
+
 }

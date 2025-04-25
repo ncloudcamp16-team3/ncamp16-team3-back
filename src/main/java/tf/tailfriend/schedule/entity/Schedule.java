@@ -25,6 +25,9 @@ public class Schedule {
     @Column(columnDefinition = "TEXT", nullable = false)
     private String title;
 
+    @Column(nullable = false)
+    private String content;
+
     @Column(name = "start_date", nullable = false)
     private LocalDateTime startDate;
 

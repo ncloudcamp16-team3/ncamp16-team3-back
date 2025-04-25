@@ -16,6 +16,7 @@ import tf.tailfriend.facility.repository.FacilityTypeDao;
 import tf.tailfriend.global.service.StorageService;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -105,6 +106,31 @@ public class FacilityService {
                 .orElseThrow(() -> new IllegalArgumentException("시설을 찾을 수 없습니다: " + id));
 
         return convertToDto(facility);
+    }
+
+    @Transactional
+    public Facility saveFacility(Facility facility) {
+        if (facility.getName() == null || facility.getName().trim().isEmpty()) {
+            throw new IllegalArgumentException("시설 이름은 필수입니다.");
+        }
+
+        if (facility.getAddress() == null || facility.getAddress().trim().isEmpty()) {
+            throw new IllegalArgumentException("주소는 필수입니다.");
+        }
+
+        if (facility.getLatitude() == null || facility.getLongitude() == null) {
+            throw new IllegalArgumentException("위치 좌표는 필수입니다.");
+        }
+
+        return facilityDao.save(facility);
+    }
+
+    @Transactional
+    public void deleteFacilityById(Integer facilityId) {
+        Facility facility = facilityDao.findById(facilityId)
+                .orElseThrow(() -> new IllegalArgumentException("등록된 업체가 없습니다"));
+
+        facilityDao.delete(facility);
     }
 
     private Page<FacilityResponseDto> convertToDtoPage(Page<Facility> facilities, Pageable pageable) {

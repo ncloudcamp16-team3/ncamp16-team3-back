@@ -67,4 +67,11 @@ public class AdminBoardController {
                     .body(Map.of("message", "게시글 상세 조회 실패: " + e.getMessage()));
         }
     }
+
+    @PostMapping("/board/{id}/delete")
+    public ResponseEntity<?> deleteBoard(@PathVariable Integer id) {
+        boardService.deleteBoardById(id);
+        return ResponseEntity.status(HttpStatus.OK)
+                .body(Map.of("message", "게시글 삭제 완료"));
+    }
 }

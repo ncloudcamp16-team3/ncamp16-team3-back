@@ -99,7 +99,7 @@ public class PetService {
 
     @Transactional(readOnly = true)
     public Page<PetFriendDto> getFriends(String activityStatus, String dongName,
-                                         String distance, int page, int size, double latitude, double longitude) {
+                                         String distance, int page, int size, double latitude, double longitude, Integer myId) {
 
         if( Pet.ActivityStatus.valueOf(activityStatus) == Pet.ActivityStatus.NONE){
             throw new NoneActivityStatusException();
@@ -109,7 +109,7 @@ public class PetService {
         List<String> dongs = getNearbyDongs(dongName, Distance.valueOf(distance).getValue());
 
         Page<PetFriendDto> friends = petDao.findByDongNamesAndActivityStatus(
-                dongs, activityStatus, latitude, longitude, pageable);
+                dongs, activityStatus, latitude, longitude, pageable, myId);
 
         for(PetFriendDto item: friends.getContent()){
             List<PetPhotoDto> photos = petPhotoDao.findByPetId(item.getId());

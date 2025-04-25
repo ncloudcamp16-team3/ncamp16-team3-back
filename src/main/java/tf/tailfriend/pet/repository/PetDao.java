@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import tf.tailfriend.pet.entity.Pet;
 import tf.tailfriend.pet.entity.dto.PetFriendDto;
+import tf.tailfriend.user.entity.User;
 
 import java.util.List;
 
@@ -41,5 +42,5 @@ public interface PetDao extends JpaRepository<Pet, Integer> {
             @Param("longitude") double longitude,
             Pageable pageable);
 
-    Page<Pet> findAll(Pageable pageable);
+    List<Pet> findByUserId(Integer userId);
 }

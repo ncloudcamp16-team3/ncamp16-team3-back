@@ -1,6 +1,7 @@
 package tf.tailfriend.pet.service;
 
 import lombok.RequiredArgsConstructor;
+import org.hibernate.service.UnknownServiceException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -16,19 +17,22 @@ import tf.tailfriend.pet.entity.dto.PetDetailResponseDto;
 import tf.tailfriend.pet.entity.dto.PetRequestDto;
 import tf.tailfriend.pet.entity.Pet;
 import tf.tailfriend.pet.entity.PetType;
+import tf.tailfriend.pet.exception.FoundPetException;
 import tf.tailfriend.pet.repository.PetDao;
 import tf.tailfriend.pet.repository.PetPhotoDao;
 import tf.tailfriend.pet.repository.PetTypeDao;
 import tf.tailfriend.pet.entity.dto.PetFriendDto;
 import tf.tailfriend.pet.entity.dto.PetPhotoDto;
-import tf.tailfriend.pet.exception.ActivityStatusNoneException;
-import tf.tailfriend.pet.exception.FindDongException;
-import tf.tailfriend.pet.exception.FindFileException;
+import tf.tailfriend.pet.exception.NoneActivityStatusException;
+import tf.tailfriend.pet.exception.FoundDongException;
+import tf.tailfriend.pet.exception.FoundFileException;
 import tf.tailfriend.global.repository.DongDao;
 import tf.tailfriend.user.distance.Distance;
 import tf.tailfriend.user.entity.User;
+import tf.tailfriend.user.exception.UserException;
 import tf.tailfriend.user.repository.UserDao;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -52,6 +56,19 @@ public class PetService {
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 반려동물입니다: " + petId));
 
         return makePetDetailResponseDto(pet);
+    }
+
+
+    @Transactional(readOnly = true)
+    public List<PetDetailResponseDto> getMyPets(Integer userId) {
+        List<Pet> myPets = petDao.findByUserId(userId);
+
+        List<PetDetailResponseDto> myPetsDto = new ArrayList<>();
+        for(Pet pet: myPets) {
+            myPetsDto.add(makePetDetailResponseDto(pet));
+        }
+
+        return myPetsDto;
     }
 
     //반려동물 상세정보 반환 dto생성
@@ -85,7 +102,7 @@ public class PetService {
                                          String distance, int page, int size, double latitude, double longitude) {
 
         if( Pet.ActivityStatus.valueOf(activityStatus) == Pet.ActivityStatus.NONE){
-            throw new ActivityStatusNoneException();
+            throw new NoneActivityStatusException();
         }
 
         Pageable pageable = PageRequest.of(page, size);
@@ -108,7 +125,7 @@ public class PetService {
 
     private List<String> getNearbyDongs(String name, int count) {
         Dong currentDong = dongDao.findByName(name)
-                .orElseThrow(() -> new FindDongException());
+                .orElseThrow(() -> new FoundDongException());
 
         return dongDao.findNearbyDongs(
                 currentDong.getLatitude(),
@@ -122,7 +139,7 @@ public class PetService {
 
         if (photoDtos.isEmpty()) {
             File defaultImgFile = fileDao.findById(1)
-                    .orElseThrow(() -> new FindFileException());
+                    .orElseThrow(() -> new FoundFileException());
 
             PetPhotoDto defaultPhotoDto = PetPhotoDto.builder()
                     .id(defaultImgFile.getId())
@@ -185,6 +202,23 @@ public class PetService {
                 }
             }
         }
+    }
+
+    @Transactional
+    public void updatePet(PetDetailResponseDto petDetailResponseDto) {
+        Pet petEntity = petDao.findById(petDetailResponseDto.getId())
+                .orElseThrow(() -> new FoundPetException());
+
+        Pet updatedPet = petEntity.toBuilder()
+                .name(petDetailResponseDto.getName())
+                .gender(petDetailResponseDto.getGender())
+                .neutered(petDetailResponseDto.getIsNeutered())
+                .weight(petDetailResponseDto.getWeight())
+                .info(petDetailResponseDto.getIntroduction())
+                .activityStatus(Pet.ActivityStatus.valueOf(petDetailResponseDto.getActivityStatus()))
+                .build();
+
+        petDao.save(updatedPet);
     }
 
     //삭제
@@ -280,8 +314,4 @@ public class PetService {
             default -> "ETC";
         };
     }
-
-    /*public List<PetDetailResponseDto> getMyPets(Integer userId) {
-
-    }*/
 }

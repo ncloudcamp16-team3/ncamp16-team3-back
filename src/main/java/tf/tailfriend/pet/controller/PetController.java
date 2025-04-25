@@ -12,15 +12,17 @@ import tf.tailfriend.global.config.UserPrincipal;
 import tf.tailfriend.global.response.CustomResponse;
 import tf.tailfriend.pet.entity.dto.PetDetailResponseDto;
 import tf.tailfriend.pet.entity.dto.PetRequestDto;
+import tf.tailfriend.pet.exception.FoundPetException;
+import tf.tailfriend.pet.exception.UpdatePetException;
 import tf.tailfriend.pet.service.PetService;
 import tf.tailfriend.pet.entity.dto.FindFriendRequestDto;
 import tf.tailfriend.pet.entity.dto.PetFriendDto;
+import tf.tailfriend.user.exception.UnauthorizedException;
 
 import java.util.List;
+import java.util.Objects;
 
-import static tf.tailfriend.pet.message.ErrorMessage.PET_FOUND_ERROR;
-import static tf.tailfriend.pet.message.SuccessMessage.GET_FRIENDS_SUCCESS;
-import static tf.tailfriend.pet.message.SuccessMessage.PET_FOUND_SUCCESS;
+import static tf.tailfriend.pet.message.SuccessMessage.*;
 
 @RestController
 @RequestMapping("/api/pet")
@@ -38,8 +40,7 @@ public class PetController {
 
             return ResponseEntity.ok(new CustomResponse(PET_FOUND_SUCCESS.getMessage(), pet));
         } catch (Exception e) {
-            return ResponseEntity.badRequest()
-                    .body(new CustomResponse(PET_FOUND_ERROR.getMessage(), null));
+            throw new FoundPetException();
         }
     }
 
@@ -130,5 +131,38 @@ public class PetController {
         return ResponseEntity
                 .status(HttpStatus.OK)
                 .body(new CustomResponse(GET_FRIENDS_SUCCESS.getMessage(), petFriends));
+    }
+
+    @PostMapping("/my/{userId}")
+    public ResponseEntity<?> getMyPets(@PathVariable Integer userId, @AuthenticationPrincipal UserPrincipal userPrincipal) {
+        try {
+            if(!Objects.equals(userId, userPrincipal.getUserId())) {
+                throw new UnauthorizedException();
+            }
+            List<PetDetailResponseDto> myPets = petService.getMyPets(userId);
+
+            log.info("나의 펫 리스트 : {}", myPets);
+
+            return ResponseEntity.ok(new CustomResponse(GET_MY_PETS_SUCCESS.getMessage(), myPets));
+        } catch (Exception e) {
+            throw new FoundPetException();
+        }
+    }
+
+    @PutMapping("/save/{userId}")
+    public ResponseEntity<?> savePet(@PathVariable Integer userId, @AuthenticationPrincipal UserPrincipal userPrincipal,
+                                     @RequestBody PetDetailResponseDto petDetailResponseDto) {
+
+        if(!Objects.equals(userId, userPrincipal.getUserId())) {
+            throw new UnauthorizedException();
+        }
+
+        try {
+            petService.updatePet(petDetailResponseDto);
+
+            return ResponseEntity.ok(new CustomResponse(UPDATE_PET_SUCCESS.getMessage(), null));
+        } catch (Exception e) {
+            throw new UpdatePetException();
+        }
     }
 }

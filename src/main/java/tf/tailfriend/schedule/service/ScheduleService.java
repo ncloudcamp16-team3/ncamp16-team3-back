@@ -33,14 +33,7 @@ public class ScheduleService {
                 .collect(Collectors.toList());
     }
 
-    @Transactional(readOnly = true)
-    public List<ScheduleGetDTO> getOneSchedules(LocalDate selectedDate, Integer userId) {
-        return scheduleDao.findByUserId(userId)
-                .stream()
-                .map(ScheduleGetDTO::new)
-                .filter(dto -> dto.getDateList().contains(selectedDate)) // 선택 날짜 포함 여부 확인
-                .collect(Collectors.toList());
-    }
+
 
     public void postSchedule(SchedulePostDTO dto) {
 

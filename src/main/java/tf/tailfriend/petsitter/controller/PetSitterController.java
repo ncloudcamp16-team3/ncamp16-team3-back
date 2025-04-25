@@ -2,10 +2,8 @@ package tf.tailfriend.petsitter.controller;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -13,7 +11,6 @@ import tf.tailfriend.global.config.UserPrincipal;
 import tf.tailfriend.global.response.CustomResponse;
 import tf.tailfriend.petsitter.dto.PetSitterRequestDto;
 import tf.tailfriend.petsitter.dto.PetSitterResponseDto;
-import tf.tailfriend.petsitter.entity.PetSitter;
 import tf.tailfriend.petsitter.service.PetSitterService;
 
 @RestController

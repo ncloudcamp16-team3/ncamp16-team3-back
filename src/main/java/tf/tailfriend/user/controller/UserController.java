@@ -10,8 +10,6 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import tf.tailfriend.global.config.UserPrincipal;
 import tf.tailfriend.global.response.CustomResponse;
-import tf.tailfriend.user.entity.User;
-import tf.tailfriend.pet.service.PetService;
 import tf.tailfriend.petsitter.service.PetSitterService;
 import tf.tailfriend.user.entity.dto.MypageResponseDto;
 import tf.tailfriend.user.entity.dto.UserInfoDto;

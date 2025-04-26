@@ -2,6 +2,7 @@ spring:
 #  profiles:
 #    active: local
 
+
   application:
     name: tailfriend
 
@@ -46,6 +47,12 @@ spring:
 #        dialect: org.hibernate.dialect.MySQLDialect
 #        order_inserts: true
 #        order_updates: true
+
+  rabbitmq:
+    host: tailfreinds-notify-n89pl.kr.vrmq.naverncp.com
+    port: 5672
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
 
   security:
     oauth2:
@@ -122,4 +129,6 @@ ncp:
   access-key: ${NCR_USERNAME}
   secret-key: ${NCR_PASSWORD}
   bucket-name: ${NCP_BUCKET_NAME}
+
+
 

@@ -57,6 +57,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         // OAuth2 관련
                         .requestMatchers("/api/oauth2/authorization/**").permitAll()
+                                .requestMatchers("/api/login/oauth2/code/**").permitAll()
 
                         // 관리자 API - 로그인, 인증 체크, 로그아웃은 누구나 접근 가능
                         .requestMatchers("/api/admin/login", "/api/admin/auth/validate", "/api/admin/logout").permitAll()
@@ -66,7 +67,8 @@ public class SecurityConfig {
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
 
                         // 일반 API
-                        .requestMatchers("/api/**").permitAll()
+//                        .requestMatchers("/api/**").permitAll()
+                        .requestMatchers("/api/**").hasRole("USER")
 
                         // 정적 페이지
                         .requestMatchers("/login").permitAll()

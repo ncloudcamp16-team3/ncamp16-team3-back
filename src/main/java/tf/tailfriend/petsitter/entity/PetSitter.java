@@ -18,12 +18,12 @@ import java.time.LocalDateTime;
 public class PetSitter {
 
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id")
     private Integer id;
 
-    @MapsId
     @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "id")
+    @JoinColumn(name = "id", nullable = false)
     private User user;
 
     @ManyToOne(fetch = FetchType.LAZY)

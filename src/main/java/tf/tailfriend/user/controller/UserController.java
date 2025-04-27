@@ -8,13 +8,20 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+import tf.tailfriend.file.entity.File;
+import tf.tailfriend.file.service.FileService;
 import tf.tailfriend.global.config.UserPrincipal;
 import tf.tailfriend.global.response.CustomResponse;
+import tf.tailfriend.global.service.StorageService;
+import tf.tailfriend.global.service.StorageServiceException;
 import tf.tailfriend.petsitter.service.PetSitterService;
 import tf.tailfriend.user.entity.dto.MypageResponseDto;
 import tf.tailfriend.user.entity.dto.UserInfoDto;
 import tf.tailfriend.user.service.UserService;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -29,7 +36,8 @@ public class UserController {
     private static final Logger logger = LoggerFactory.getLogger(UserController.class);
     private final UserService userService;
     private final PetSitterService petSitterService;
-
+    private final FileService fileService;
+    private final StorageService storageService;
 
     /**
      * 마이페이지 정보 조회 API
@@ -50,7 +58,7 @@ public class UserController {
             // 펫시터 상태 추가
             try {
                 var sitterDto = petSitterService.getPetSitterStatus(principal.getUserId());
-                System.out.println("익거머임"+sitterDto);
+                System.out.println("익거머임" + sitterDto);
                 Map<String, Object> responseMap = new HashMap<>();
                 responseMap.put("userId", response.getUserId());
                 responseMap.put("nickname", response.getNickname());
@@ -79,7 +87,6 @@ public class UserController {
                     .body(Map.of("error", "정보를 조회하는 중 오류가 발생했습니다."));
         }
     }
-
 
     /**
      * 닉네임 업데이트 API
@@ -132,12 +139,67 @@ public class UserController {
         }
     }
 
-
     /**
-     * 프로필 이미지 업데이트 API
+     * 프로필 이미지 업로드 API
      */
-    @PutMapping("/profile-image")
+    @PostMapping(value = "/profile-image", consumes = "multipart/form-data")
     public ResponseEntity<?> updateProfileImage(
+            @AuthenticationPrincipal UserPrincipal principal,
+            @RequestParam("image") MultipartFile imageFile) {
+
+        if (principal == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("error", "로그인이 필요합니다."));
+        }
+
+        // 파일 유효성 검사
+        if (imageFile == null || imageFile.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "이미지 파일이 필요합니다."));
+        }
+
+        // 이미지 파일 확인
+        if (!imageFile.getContentType().startsWith("image/")) {
+            return ResponseEntity.badRequest().body(Map.of("error", "이미지 파일만 업로드 가능합니다."));
+        }
+
+        try {
+            // 1. 파일 메타데이터 저장
+            File file = fileService.save(imageFile.getOriginalFilename(), "profiles", File.FileType.PHOTO);
+
+            // 2. 파일 스토리지에 업로드
+            try (InputStream inputStream = imageFile.getInputStream()) {
+                storageService.upload(file.getPath(), inputStream);
+            } catch (StorageServiceException e) {
+                log.error("파일 스토리지 업로드 실패", e);
+                return ResponseEntity.internalServerError()
+                        .body(Map.of("error", "프로필 이미지 저장에 실패했습니다."));
+            }
+
+            // 3. 유저 프로필 이미지 업데이트
+            String imageUrl = userService.updateProfileImage(principal.getUserId(), file.getId());
+
+            // 4. 응답 반환
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "프로필 이미지가 성공적으로 변경되었습니다.");
+            response.put("profileImageUrl", storageService.generatePresignedUrl(imageUrl));
+
+            return ResponseEntity.ok(response);
+
+        } catch (IOException e) {
+            log.error("프로필 이미지 업로드 실패", e);
+            return ResponseEntity.internalServerError()
+                    .body(Map.of("error", "프로필 이미지 처리 중 오류가 발생했습니다."));
+        } catch (Exception e) {
+            log.error("프로필 이미지 업데이트 실패", e);
+            return ResponseEntity.internalServerError()
+                    .body(Map.of("error", "프로필 이미지 업데이트 중 오류가 발생했습니다."));
+        }
+    }
+
+
+     // 기존 프로필 이미지 업데이트 API
+    @PutMapping("/profile-image")
+    public ResponseEntity<?> updateProfileImageById(
             @AuthenticationPrincipal UserPrincipal principal,
             @RequestBody Map<String, Integer> request) {
 
@@ -164,7 +226,6 @@ public class UserController {
                     .body(Map.of("error", "프로필 이미지를 변경하는 중 오류가 발생했습니다."));
         }
     }
-
 
     @PostMapping("/{userId}/follow")
     public ResponseEntity<String> toggleFollow(

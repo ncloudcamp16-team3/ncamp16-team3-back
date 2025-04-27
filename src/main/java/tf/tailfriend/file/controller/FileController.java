@@ -24,7 +24,6 @@ public class FileController {
 
     private final FileService fileService;
     private final StorageService storageService;
-    private final UserService userService;
 
     /**
      * 파일 업로드 처리

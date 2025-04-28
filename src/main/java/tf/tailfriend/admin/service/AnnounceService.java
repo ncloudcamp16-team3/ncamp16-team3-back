@@ -8,7 +8,9 @@ import tf.tailfriend.admin.dto.AnnounceResponseDto;
 import tf.tailfriend.admin.entity.Announce;
 import tf.tailfriend.admin.entity.AnnouncePhoto;
 import tf.tailfriend.admin.repository.AnnounceDao;
+import tf.tailfriend.board.dto.AnnounceDto;
 import tf.tailfriend.board.entity.BoardType;
+import tf.tailfriend.board.exception.GetAnnounceDetailException;
 import tf.tailfriend.file.entity.File;
 import tf.tailfriend.file.service.FileService;
 import tf.tailfriend.global.service.StorageService;
@@ -81,5 +83,28 @@ public class AnnounceService {
         }
 
         return announceDao.save(announce);
+    }
+
+    @Transactional(readOnly = true)
+    public List<AnnounceDto> getAnnounces(Integer boardTypeId) {
+
+        List<Announce> announces = announceDao.findByBoardType_Id(boardTypeId);
+        List<AnnounceDto> announceDtos = new ArrayList<>();
+
+        for(Announce item: announces) {
+            announceDtos.add(AnnounceDto.fromEntity(item));
+        }
+
+        return announceDtos;
+    }
+
+    @Transactional(readOnly = true)
+    public AnnounceDto getAnnounceDetail(Integer announceId) {
+
+        Announce announce = announceDao.findById(announceId)
+                .orElseThrow(() -> new GetAnnounceDetailException());
+        AnnounceDto.fromEntity(announce);
+
+        return AnnounceDto.fromEntity(announce);
     }
 }

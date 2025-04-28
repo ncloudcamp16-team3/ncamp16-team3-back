@@ -59,7 +59,7 @@ public class FacilityPhoto {
         }
     }
 
-    public static FacilityPhoto of(File file, Facility facility, Boolean thumbnail) {
+    public static FacilityPhoto of(File file, Facility facility) {
         FacilityPhotoId id = FacilityPhotoId.builder()
                 .facilityId(facility.getId())
                 .fileId(file.getId())
@@ -69,7 +69,6 @@ public class FacilityPhoto {
                 .id(id)
                 .facility(facility)
                 .file(file)
-                .thumbnail(thumbnail)
                 .build();
     }
 }

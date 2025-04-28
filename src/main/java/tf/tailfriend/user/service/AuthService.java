@@ -48,23 +48,23 @@ public class AuthService {
 
         String fileUrl = storageService.generatePresignedUrl(user.getFile().getPath());
 
+
         return new UserInfoDto(
                 user.getId(),
                 user.getNickname(),
-                user.getSnsAccountId(),
                 user.getAddress(),
                 user.getDongName(),
                 user.getLatitude(),
                 user.getLongitude(),
-                fileUrl
+                fileUrl,
+                user.getDistance()
         );
     }
 
-    // ✅ 이메일로 userId 반환
-    public Integer getUserIdBySnsAccountId(String snsAccountId) {
-        return userDao.findBySnsAccountId(snsAccountId)
+    public Integer getUserIdBySnsAccountIdAndSnsTypeId(String snsAccountId, Integer snsTypeId) {
+        return userDao.findBySnsAccountIdAndSnsTypeId(snsAccountId,snsTypeId)
                 .map(User::getId)
-                .orElseThrow(() -> new UserException());
+                .orElse(null);
     }
 
 
@@ -112,7 +112,7 @@ public class AuthService {
                 if (imageIndex >= images.size()) break;
 
                 MultipartFile image = images.get(imageIndex++);
-                File file = fileService.save(image.getOriginalFilename(), "user", photoDto.getType());
+                File file = fileService.save(image.getOriginalFilename(), "pet", photoDto.getType());
 
                 try (InputStream is = image.getInputStream()) {
                     storageService.upload(file.getPath(), is);

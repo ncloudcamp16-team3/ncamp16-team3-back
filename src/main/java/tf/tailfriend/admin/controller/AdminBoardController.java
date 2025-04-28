@@ -25,18 +25,30 @@ public class AdminBoardController {
     public ResponseEntity<?> boardList(
             @RequestParam(required = false, defaultValue = "0") int page,
             @RequestParam(required = false, defaultValue = "10") int size,
-            @RequestParam(required = false) Integer boardTypeId) {
-
+            @RequestParam(required = false) Integer boardTypeId,
+            @RequestParam(required = false) String searchTerm,
+            @RequestParam(required = false, defaultValue = "all") String searchField
+    ) {
         try {
             PageRequest pageRequest = PageRequest.of(page, size, Sort.by("id").descending());
-
             Page<BoardResponseDto> boards;
+//            log.info("page: {}, size: {}, boardTypeId: {}, searchTerm: {}, searchField: {}", page, size, boardTypeId, searchTerm, searchField);
 
-            if (boardTypeId != null) {
+            // 검색어가 있는 경우 검색 로직 실행
+            if (searchTerm != null && !searchTerm.isEmpty()) {
+                boards = boardService.searchBoards(searchTerm, searchField, boardTypeId, pageRequest);
+            }
+            // 게시판 타입 필터링만 있는 경우
+            else if (boardTypeId != null) {
                 boards = boardService.getBoardsByType(boardTypeId, pageRequest);
-            } else {
+            }
+            // 아무 조건 없는 경우 전체 조회
+            else {
+                log.info("여기로 들어와야함");
                 boards = boardService.getAllBoards(pageRequest);
             }
+
+//            log.info("boards: {}", boards.getContent());
 
             return ResponseEntity.ok(boards);
         } catch (Exception e) {
@@ -54,5 +66,12 @@ public class AdminBoardController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of("message", "게시글 상세 조회 실패: " + e.getMessage()));
         }
+    }
+
+    @PostMapping("/board/{id}/delete")
+    public ResponseEntity<?> deleteBoard(@PathVariable Integer id) {
+        boardService.deleteBoardById(id);
+        return ResponseEntity.status(HttpStatus.OK)
+                .body(Map.of("message", "게시글 삭제 완료"));
     }
 }

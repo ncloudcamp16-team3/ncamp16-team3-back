@@ -18,12 +18,12 @@ import java.time.LocalDateTime;
 public class PetSitter {
 
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id")
     private Integer id;
 
-    @MapsId
     @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "id")
+    @JoinColumn(name = "id", nullable = false)
     private User user;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -48,7 +48,7 @@ public class PetSitter {
     @Column(name = "sitter_exp", nullable = false)
     private Boolean sitterExp = false;
 
-    @OneToOne(fetch = FetchType.LAZY)
+    @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.REMOVE)
     @JoinColumn(name = "file_id", nullable = false)
     private File file;
 
@@ -59,6 +59,11 @@ public class PetSitter {
     @Column(name = "apply_at")
     private LocalDateTime applyAt;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private PetSitterStatus status = PetSitterStatus.NONE;
+
+
     @Getter
     public enum PetCount {
         ONE("1"), TWO("2"), THREE_PLUS("3+");
@@ -67,6 +72,48 @@ public class PetSitter {
 
         PetCount(String value) {
             this.value = value;
+        }
+    }
+
+    @Getter
+    public enum PetSitterStatus {
+        PENDING, APPROVE, DELETE, NONE
+    }
+
+
+    public void approve() {
+        this.status = PetSitterStatus.APPROVE;
+        this.applyAt = LocalDateTime.now();
+    }
+
+    public void pending() {
+        this.status = PetSitterStatus.PENDING;
+        this.applyAt = null; // 신청 날짜 초기화
+    }
+
+    public void waitForApproval() {
+        this.status = PetSitterStatus.NONE;
+        this.applyAt = null;
+    }
+
+    public void delete() {
+        this.status = PetSitterStatus.DELETE;
+    }
+
+    public void updateInformation(String age, String houseType, String comment,
+                                  Boolean grown, PetCount petCount, Boolean sitterExp,
+                                  File file, PetType petType) {
+        this.age = age;
+        this.houseType = houseType;
+        this.comment = comment;
+        this.grown = grown;
+        this.petCount = petCount;
+        this.sitterExp = sitterExp;
+        if (file != null) {
+            this.file = file;
+        }
+        if (petType != null) {
+            this.petType = petType;
         }
     }
 }

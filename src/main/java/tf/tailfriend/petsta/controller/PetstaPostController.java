@@ -7,13 +7,12 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import tf.tailfriend.global.config.UserPrincipal;
 import tf.tailfriend.global.service.StorageServiceException;
-import tf.tailfriend.petsta.entity.dto.CommentRequestDto;
-import tf.tailfriend.petsta.entity.dto.CommentResponseDto;
-import tf.tailfriend.petsta.entity.dto.PostResponseDto;
+import tf.tailfriend.petsta.entity.dto.*;
 import tf.tailfriend.petsta.service.PetstaPostService;
-import tf.tailfriend.file.entity.File;
+import tf.tailfriend.petsta.service.PetstaService;
 
 import java.io.IOException;
+import java.util.Collections;
 import java.util.List;
 
 @RestController
@@ -22,6 +21,7 @@ import java.util.List;
 public class PetstaPostController {
 
     private final PetstaPostService petstaPostService;
+    private final PetstaService petstaService;
 
     @PostMapping("/add/photo")
     public ResponseEntity<String> addPhoto(
@@ -53,21 +53,30 @@ public class PetstaPostController {
     }
 
     @GetMapping("/lists")
-    public ResponseEntity<List<PostResponseDto>> getPostLists(
-            @AuthenticationPrincipal UserPrincipal userPrincipal) {
+    public ResponseEntity<PetstaMainPageResponseDto> getPostListsAndFollowings(
+            @AuthenticationPrincipal UserPrincipal userPrincipal,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "5") int size
+    ) {
         Integer userId = userPrincipal.getUserId();
-        List<PostResponseDto> posts = petstaPostService.getAllPosts(userId);
-        System.out.println(posts);
-        return ResponseEntity.ok(posts);
+
+        List<PetstaPostResponseDto> posts = petstaPostService.getAllPosts(userId, page, size);
+        List<PetstaUpdatedUserDto> followings = page == 0
+                ? petstaService.getTopFollowedUsers(userId)
+                : Collections.emptyList();
+
+        PetstaMainPageResponseDto response = new PetstaMainPageResponseDto(posts, followings);
+        return ResponseEntity.ok(response);
     }
 
 
+
     @GetMapping("/{postId}")
-    public ResponseEntity<PostResponseDto> getPostbyId(
+    public ResponseEntity<PetstaPostResponseDto> getPostbyId(
             @AuthenticationPrincipal UserPrincipal userPrincipal,
             @PathVariable("postId") Integer postId) {
         Integer userId = userPrincipal.getUserId();
-        PostResponseDto post = petstaPostService.getPostById(userId,postId);
+        PetstaPostResponseDto post = petstaPostService.getPostById(userId,postId);
         System.out.println(post);
         System.out.println("너왜출력을안하냐?");
         return ResponseEntity.ok(post);
@@ -98,7 +107,7 @@ public class PetstaPostController {
     public ResponseEntity<String> addComment(
             @AuthenticationPrincipal UserPrincipal userPrincipal,
             @PathVariable Integer postId,
-            @RequestBody CommentRequestDto requestDto
+            @RequestBody PetstaCommentRequestDto requestDto
     ) {
         petstaPostService.addComment(
                 postId,
@@ -110,13 +119,23 @@ public class PetstaPostController {
     }
 
     @GetMapping("/{postId}/comments")
-    public ResponseEntity<List<CommentResponseDto>> getParentComments(
+    public ResponseEntity<List<PetstaCommentResponseDto>> getParentComments(
             @AuthenticationPrincipal UserPrincipal userPrincipal,
             @PathVariable Integer postId
     ) {
-        List<CommentResponseDto> parentComments = petstaPostService.getParentCommentsByPostId(postId);
+        int currentId = userPrincipal.getUserId();
+        List<PetstaCommentResponseDto> parentComments = petstaPostService.getParentCommentsByPostId(currentId, postId);
         return ResponseEntity.ok(parentComments);
     }
 
+    @GetMapping("/{commentId}/replies")
+    public ResponseEntity<List<PetstaCommentResponseDto>> getReplyComments(
+            @AuthenticationPrincipal UserPrincipal userPrincipal,
+            @PathVariable Integer commentId
+    ) {
+        int currentId = userPrincipal.getUserId();
+        List<PetstaCommentResponseDto> parentComments = petstaPostService.getReplyCommentsByCommentId(currentId,commentId);
+        return ResponseEntity.ok(parentComments);
+    }
 
 }

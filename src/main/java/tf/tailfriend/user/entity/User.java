@@ -5,7 +5,6 @@ import lombok.*;
 import tf.tailfriend.file.entity.File;
 import tf.tailfriend.pet.entity.Pet;
 import tf.tailfriend.user.distance.Distance;
-import tf.tailfriend.user.distance.DistanceConverter;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -15,7 +14,7 @@ import java.util.Set;
 @Entity
 @Table(name = "users")
 @Getter
-@Builder
+@Builder(toBuilder = true)
 @NoArgsConstructor
 @AllArgsConstructor
 public class User {
@@ -47,8 +46,21 @@ public class User {
 
     private Double longitude;
 
-    @Convert(converter = DistanceConverter.class)
+    @Enumerated(EnumType.STRING)
     private Distance distance;
+
+    @Column(name = "post_count", nullable = false)
+    @Builder.Default
+    private Integer postCount = 0;
+
+    @Column(name = "follower_count", nullable = false)
+    @Builder.Default
+    private Integer followerCount = 0;
+
+    @Column(name = "follow_count", nullable = false)
+    @Builder.Default
+    private Integer followCount = 0;
+
 
     @OneToMany(mappedBy = "follower")
     @Builder.Default

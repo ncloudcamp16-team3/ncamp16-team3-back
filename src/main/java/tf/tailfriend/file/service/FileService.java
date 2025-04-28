@@ -87,5 +87,64 @@ public class FileService {
         // 5. 잘린 Path만 리턴
         return trimmedPath;
     }
+    @Transactional(readOnly = true)
+    public File getDefaultImage() {
+        return getOrDefault(1); // 1번은 기본 이미지라고 가정
+    }
+
+    public double getVideoDurationInSeconds(Path videoPath) throws IOException, InterruptedException {
+        String[] command = {
+                "ffprobe",
+                "-v", "error",
+                "-select_streams", "v:0",
+                "-show_entries", "format=duration",
+                "-of", "default=noprint_wrappers=1:nokey=1",
+                videoPath.toAbsolutePath().toString()
+        };
+
+        ProcessBuilder builder = new ProcessBuilder(command);
+        builder.redirectErrorStream(true);
+        Process process = builder.start();
+
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
+            String output = reader.readLine();
+            return Double.parseDouble(output);
+        }
+    }
+
+    public Path extractThumbnail(Path videoPath, double middleSecond) throws IOException, InterruptedException {
+        Path thumbnailPath = Files.createTempFile("thumbnail_", ".jpg");
+
+        String middleTime = String.format("00:%02d:%02d", (int)(middleSecond / 60), (int)(middleSecond % 60));
+
+        String[] command = {
+                "ffmpeg",
+                "-y",
+                "-ss", middleTime,
+                "-i", videoPath.toAbsolutePath().toString(),
+                "-vframes", "1",
+                thumbnailPath.toAbsolutePath().toString()
+        };
+
+        ProcessBuilder builder = new ProcessBuilder(command);
+        builder.redirectErrorStream(true);
+        Process process = builder.start();
+
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                System.out.println(line);
+            }
+        }
+
+        int result = process.waitFor();
+        if (result != 0) {
+            throw new RuntimeException("썸네일 추출 실패");
+        }
+
+        return thumbnailPath;
+    }
+
+
 
 }

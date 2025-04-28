@@ -29,9 +29,8 @@ public class ChatRoom {
     @JoinColumn(name = "user_id2", nullable = false)
     private User user2;
 
-    @CreationTimestamp
-    @Column(name = "last_update", nullable = false)
-    private LocalDateTime lastUpdate;
+    @Column(name = "unique_id", nullable = false, unique = true)
+    private String uniqueId;
 
     @OneToMany(mappedBy = "chatRoom", cascade = CascadeType.ALL)
     @Builder.Default
@@ -50,6 +49,5 @@ public class ChatRoom {
     public void addMessage(User user, String content, ChatType chatType, String metadata) {
         Message message = createMessage(this, user, content, chatType, metadata);
         messages.add(message);
-        this.lastUpdate = LocalDateTime.now();
     }
 }

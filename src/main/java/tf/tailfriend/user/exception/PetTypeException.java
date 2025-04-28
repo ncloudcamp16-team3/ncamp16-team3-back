@@ -3,7 +3,7 @@ package tf.tailfriend.user.exception;
 import lombok.Getter;
 import org.springframework.http.HttpStatus;
 import tf.tailfriend.global.exception.CustomException;
-import tf.tailfriend.user.message.error.ErrorMessage;
+import tf.tailfriend.user.message.ErrorMessage;
 
 @Getter
 public class PetTypeException extends CustomException {

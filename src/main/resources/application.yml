@@ -33,7 +33,25 @@ spring:
       max-request-size: 10MB
 
   jpa:
-    database-platform: org.hibernate.dialect.MySQL8Dialect
+    database-platform: org.hibernate.dialect.MySQLDialect
+#  jpa:
+#    hibernate:
+#      ddl-auto: validate
+#    show-sql: false
+#    properties:
+#      hibernate:
+#        jdbc:
+#          batch_size: 50
+#        format_sql: true
+#        dialect: org.hibernate.dialect.MySQLDialect
+#        order_inserts: true
+#        order_updates: true
+
+  rabbitmq:
+    host: tailfreinds-notify-n89pl.kr.vrmq.naverncp.com
+    port: 5672
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
 
   security:
     oauth2:
@@ -87,6 +105,10 @@ spring:
             user-info-uri: https://www.googleapis.com/oauth2/v3/userinfo
             user-name-attribute: sub
 
+#  data:
+#    redis:
+#      host: ${REDIS_HOST}
+#      port: ${REDIS_PORT}
 jwt:
   secret: ${JWT_SECRET}
   token-validity: 86400
@@ -107,3 +129,6 @@ ncp:
   access-key: ${NCR_USERNAME}
   secret-key: ${NCR_PASSWORD}
   bucket-name: ${NCP_BUCKET_NAME}
+
+
+

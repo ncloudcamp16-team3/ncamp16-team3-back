@@ -11,11 +11,22 @@ import tf.tailfriend.facility.entity.FacilityType;
 import tf.tailfriend.facility.entity.dto.ResponseForReserve.FacilityCard;
 import tf.tailfriend.facility.entity.Facility;
 
-import java.util.List;
-import java.util.Optional;
-
 @Repository
 public interface FacilityDao extends JpaRepository<Facility, Integer> {
+
+    Page<Facility> findByFacilityType(FacilityType facilityTypeId, Pageable pageable);
+
+    Page<Facility> findByNameContaining(String name, Pageable pageable);
+    Page<Facility> findByFacilityTypeAndNameContaining(FacilityType facilityType, String name, Pageable pageable);
+
+    Page<Facility> findByAddressContaining(String address, Pageable pageable);
+    Page<Facility> findByFacilityTypeAndAddressContaining(FacilityType facilityType, String address, Pageable pageable);
+
+    Page<Facility> findByTelContaining(String tel, Pageable pageable);
+    Page<Facility> findByFacilityTypeAndTelContaining(FacilityType facilityType, String tel, Pageable pageable);
+
+    Page<Facility> findByCommentContaining(String comment, Pageable pageable);
+    Page<Facility> findByFacilityTypeAndCommentContaining(FacilityType facilityType, String comment, Pageable pageable);
 
     @Query("""
     SELECT new tf.tailfriend.facility.entity.dto.ResponseForReserve.FacilityCard(

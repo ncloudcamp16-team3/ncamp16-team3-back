@@ -2,6 +2,7 @@ package tf.tailfriend.user.service;
 
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import tf.tailfriend.file.entity.File;
@@ -15,32 +16,34 @@ import tf.tailfriend.pet.entity.PetType;
 import tf.tailfriend.pet.repository.PetPhotoDao;
 import tf.tailfriend.pet.repository.PetDao;
 import tf.tailfriend.pet.repository.PetTypeDao;
-import tf.tailfriend.petsta.entity.PetstaBookmark;
-import tf.tailfriend.petsta.entity.PetstaPost;
 import tf.tailfriend.petsitter.repository.PetSitterDao;
+import tf.tailfriend.user.distance.Distance;
 import tf.tailfriend.user.entity.SnsType;
 import tf.tailfriend.user.entity.User;
 import tf.tailfriend.user.entity.UserFollow;
 import tf.tailfriend.user.entity.dto.*;
+import tf.tailfriend.user.exception.UserException;
+import tf.tailfriend.user.exception.UserSaveException;
 import tf.tailfriend.user.repository.SnsTypeDao;
 import tf.tailfriend.user.repository.UserDao;
 import tf.tailfriend.user.repository.UserFollowDao;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class UserService {
 
     private final UserDao userDao;
     private final PetSitterDao petSitterDao;
     private final FileDao fileDao;
-
+    private final PetDao petDao;
+    private final PetPhotoDao petPhotoDao;
     private final UserFollowDao userFollowDao;
     private final StorageService storageService;
 
@@ -153,10 +156,24 @@ public class UserService {
         User user = userDao.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회원입니다: " + userId));
 
-        // 2. 펫시터 정보가 있다면 함께 삭제
+
+        // 2. 팔로우 관계 삭제 (팔로워 및 팔로잉)
+        userFollowDao.deleteByFollowerId(userId);
+        userFollowDao.deleteByFollowedId(userId);
+
+        // 3. 펫시터 정보가 있다면 함께 삭제
         petSitterDao.findById(userId).ifPresent(petSitterDao::delete);
 
-        // 3. 회원 삭제
+        // 4. 반려동물 관련 데이터 삭제
+        user.getPet().forEach(pet -> {
+            // 반려동물 사진 삭제
+            petPhotoDao.deleteByPetId(pet.getId());
+
+            // 반려동물 삭제
+            petDao.delete(pet);
+        });
+
+        // 5. 회원 삭제
         userDao.delete(user);
     }
 
@@ -188,10 +205,8 @@ public class UserService {
 
     @Transactional
     public void toggleFollow(Integer followerId, Integer followedId) {
-
         User followerUser = userDao.findById(followerId)
                 .orElseThrow(() -> new IllegalArgumentException("팔로우하는 유저를 찾을 수 없습니다."));
-
 
         User followedUser = userDao.findById(followedId)
                 .orElseThrow(() -> new IllegalArgumentException("팔로우받는 유저를 찾을 수 없습니다."));
@@ -200,9 +215,45 @@ public class UserService {
 
         if (existingFollow.isPresent()) {
             userFollowDao.delete(existingFollow.get());
+
+            userDao.decrementFollowCount(followerId);   // 내가 언팔 → 팔로우 수 감소
+            userDao.decrementFollowerCount(followedId); // 상대방 → 팔로워 수 감소
+
         } else {
-            UserFollow newFollow = UserFollow.of(followerUser, followedUser); // << 깔끔
+            UserFollow newFollow = UserFollow.of(followerUser, followedUser);
             userFollowDao.save(newFollow);
+
+            userDao.incrementFollowCount(followerId);   // 내가 팔로우 → 팔로우 수 증가
+            userDao.incrementFollowerCount(followedId); // 상대방 → 팔로워 수 증가
+        }
+    }
+
+    @Transactional
+    public String getUsername(Integer userId) {
+        return userDao.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("유저를 찾을 수 없습니다."))
+                .getNickname(); // ← 여기서 닉네임만 추출
+    }
+  
+    public void userInfoSave(UserInfoDto userInfoDto) {
+
+        User userEntity = userDao.findById(userInfoDto.getId())
+                .orElseThrow(() -> new UserException());
+
+        try {
+            User updatedUser = userEntity.toBuilder()
+                    .nickname(userInfoDto.getNickname())
+                    .distance(userInfoDto.getDistance())
+                    .latitude(userInfoDto.getLatitude())
+                    .longitude(userInfoDto.getLongitude())
+                    .address(userInfoDto.getAddress())
+                    .dongName(userInfoDto.getDongName())
+                    .build();
+
+            userDao.save(updatedUser);
+
+        }  catch (Exception e) {
+            throw new UserSaveException();
         }
     }
 }

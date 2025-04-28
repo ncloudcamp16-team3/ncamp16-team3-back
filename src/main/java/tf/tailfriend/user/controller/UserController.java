@@ -15,6 +15,7 @@ import tf.tailfriend.global.config.UserPrincipal;
 import tf.tailfriend.global.response.CustomResponse;
 import tf.tailfriend.global.service.StorageService;
 import tf.tailfriend.global.service.StorageServiceException;
+import tf.tailfriend.petsitter.dto.PetSitterResponseDto;
 import tf.tailfriend.petsitter.service.PetSitterService;
 import tf.tailfriend.user.entity.dto.MypageResponseDto;
 import tf.tailfriend.user.entity.dto.UserInfoDto;
@@ -55,32 +56,35 @@ public class UserController {
         try {
             MypageResponseDto response = userService.getMemberInfo(principal.getUserId());
 
-            // 펫시터 상태 추가
-            try {
-                var sitterDto = petSitterService.getPetSitterStatus(principal.getUserId());
-                System.out.println("익거머임" + sitterDto);
-                Map<String, Object> responseMap = new HashMap<>();
-                responseMap.put("userId", response.getUserId());
-                responseMap.put("nickname", response.getNickname());
-                responseMap.put("profileImageUrl", response.getProfileImageUrl());
-                responseMap.put("pets", response.getPets());
-                responseMap.put("petSitterStatus", sitterDto.getStatus());
-                responseMap.put("petSitterInfo", sitterDto);
+            // API에서 받아온 데이터로 응답 맵 구성
+            Map<String, Object> responseMap = new HashMap<>();
+            responseMap.put("userId", response.getUserId());
+            responseMap.put("nickname", response.getNickname());
+            responseMap.put("profileImageUrl", response.getProfileImageUrl());
+            responseMap.put("pets", response.getPets());
 
-                return ResponseEntity.ok(responseMap);
+            try {
+                boolean exists = petSitterService.existsById(principal.getUserId());
+                if (exists) {
+                    PetSitterResponseDto sitterDto = petSitterService.getPetSitterStatus(principal.getUserId());
+
+                    // 상태값을 그대로 전달 (이미 String으로 변환되어 있음)
+                    responseMap.put("petSitterStatus", sitterDto.getStatus());
+                    responseMap.put("petSitterInfo", sitterDto);
+
+                    logger.info("펫시터 상태 조회 성공: userId={}, status={}",
+                            principal.getUserId(), sitterDto.getStatus());
+                } else {
+                    responseMap.put("petSitterStatus", "NOT_REGISTERED");
+                    logger.info("펫시터 정보 없음: userId={}", principal.getUserId());
+                }
             } catch (Exception e) {
                 // 펫시터가 아닌 경우
-                Map<String, Object> responseMap = new HashMap<>();
-                responseMap.put("userId", response.getUserId());
-                responseMap.put("nickname", response.getNickname());
-                responseMap.put("profileImageUrl", response.getProfileImageUrl());
-                responseMap.put("pets", response.getPets());
-
-                responseMap.put("petSitterStatus", "");
-
-                return ResponseEntity.ok(responseMap);
+                logger.warn("펫시터 상태 조회 중 오류: userId={}, error={}", principal.getUserId(), e.getMessage());
+                responseMap.put("petSitterStatus", "NOT_REGISTERED");
             }
 
+            return ResponseEntity.ok(responseMap);
         } catch (Exception e) {
             logger.error("마이페이지 정보 조회 중 오류 발생", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -197,7 +201,7 @@ public class UserController {
     }
 
 
-     // 기존 프로필 이미지 업데이트 API
+    // 기존 프로필 이미지 업데이트 API
     @PutMapping("/profile-image")
     public ResponseEntity<?> updateProfileImageById(
             @AuthenticationPrincipal UserPrincipal principal,

@@ -50,7 +50,7 @@ dependencies {
 
 
 	// 웹 푸시
-	implementation 'com.github.webpush:webpush:5.0.0'
+//	implementation 'com.github.webpush:webpush:5.0.0'
 
 
 

@@ -11,6 +11,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
+import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -52,7 +53,9 @@ public class SecurityConfig {
         http
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
 //                .csrf(csrf -> csrf.disable()) // 안되면 이거 주석 풀고 밑에꺼 주석
-                .csrf(csrf -> csrf.csrfTokenRepository(csrfTokenRepository()))
+                .csrf(csrf -> csrf
+                        .csrfTokenRepository(csrfTokenRepository())
+                        .ignoringRequestMatchers(new AntPathRequestMatcher("/api/admin/**")))
                 .formLogin(form -> form.disable()) // 폼 로그인 제거
                 .httpBasic(httpBasic -> httpBasic.disable()) // HTTP Basic 제거
                 .exceptionHandling(exception -> exception.authenticationEntryPoint(jwtAuthEntryPoint))

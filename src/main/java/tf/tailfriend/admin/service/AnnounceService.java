@@ -4,7 +4,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
-import tf.tailfriend.admin.dto.AnnounceResponseDto;
 import tf.tailfriend.admin.entity.Announce;
 import tf.tailfriend.admin.entity.AnnouncePhoto;
 import tf.tailfriend.admin.repository.AnnounceDao;

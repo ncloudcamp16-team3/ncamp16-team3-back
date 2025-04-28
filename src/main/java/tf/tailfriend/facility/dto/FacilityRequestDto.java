@@ -13,8 +13,6 @@ public class FacilityRequestDto {
 
     private String name;
     private String facilityTypeId;
-    private String openTime;
-    private String closeTime;
     private String tel;
     private String address;
     private String detailAddress;

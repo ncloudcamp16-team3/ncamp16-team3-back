@@ -147,136 +147,63 @@ public class FacilityService {
         Facility savedFacility = facilityDao.save(facility);
         log.info("saved facility: {}", savedFacility);
 
-        if (requestDto.getOpenTime() != null && requestDto.getCloseTime() != null) {
-            saveDailyTimetables(savedFacility, requestDto.getOpenTime(), requestDto.getCloseTime());
-        } else if (requestDto.getOpenTimes() != null && requestDto.getCloseTimes() != null) {
-            saveWeeklyTimetables(
-                    savedFacility,
-                    requestDto.getOpenTimes(),
-                    requestDto.getCloseTimes(),
-                    requestDto.getOpenDays()
-            );
-        }
+        saveWeeklyTimetables(
+                savedFacility,
+                requestDto.getOpenTimes(),
+                requestDto.getCloseTimes(),
+                requestDto.getOpenDays()
+        );
 
         List<File> savedFiles = saveImages(savedFacility, images);
 
         return convertToResponseDto(savedFacility, savedFiles);
     }
 
-    private FacilityAddResponseDto convertToResponseDto(Facility facility, List<File> files) {
-        FacilityAddResponseDto responseDto = FacilityAddResponseDto.builder()
-                .id(facility.getId())
-                .name(facility.getName())
-                .facilityType(facility.getFacilityType().getName())
-                .tel(facility.getTel())
-                .address(facility.getAddress())
-                .detailAddress(facility.getDetailAddress())
-                .comment(facility.getComment())
-                .latitude(facility.getLatitude())
-                .longitude(facility.getLongitude())
-                .starPoint(facility.getStarPoint())
-                .reviewCount(facility.getReviewCount())
-                .createdAt(facility.getCreatedAt())
-                .build();
+    private void saveWeeklyTimetables(Facility facility, Map<String, String> openTimes, Map<String, String> closeTimes, Map<String, Boolean> openDays) {
+        List<FacilityTimetable> timetables = new ArrayList<>();
 
-        List<FacilityTimetable> timetables = facilityTimetableDao.findByFacilityId(facility.getId());
+        for (FacilityTimetable.Day day : FacilityTimetable.Day.values()) {
+            String dayName = day.name();
 
-        List<FacilityAddResponseDto.FacilityTimetableDto> timetableDtos = timetables.stream()
-                .map(timetable -> {
-                    String openTimeStr = timetable.getOpenTime() != null ? timetable.getOpenTime().toString().substring(0, 5) : null;
-                    String closeTimeStr = timetable.getCloseTime() != null ? timetable.getCloseTime().toString().substring(0, 5) : null;
+            boolean isOpen = openDays == null || Boolean.TRUE.equals(openDays.get(dayName));
 
-                    return FacilityAddResponseDto.FacilityTimetableDto.builder()
-                            .day(timetable.getDay().getValue())
-                            .openTime(openTimeStr)
-                            .closeTime(closeTimeStr)
+            FacilityTimetable timetable;
+
+            if (isOpen) {
+                String openTimeStr = openTimes.get(dayName);
+                String closeTimeStr = closeTimes.get(dayName);
+
+                try {
+                    Time openTime = Time.valueOf(openTimeStr + ":00");
+                    Time closeTime = Time.valueOf(closeTimeStr + ":00");
+
+                    timetable = FacilityTimetable.builder()
+                            .facility(facility)
+                            .day(day)
+                            .openTime(openTime)
+                            .closeTime(closeTime)
                             .build();
-                })
-                .collect(Collectors.toList());
-
-        responseDto.setTimetables(timetableDtos);
-
-        List<String> imageUrls = files.stream()
-                .map(file -> {
-                    String presignedUrl = storageService.generatePresignedUrl(file.getPath());
-                    return presignedUrl;
-                })
-                .collect(Collectors.toList());
-
-        responseDto.setImageUrls(imageUrls);
-
-        return responseDto;
-    }
-
-    private void saveDailyTimetables(Facility facility, String openTimeStr, String closeTimeStr) {
-
-        log.info("openTimeStr: {}, closeTimeStr: {}", openTimeStr, closeTimeStr);
-
-        if (openTimeStr == null || closeTimeStr == null) {
-            log.warn("시간 값이 null입니다. 시간표를 저장하지 않습니다.");
-            return;
-        }
-        log.info("Time.valueOf(openTimeStr): {}, Time.valueOf(closeTimeStr): {}", Time.valueOf(openTimeStr), Time.valueOf(closeTimeStr));
-        // HH:MM 형식을 HH:MM:SS 형식으로 변환
-        String openTimeWithSeconds = openTimeStr + ":00";
-        String closeTimeWithSeconds = closeTimeStr + ":00";
-
-        log.info("변환된 시간 - openTime: {}, closeTime: {}", openTimeWithSeconds, closeTimeWithSeconds);
-
-        try {
-            // 시간 변환 시도
-            Time openTime = Time.valueOf(openTimeWithSeconds);
-            Time closeTime = Time.valueOf(closeTimeWithSeconds);
-
-            // 요일별로 같은 시간 설정
-            for (FacilityTimetable.Day day : FacilityTimetable.Day.values()) {
-                FacilityTimetable timetable = FacilityTimetable.builder()
+                } catch (IllegalArgumentException e) {
+                    log.error("시설 ID {}의 요일 {} 시간 반환 오류: {}", facility.getId(), dayName, e.getMessage());
+                    continue;
+                }
+            }
+            else {
+                log.info("시설 ID {}의 요일 {} 휴무일 처리: null 시간 설정", facility.getId(), dayName);
+                timetable = FacilityTimetable.builder()
                         .facility(facility)
                         .day(day)
-                        .openTime(openTime)
-                        .closeTime(closeTime)
+                        .openTime(null)
+                        .closeTime(null)
                         .build();
-
-                facilityTimetableDao.save(timetable);
             }
-        } catch (IllegalArgumentException e) {
-            log.error("시간 형식 변환 중 오류 발생: {}", e.getMessage());
-            // 오류 처리 - 예외를 던지거나 기본값 사용
+            timetables.add(timetable);
         }
-    }
 
-    private void saveWeeklyTimetables(Facility facility, Map<String, String> openTimes, Map<String, String> closeTimes, Map<String, Boolean> openDays) {
-        for (FacilityTimetable.Day day : FacilityTimetable.Day.values()) {
-            String dayName = day.getValue();
-
-            boolean isOpen = openDays != null ? openDays.get(dayName) : true;
-            if (!isOpen) {
-                log.info("시설 ID {}의 요일 {} 휴무일 처리됨", facility.getId(), dayName);
-                continue;
-            }
-
-            String openTimeStr = openTimes.get(dayName);
-            String closeTimeStr = closeTimes.get(dayName);
-
-            if (openTimeStr == null || closeTimeStr == null) {
-                log.warn("시설 ID {}의 요일 {} 영업시간 정보 누락, 기본값 적용", facility.getId(), dayName);
-                openTimeStr = "09:00";
-                closeTimeStr = "18:00";
-            }
-
-            Time openTime = Time.valueOf(openTimeStr);
-            Time closeTime = Time.valueOf(closeTimeStr);
-
-            FacilityTimetable timetable = FacilityTimetable.builder()
-                    .facility(facility)
-                    .day(day)
-                    .openTime(openTime)
-                    .closeTime(closeTime)
-                    .build();
-
-            facilityTimetableDao.save(timetable);
+        if (!timetables.isEmpty()) {
+            facilityTimetableDao.saveAll(timetables);
+            log.info("시설 ID {}에 요일별 영업시간 {}건 저장완료", facility.getId(), timetables.size());
         }
-        log.info("시설 ID {} 에 요일별 영업시간 저장 완료", facility.getId());
     }
 
     private List<File> saveImages(Facility facility, List<MultipartFile> images) {
@@ -329,6 +256,51 @@ public class FacilityService {
                 .orElseThrow(() -> new IllegalArgumentException("등록된 업체가 없습니다"));
 
         facilityDao.delete(facility);
+    }
+
+    private FacilityAddResponseDto convertToResponseDto(Facility facility, List<File> files) {
+        FacilityAddResponseDto responseDto = FacilityAddResponseDto.builder()
+                .id(facility.getId())
+                .name(facility.getName())
+                .facilityType(facility.getFacilityType().getName())
+                .tel(facility.getTel())
+                .address(facility.getAddress())
+                .detailAddress(facility.getDetailAddress())
+                .comment(facility.getComment())
+                .latitude(facility.getLatitude())
+                .longitude(facility.getLongitude())
+                .starPoint(facility.getStarPoint())
+                .reviewCount(facility.getReviewCount())
+                .createdAt(facility.getCreatedAt())
+                .build();
+
+        List<FacilityTimetable> timetables = facilityTimetableDao.findByFacilityId(facility.getId());
+
+        List<FacilityAddResponseDto.FacilityTimetableDto> timetableDtos = timetables.stream()
+                .map(timetable -> {
+                    String openTimeStr = timetable.getOpenTime() != null ? timetable.getOpenTime().toString().substring(0, 5) : null;
+                    String closeTimeStr = timetable.getCloseTime() != null ? timetable.getCloseTime().toString().substring(0, 5) : null;
+
+                    return FacilityAddResponseDto.FacilityTimetableDto.builder()
+                            .day(timetable.getDay().getValue())
+                            .openTime(openTimeStr)
+                            .closeTime(closeTimeStr)
+                            .build();
+                })
+                .collect(Collectors.toList());
+
+        responseDto.setTimetables(timetableDtos);
+
+        List<String> imageUrls = files.stream()
+                .map(file -> {
+                    String presignedUrl = storageService.generatePresignedUrl(file.getPath());
+                    return presignedUrl;
+                })
+                .collect(Collectors.toList());
+
+        responseDto.setImageUrls(imageUrls);
+
+        return responseDto;
     }
 
     private Page<FacilityResponseDto> convertToDtoPage(Page<Facility> facilities, Pageable pageable) {

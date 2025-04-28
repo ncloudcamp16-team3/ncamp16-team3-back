@@ -37,13 +37,13 @@ public class FacilityTimetable {
 
     @Getter
     public enum Day {
-        MONDAY("MON"),
-        TUESDAY("TUE"),
-        WEDNESDAY("WED"),
-        THURSDAY("THU"),
-        FRIDAY("FRI"),
-        SATURDAY("SAT"),
-        SUNDAY("SUN");
+        MON("MON"),
+        TUE("TUE"),
+        WED("WED"),
+        THU("THU"),
+        FRI("FRI"),
+        SAT("SAT"),
+        SUN("SUN");
 
         private final String value;
 

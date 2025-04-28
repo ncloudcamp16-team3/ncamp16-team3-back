@@ -68,7 +68,7 @@ public class AdminBoardController {
         }
     }
 
-    @PostMapping("/board/{id}/delete")
+    @DeleteMapping("/board/{id}/delete")
     public ResponseEntity<?> deleteBoard(@PathVariable Integer id) {
         boardService.deleteBoardById(id);
         return ResponseEntity.status(HttpStatus.OK)

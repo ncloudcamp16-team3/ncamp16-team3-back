@@ -5,9 +5,9 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import tf.tailfriend.facility.dto.FacilityCardForReserve;
+import tf.tailfriend.facility.entity.dto.ResponseForReserve.FacilityCard;
 import tf.tailfriend.facility.service.FacilityService;
-import tf.tailfriend.reserve.dto.FacilityListRequestDto;
+import tf.tailfriend.reserve.dto.RequestForFacility.FacilityList;
 import tf.tailfriend.reserve.service.ReserveService;
 
 @RestController
@@ -22,16 +22,16 @@ public class ReserveController {
         this.reserveService = reserveService;
     }
 
-    @GetMapping("/get")
-    public Slice<FacilityCardForReserve> getFacilityList(
+    @GetMapping("/facility/lists")
+    public Slice<FacilityCard> getFacilityList(
             @RequestParam("latitude") double latitude,
             @RequestParam("longitude") double longitude,
             @RequestParam("category") String category,
-            @RequestParam("SortBy") String sortBy,
+            @RequestParam("sortBy") String sortBy,
             @RequestParam(value = "page", defaultValue = "0") int page,
             @RequestParam(value = "size", defaultValue = "10") int size) {
 
-        FacilityListRequestDto requestDto = FacilityListRequestDto.builder()
+        FacilityList requestDto = FacilityList.builder()
                 .userLatitude(latitude)
                 .userLongitude(longitude)
                 .category(category)

@@ -23,6 +23,9 @@ public class FacilityPhoto {
     @JoinColumn(name = "file_id")
     private File file;
 
+    @JoinColumn(name = "thumbnail")
+    private Boolean thumbnail;
+
     @MapsId("facilityId")
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "facility_id")
@@ -43,14 +46,11 @@ public class FacilityPhoto {
 
         @Override
         public boolean equals(Object obj) {
-            if (this == obj) {
-                return true;
-            }
-            if (obj == null || getClass() != obj.getClass()) {
-                return false;
-            }
+            if (this == obj) return true;
+            if (obj == null || getClass() != obj.getClass()) return false;
             FacilityPhotoId that = (FacilityPhotoId) obj;
-            return fileId.equals(that.fileId) && facilityId.equals(that.facilityId);
+            return fileId.equals(that.fileId) &&
+                    facilityId.equals(that.facilityId);
         }
 
         @Override
@@ -59,7 +59,7 @@ public class FacilityPhoto {
         }
     }
 
-    public static FacilityPhoto of(File file, Facility facility) {
+    public static FacilityPhoto of(File file, Facility facility, Boolean thumbnail) {
         FacilityPhotoId id = FacilityPhotoId.builder()
                 .facilityId(facility.getId())
                 .fileId(file.getId())
@@ -69,6 +69,7 @@ public class FacilityPhoto {
                 .id(id)
                 .facility(facility)
                 .file(file)
+                .thumbnail(thumbnail)
                 .build();
     }
 }

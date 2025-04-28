@@ -1,11 +1,13 @@
-package tf.tailfriend.reserve.dto;
+package tf.tailfriend.reserve.dto.RequestForFacility;
 
 import lombok.Builder;
 import lombok.Getter;
 
 @Getter
 @Builder
-public class FacilityListRequestDto {
+public class FacilityList {
+
+    private String day;
 
     private double userLatitude;
 

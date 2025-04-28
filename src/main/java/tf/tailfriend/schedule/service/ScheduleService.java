@@ -5,6 +5,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import tf.tailfriend.notification.entity.dto.NotificationDto;
+import tf.tailfriend.notification.service.NotificationService;
 import tf.tailfriend.schedule.entity.Schedule;
 import tf.tailfriend.schedule.entity.dto.ScheduleDTO.*;
 import tf.tailfriend.schedule.repository.ScheduleDao;
@@ -24,6 +26,7 @@ public class ScheduleService {
 
     private final ScheduleDao scheduleDao;
     private final UserDao userDao;
+    private final NotificationService notificationService;
 
     @Transactional(readOnly = true)
     public List<ScheduleGetDTO> getAllSchedules(Integer userId) {
@@ -52,6 +55,14 @@ public class ScheduleService {
                 .build();
 
         scheduleDao.save(schedule);
+
+        NotificationDto notification = new NotificationDto();
+        notification.setUserId(dto.getUserId());
+        notification.setContent("일정이 추가되었습니다."); // 알림 내용
+        notification.setNotifyTypeId(3);
+
+        // RabbitMQ로 알림 전송
+        notificationService.sendNotification(notification);
     }
 
     public void putSchedule(SchedulePutDTO dto) {

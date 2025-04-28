@@ -15,6 +15,7 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+import java.time.Duration;
 import java.util.List;
 
 @Configuration
@@ -51,7 +52,7 @@ public class SecurityConfig {
         http
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
 //                .csrf(csrf -> csrf.disable()) // 안되면 이거 주석 풀고 밑에꺼 주석
-                .csrf(csrf -> csrf.csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse()))
+                .csrf(csrf -> csrf.csrfTokenRepository(csrfTokenRepository()))
                 .formLogin(form -> form.disable()) // 폼 로그인 제거
                 .httpBasic(httpBasic -> httpBasic.disable()) // HTTP Basic 제거
                 .exceptionHandling(exception -> exception.authenticationEntryPoint(jwtAuthEntryPoint))
@@ -99,6 +100,18 @@ public class SecurityConfig {
         http.addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
+    }
+
+    @Bean
+    public CookieCsrfTokenRepository csrfTokenRepository() {
+        // CSRF 토큰을 쿠키로 저장하고, 만료 시간을 30초로 설정
+        CookieCsrfTokenRepository repository = CookieCsrfTokenRepository.withHttpOnlyFalse();
+        repository.setCookieCustomizer(cookie -> cookie
+                .maxAge(Duration.ofSeconds(30))// 30초 만료 시간 설정
+                .httpOnly(false)
+                .path("/")
+        );
+        return repository;
     }
 
 

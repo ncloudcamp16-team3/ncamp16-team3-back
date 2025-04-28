@@ -10,6 +10,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -49,7 +50,8 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-                .csrf(csrf -> csrf.disable())
+//                .csrf(csrf -> csrf.disable()) // 안되면 이거 주석 풀고 밑에꺼 주석
+                .csrf(csrf -> csrf.csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse()))
                 .formLogin(form -> form.disable()) // 폼 로그인 제거
                 .httpBasic(httpBasic -> httpBasic.disable()) // HTTP Basic 제거
                 .exceptionHandling(exception -> exception.authenticationEntryPoint(jwtAuthEntryPoint))
@@ -57,7 +59,8 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         // OAuth2 관련
                         .requestMatchers("/api/oauth2/authorization/**").permitAll()
-
+                                .requestMatchers("/api/login/oauth2/code/**").permitAll()
+                                .requestMatchers("/api/auth/csrf").permitAll()
                         // 관리자 API - 로그인, 인증 체크, 로그아웃은 누구나 접근 가능
                         .requestMatchers("/api/admin/login", "/api/admin/auth/validate", "/api/admin/logout").permitAll()
                         .requestMatchers("/api/admin/register").permitAll()
@@ -66,7 +69,8 @@ public class SecurityConfig {
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
 
                         // 일반 API
-                        .requestMatchers("/api/**").permitAll()
+//                        .requestMatchers("/api/**").permitAll()
+                        .requestMatchers("/api/**").hasRole("USER")
 
                         // 정적 페이지
                         .requestMatchers("/login").permitAll()

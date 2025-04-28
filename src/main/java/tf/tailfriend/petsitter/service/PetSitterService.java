@@ -3,6 +3,7 @@ package tf.tailfriend.petsitter.service;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
@@ -37,6 +38,7 @@ import org.slf4j.LoggerFactory;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class PetSitterService {
 
     private static final Logger logger = LoggerFactory.getLogger(PetSitterService.class);
@@ -80,7 +82,12 @@ public class PetSitterService {
         PetSitter petSitter = petSitterDao.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("펫시터가 존재하지 않습니다 " + id));
 
-        return PetSitterResponseDto.fromEntity(petSitter);
+        PetSitterResponseDto dto = PetSitterResponseDto.fromEntity(petSitter);
+
+        String imageUrl = storageService.generatePresignedUrl(petSitter.getFile().getPath());
+        dto.setImagePath(imageUrl);
+
+        return dto;
     }
 
     @Transactional(readOnly = true)

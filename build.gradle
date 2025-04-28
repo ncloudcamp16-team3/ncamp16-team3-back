@@ -48,6 +48,12 @@ dependencies {
 		exclude group: 'commons-logging', module: 'commons-logging'
 	}
 
+
+	// 웹 푸시
+//	implementation 'com.github.webpush:webpush:5.0.0'
+
+
+
 	//flyway
 	implementation 'org.flywaydb:flyway-core'
 	implementation 'org.flywaydb:flyway-mysql'

@@ -4,7 +4,13 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import tf.tailfriend.chat.entity.ChatRoom;
+import tf.tailfriend.chat.entity.dto.ChatRoomListResponseDto;
 import tf.tailfriend.chat.repository.ChatRoomDao;
+import tf.tailfriend.global.service.StorageService;
+import tf.tailfriend.pet.entity.Pet;
+import tf.tailfriend.pet.entity.PetMatch;
+import tf.tailfriend.pet.repository.PetDao;
+import tf.tailfriend.pet.repository.PetMatchDao;
 import tf.tailfriend.user.entity.User;
 import tf.tailfriend.user.repository.UserDao;
 
@@ -21,6 +27,9 @@ public class ChatService {
 
     private final ChatRoomDao chatRoomDao;
     private final UserDao userDao;
+    private final PetDao petDao;
+    private final PetMatchDao petMatchDao;
+    private final StorageService storageService;
 
     @Transactional
     public String createOrGetRoom(Integer currentUserId, Integer targetUserId) {
@@ -58,14 +67,52 @@ public class ChatService {
 
 
     @Transactional
-    public List<String> findAllMyChatRoomIds(Integer currentUserId) {
+    public void checkOrCreateMatch(Integer petId1, Integer petId2) {
+        Integer minId = Math.min(petId1, petId2);
+        Integer maxId = Math.max(petId1, petId2);
+
+        boolean exists = petMatchDao.existsByPet1IdAndPet2Id(minId, maxId);
+
+        if (!exists) {
+            Pet pet1 = petDao.findById(minId)
+                    .orElseThrow(() -> new IllegalArgumentException("Pet not found: " + minId));
+            Pet pet2 = petDao.findById(maxId)
+                    .orElseThrow(() -> new IllegalArgumentException("Pet not found: " + maxId));
+
+            PetMatch match = PetMatch.of(pet1, pet2);
+            petMatchDao.save(match);
+        }
+    }
+
+
+    @Transactional
+    public boolean isMatched(Integer petId1, Integer petId2) {
+        Integer minId = Math.min(petId1, petId2);
+        Integer maxId = Math.max(petId1, petId2);
+        return petMatchDao.existsByPet1IdAndPet2Id(minId, maxId);
+    }
+
+
+    @Transactional
+    public List<ChatRoomListResponseDto> findAllMyChatRooms(Integer currentUserId) {
         User me = userDao.findById(currentUserId)
                 .orElseThrow(() -> new IllegalArgumentException("사용자 없음: " + currentUserId));
 
         return chatRoomDao.findAllByUser1OrUser2(me, me).stream()
-                .map(ChatRoom::getUniqueId)
-                .collect(Collectors.toList());
+                .map(room -> {
+                    User partner;
+                    if (room.getUser1().getId().equals(currentUserId)) {
+                        partner = room.getUser2();
+                    } else {
+                        partner = room.getUser1();
+                    }
+                    return new ChatRoomListResponseDto(
+                            room.getUniqueId(),
+                            partner.getNickname(),
+                            storageService.generatePresignedUrl(partner.getFile().getPath())
+                    );
+                })
+                .toList();
     }
-
 
 }

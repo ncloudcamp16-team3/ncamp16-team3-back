@@ -59,13 +59,13 @@ public class AdminFacilityController {
             @RequestPart("data")FacilityRequestDto requestDto,
             @RequestPart(value = "images", required = false) List<MultipartFile> images
     ) {
-        log.info("Facility added: " + requestDto);
+        log.info("Facility added: {}", requestDto);
         facilityService.saveFacility(requestDto, images);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(Map.of("message", "업체가 성공적으로 등록되었습니다"));
     }
 
-    @PostMapping("/facility/{id}/delete")
+    @DeleteMapping("/facility/{id}/delete")
     public ResponseEntity<?> deleteFacility(@PathVariable Integer id) {
         facilityService.deleteFacilityById(id);
         return ResponseEntity.status(HttpStatus.OK)

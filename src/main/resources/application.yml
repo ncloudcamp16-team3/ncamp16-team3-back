@@ -34,18 +34,17 @@ spring:
 
   jpa:
     database-platform: org.hibernate.dialect.MySQLDialect
-#  jpa:
-#    hibernate:
-#      ddl-auto: validate
-#    show-sql: false
-#    properties:
-#      hibernate:
-#        jdbc:
-#          batch_size: 50
-#        format_sql: true
-#        dialect: org.hibernate.dialect.MySQLDialect
-#        order_inserts: true
-#        order_updates: true
+    hibernate:
+      ddl-auto: validate
+    show-sql: true
+    properties:
+      hibernate:
+        jdbc:
+          batch_size: 50
+        format_sql: true
+        dialect: org.hibernate.dialect.MySQLDialect
+        order_inserts: true
+        order_updates: true
 
   rabbitmq:
     host: tailfreinds-notify-n89pl.kr.vrmq.naverncp.com
@@ -120,6 +119,8 @@ logging:
     tf.tailfriend.user.controller: DEBUG
     org.springframework.web: DEBUG
     org.springframework.http.converter.json: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
 
 URL: ${baseUrl}
 

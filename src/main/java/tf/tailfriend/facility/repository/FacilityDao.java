@@ -7,9 +7,13 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+import tf.tailfriend.facility.entity.FacilityTimetable;
 import tf.tailfriend.facility.entity.FacilityType;
 import tf.tailfriend.facility.entity.dto.ResponseForReserve.FacilityCard;
 import tf.tailfriend.facility.entity.Facility;
+import tf.tailfriend.facility.entity.dto.ResponseForReserve.FacilityWithDistanceProjection;
+
+import java.util.List;
 
 @Repository
 public interface FacilityDao extends JpaRepository<Facility, Integer> {
@@ -28,31 +32,33 @@ public interface FacilityDao extends JpaRepository<Facility, Integer> {
     Page<Facility> findByCommentContaining(String comment, Pageable pageable);
     Page<Facility> findByFacilityTypeAndCommentContaining(FacilityType facilityType, String comment, Pageable pageable);
 
-    @Query("""
-    SELECT new tf.tailfriend.facility.entity.dto.ResponseForReserve.FacilityCard(
-        f.id,
-        ft.name,
-        f.name,
-        f.starPoint,
-        f.reviewCount,
-        function('ST_DISTANCE_SPHERE', POINT(:lng, :lat), POINT(f.longitude, f.latitude)),
-        f.address,
-        ftt.timetables,
-        fi.path
-    )
-    FROM Facility f
-    JOIN f.facilityType ft
-    JOIN f.facilityTimetables ftt ON ftt.day = :day
-    JOIN f.photos fp
-    JOIN fp.file fi
-    WHERE ft.name = :category
-      AND fp.thumbnail = true
-""")
-    Slice<FacilityCard> findByCategoryWithFacilityTypeAndThumbnail(
-            @Param("category") String category,
-            @Param("day") tf.tailfriend.facility.entity.FacilityTimetable.Day day,
-            @Param("lat") double lat,
-            @Param("lng") double lng,
-            Pageable pageable
-    );
+    //         fi.path AS image
+    // JOIN facility_photos fp ON fp.facility_id = f.id
+    //    JOIN files fi ON fi.id = fp.file_id
+    // AND fp.thumbnail = true
+    @Query("SELECT " +
+            "f.id AS id, " +
+            "ft.name AS category, " +
+            "f.name AS name, " +
+            "f.starPoint AS starPoint, " +
+            "f.reviewCount AS reviewCount, " +
+            "ROUND(function('ST_DISTANCE_SPHERE', function('POINT', :lng, :lat), function('POINT', f.longitude, f.latitude)), 2) AS distance, " +
+            "f.address AS address " +
+            "FROM Facility f JOIN f.facilityType ft " +
+            "WHERE f.facilityType.name = :category " +
+            "ORDER BY ROUND(function('ST_DISTANCE_SPHERE', function('POINT', :lng, :lat), function('POINT', f.longitude, f.latitude)), 2)")
+    Slice<FacilityWithDistanceProjection> findByCategoryWithSortByDistance(@Param("lng") Double lng, @Param("lat") Double lat, @Param("category") String category, Pageable pageable);
+
+    @Query("SELECT " +
+            "f.id AS id, " +
+            "ft.name AS category, " +
+            "f.name AS name, " +
+            "f.starPoint AS starPoint, " +
+            "f.reviewCount AS reviewCount, " +
+            "ROUND(function('ST_DISTANCE_SPHERE', function('POINT', :lng, :lat), function('POINT', f.longitude, f.latitude)), 2) AS distance, " +
+            "f.address AS address " +
+            "FROM Facility f JOIN f.facilityType ft " +
+            "WHERE f.facilityType.name = :category " +
+            "ORDER BY f.starPoint")
+    Slice<FacilityWithDistanceProjection> findByCategoryWithSortByStarPoint(@Param("lng") Double lng, @Param("lat") Double lat, @Param("category") String category, Pageable pageable);
 }

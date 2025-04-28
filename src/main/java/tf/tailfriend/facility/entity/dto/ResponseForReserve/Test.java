@@ -3,14 +3,13 @@ package tf.tailfriend.facility.entity.dto.ResponseForReserve;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
-
-import java.sql.Time;
+import lombok.RequiredArgsConstructor;
 
 @Getter
-@Builder
 @AllArgsConstructor
-public class FacilitySimpleDto {
-
+@RequiredArgsConstructor
+@Builder
+public class Test {
     private Integer id;
     private String category;
     private String name;
@@ -18,6 +17,4 @@ public class FacilitySimpleDto {
     private Integer reviewCount;
     private Double distance;
     private String address;
-
 }
-

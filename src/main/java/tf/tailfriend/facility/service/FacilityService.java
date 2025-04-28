@@ -2,9 +2,7 @@ package tf.tailfriend.facility.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -15,14 +13,15 @@ import tf.tailfriend.facility.entity.Facility;
 import tf.tailfriend.facility.entity.FacilityPhoto;
 import tf.tailfriend.facility.entity.FacilityTimetable;
 import tf.tailfriend.facility.entity.FacilityType;
-import tf.tailfriend.facility.repository.FacilityDao;
-import tf.tailfriend.facility.repository.FacilityPhotoDao;
-import tf.tailfriend.facility.repository.FacilityTimetableDao;
-import tf.tailfriend.facility.repository.FacilityTypeDao;
+import tf.tailfriend.facility.entity.dto.ResponseForReserve.FacilityCard;
+import tf.tailfriend.facility.entity.dto.ResponseForReserve.FacilityWithDistanceProjection;
+import tf.tailfriend.facility.entity.dto.ResponseForReserve.Test;
+import tf.tailfriend.facility.repository.*;
 import tf.tailfriend.file.entity.File;
 import tf.tailfriend.file.service.FileService;
 import tf.tailfriend.global.service.StorageService;
 import tf.tailfriend.global.service.StorageServiceException;
+import tf.tailfriend.reserve.dto.RequestForFacility.FacilityList;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -33,11 +32,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import org.springframework.data.domain.*;
-import tf.tailfriend.facility.entity.FacilityTimetable.Day;
-import tf.tailfriend.facility.entity.dto.ResponseForReserve.FacilityCard;
-import tf.tailfriend.global.service.DateTimeFormatProvider;
-import tf.tailfriend.reserve.dto.RequestForFacility.FacilityList;
 
 
 @Slf4j
@@ -373,26 +367,38 @@ public class FacilityService {
     }
 
     public Slice<FacilityCard> getFacilityCardsForReserve(FacilityList requestDto) {
-        Sort sort = Sort.by(Sort.Direction.DESC, requestDto.getSortBy());
-        Day day = switch (requestDto.getDay()) {
-            case "MON" -> Day.MONDAY;
-            case "TUE" -> Day.TUESDAY;
-            case "WED" -> Day.WEDNESDAY;
-            case "THU" -> Day.THURSDAY;
-            case "FRI" -> Day.FRIDAY;
-            case "SAT" -> Day.SATURDAY;
-            case "SUN" -> Day.SUNDAY;
-            default -> throw new IllegalArgumentException("Invalid day: " + requestDto.getDay());
-        };
+        String day = requestDto.getDay();
         String category = requestDto.getCategory();
         double lat = requestDto.getUserLatitude();
         double lng = requestDto.getUserLongitude();
-        Pageable pageable = PageRequest.of(requestDto.getPage(), requestDto.getSize(), sort);
+        Pageable pageable = PageRequest.of(requestDto.getPage(), requestDto.getSize());
 
-        // 먼저 시설 정보만 조회
-        Slice<FacilityCard> facilities = facilityDao.findByCategoryWithFacilityTypeAndThumbnail(category, day, lat, lng, pageable);
+        Slice<FacilityWithDistanceProjection> list = null;
 
-        return facilities;
+        if (requestDto.getSortBy().equals("distance")) {
+            list = facilityDao.findByCategoryWithSortByDistance(lng, lat, category, pageable);
+        } else if (requestDto.getSortBy().equals("starPoint")) {
+            list = facilityDao.findByCategoryWithSortByStarPoint(lng, lat, category, pageable);
+        } else {
+            throw new IllegalArgumentException("유효하지 않은 정렬 기준입니다.");
+        }
+
+        if (list.isEmpty()) {
+            throw new IllegalArgumentException("시설을 찾을 수 없습니다.");
+        }
+
+        List<FacilityCard> mappedList = list.getContent().stream()
+                .map(f -> FacilityCard.builder()
+                .id(f.getId())
+                .category(f.getCategory())
+                .name(f.getName())
+                .rating(f.getStarPoint())
+                .reviewCount(f.getReviewCount())
+                .distance(f.getDistance())
+                .address(f.getAddress())
+                .build())
+                .collect(Collectors.toList());
+
+        return new SliceImpl<>(mappedList, list.getPageable(), list.hasNext());
     }
-
 }

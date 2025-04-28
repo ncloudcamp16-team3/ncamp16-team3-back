@@ -10,4 +10,5 @@ import java.util.List;
 public interface FacilityTimetableDao extends JpaRepository<FacilityTimetable, Integer> {
 
     List<FacilityTimetable> findByFacilityId(Integer id);
+//    List<FacilityTimetable> findByFacilityIds(Integer[] ids);
 }

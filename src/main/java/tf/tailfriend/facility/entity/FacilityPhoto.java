@@ -23,9 +23,6 @@ public class FacilityPhoto {
     @JoinColumn(name = "file_id")
     private File file;
 
-    @JoinColumn(name = "thumbnail")
-    private Boolean thumbnail;
-
     @MapsId("facilityId")
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "facility_id")

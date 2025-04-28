@@ -113,6 +113,7 @@ public class SecurityConfig {
                 .maxAge(Duration.ofSeconds(30))// 30초 만료 시간 설정
                 .httpOnly(false)
                 .secure(isLinux)
+                .sameSite(isLinux ? "None" : "Lax")
                 .path("/")
         );
         return repository;

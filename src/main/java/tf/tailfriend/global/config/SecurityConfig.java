@@ -104,11 +104,15 @@ public class SecurityConfig {
 
     @Bean
     public CookieCsrfTokenRepository csrfTokenRepository() {
+
+        String osName = System.getProperty("os.name").toLowerCase();
+        boolean isLinux = osName.contains("linux");
         // CSRF 토큰을 쿠키로 저장하고, 만료 시간을 30초로 설정
         CookieCsrfTokenRepository repository = CookieCsrfTokenRepository.withHttpOnlyFalse();
         repository.setCookieCustomizer(cookie -> cookie
                 .maxAge(Duration.ofSeconds(30))// 30초 만료 시간 설정
                 .httpOnly(false)
+                .secure(isLinux)
                 .path("/")
         );
         return repository;

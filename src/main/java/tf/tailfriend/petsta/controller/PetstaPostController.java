@@ -12,6 +12,7 @@ import tf.tailfriend.petsta.service.PetstaPostService;
 import tf.tailfriend.petsta.service.PetstaService;
 
 import java.io.IOException;
+import java.util.Collections;
 import java.util.List;
 
 @RestController
@@ -53,12 +54,16 @@ public class PetstaPostController {
 
     @GetMapping("/lists")
     public ResponseEntity<PetstaMainPageResponseDto> getPostListsAndFollowings(
-            @AuthenticationPrincipal UserPrincipal userPrincipal) {
-
+            @AuthenticationPrincipal UserPrincipal userPrincipal,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "5") int size
+    ) {
         Integer userId = userPrincipal.getUserId();
 
-        List<PetstaPostResponseDto> posts = petstaPostService.getAllPosts(userId);
-        List<PetstaUpdatedUserDto> followings = petstaService.getTopFollowedUsers(userId);
+        List<PetstaPostResponseDto> posts = petstaPostService.getAllPosts(userId, page, size);
+        List<PetstaUpdatedUserDto> followings = page == 0
+                ? petstaService.getTopFollowedUsers(userId)
+                : Collections.emptyList();
 
         PetstaMainPageResponseDto response = new PetstaMainPageResponseDto(posts, followings);
         return ResponseEntity.ok(response);

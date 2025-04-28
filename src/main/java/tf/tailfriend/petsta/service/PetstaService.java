@@ -97,16 +97,16 @@ public class PetstaService {
     }
 
     @Transactional
-    public List<PetstaFollowingUserDto> getFollowersWithFollowingStatus(Integer targetUserId, Integer currentUserId) {
-        Pageable limit = PageRequest.of(0, 20);
+    public List<PetstaFollowingUserDto> getFollowersWithFollowingStatus(
+            Integer targetUserId, Integer currentUserId, int page, int size) {
 
-        // 1의 팔로워(2)들
-        List<UserFollow> followerRelations = userFollowDao.findTop20ByFollowedId(targetUserId, limit);
+        Pageable pageable = PageRequest.of(page, size);
+
+        List<UserFollow> followerRelations = userFollowDao.findByFollowedId(targetUserId, pageable);
         List<User> followerUsers = followerRelations.stream()
                 .map(UserFollow::getFollower)
                 .collect(Collectors.toList());
 
-        // 3이 그들을 팔로우 중인지 (맞팔 여부)
         List<UserFollow> myFollowings = userFollowDao.findByFollowerIdAndFollowedIdIn(
                 currentUserId,
                 followerUsers.stream().map(User::getId).collect(Collectors.toList())
@@ -116,33 +116,27 @@ public class PetstaService {
                 .collect(Collectors.toSet());
 
         return followerUsers.stream()
-                .map(user -> {
-                    Integer followerId = user.getId();
-                    boolean isFollowed = myFollowingIds.contains(followerId);
-                    boolean isVisited = redisService.hasVisitedStory(followerId, currentUserId);
-                    return new PetstaFollowingUserDto(
-                            followerId,
-                            user.getNickname(),
-                            storageService.generatePresignedUrl(user.getFile().getPath()),
-                            isFollowed,
-                            isVisited
-                    );
-                })
+                .map(user -> new PetstaFollowingUserDto(
+                        user.getId(),
+                        user.getNickname(),
+                        storageService.generatePresignedUrl(user.getFile().getPath()),
+                        myFollowingIds.contains(user.getId()),
+                        redisService.hasVisitedStory(user.getId(), currentUserId)
+                ))
                 .collect(Collectors.toList());
     }
 
-
     @Transactional
-    public List<PetstaFollowingUserDto> getFollowingsWithFollowingStatus(Integer targetUserId, Integer currentUserId) {
-        Pageable limit = PageRequest.of(0, 20);
+    public List<PetstaFollowingUserDto> getFollowingsWithFollowingStatus(
+            Integer targetUserId, Integer currentUserId, int page, int size) {
 
-        // 1이 팔로우 중인 유저들(4)
-        List<UserFollow> followingRelations = userFollowDao.findTop20ByFollowerId(targetUserId, limit);
+        Pageable pageable = PageRequest.of(page, size);
+
+        List<UserFollow> followingRelations = userFollowDao.findByFollowerId(targetUserId, pageable);
         List<User> followingUsers = followingRelations.stream()
                 .map(UserFollow::getFollowed)
                 .collect(Collectors.toList());
 
-        // 3이 그들을 팔로우 중인지
         List<UserFollow> myFollowings = userFollowDao.findByFollowerIdAndFollowedIdIn(
                 currentUserId,
                 followingUsers.stream().map(User::getId).collect(Collectors.toList())
@@ -152,22 +146,16 @@ public class PetstaService {
                 .collect(Collectors.toSet());
 
         return followingUsers.stream()
-                .map(user -> {
-                    Integer followedId = user.getId();
-                    boolean isFollowed = myFollowingIds.contains(followedId);
-                    boolean isVisited = redisService.hasVisitedStory(followedId, currentUserId);
-
-                    return new PetstaFollowingUserDto(
-                            followedId,
-                            user.getNickname(),
-                            storageService.generatePresignedUrl(user.getFile().getPath()),
-                            isFollowed,
-                            isVisited
-                    );
-                })
+                .map(user -> new PetstaFollowingUserDto(
+                        user.getId(),
+                        user.getNickname(),
+                        storageService.generatePresignedUrl(user.getFile().getPath()),
+                        myFollowingIds.contains(user.getId()),
+                        redisService.hasVisitedStory(user.getId(), currentUserId)
+                ))
                 .collect(Collectors.toList());
-
     }
+
 
 
 }

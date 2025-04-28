@@ -328,10 +328,15 @@ public class FacilityService {
 
         // 시설 대표 이미지가 있으면 Presigned URL 생성
         if (facility.getPhotos() != null && !facility.getPhotos().isEmpty()) {
-            // 첫 번째 사진 URL 생성 (대표 이미지)
-            String imageUrl = storageService.generatePresignedUrl(
-                    facility.getPhotos().iterator().next().getFile().getPath());
-            dto.setImagePath(imageUrl);
+            // 모든 사진에 대한 URL
+            List<String> imageUrls = facility.getPhotos().stream()
+                    .map(photo -> storageService.generatePresignedUrl(photo.getFile().getPath()))
+                    .collect(Collectors.toList());
+            dto.setImagePaths(imageUrls);
+
+            if (!imageUrls.isEmpty()) {
+                dto.setImagePath(imageUrls.get(0));
+            }
         }
 
         return dto;

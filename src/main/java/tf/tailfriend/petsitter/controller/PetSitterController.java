@@ -13,6 +13,8 @@ import tf.tailfriend.petsitter.dto.PetSitterRequestDto;
 import tf.tailfriend.petsitter.dto.PetSitterResponseDto;
 import tf.tailfriend.petsitter.service.PetSitterService;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 @RestController
 @RequestMapping("/api/petsitter")
 @RequiredArgsConstructor
@@ -20,6 +22,7 @@ import tf.tailfriend.petsitter.service.PetSitterService;
 public class PetSitterController {
 
     private final PetSitterService petSitterService;
+    private final ObjectMapper objectMapper;
 
     /**
      * 사용자가 펫시터 신청을 제출하는 API
@@ -27,40 +30,33 @@ public class PetSitterController {
     @PostMapping("/apply")
     public ResponseEntity<?> applyForPetSitter(
             @AuthenticationPrincipal UserPrincipal userPrincipal,
-            @RequestPart("data") PetSitterRequestDto requestDto,
+            @RequestPart("data") String requestDtoJson,
             @RequestPart(value = "image", required = false) MultipartFile image) {
 
         if (userPrincipal == null) {
-            return ResponseEntity.status(401).body(new CustomResponse("로그인이 필요합니다.", null));
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(new CustomResponse("로그인이 필요합니다.", null));
         }
 
         try {
+            // JSON 문자열을 DTO로 변환
+            PetSitterRequestDto requestDto = objectMapper.readValue(requestDtoJson, PetSitterRequestDto.class);
+
             // 사용자 ID 설정
             requestDto.setUserId(userPrincipal.getUserId());
 
-            // 기존 펫시터 정보 확인
-            // checkCurrentStatus 대신 existsById만 확인
-            boolean exists = petSitterService.existsById(userPrincipal.getUserId());
+            log.info("펫시터 신청 요청: userId={}, age={}, houseType={}",
+                    userPrincipal.getUserId(), requestDto.getAge(), requestDto.getHouseType());
 
-            if (exists) {
-                // 이미 존재하는 경우, 펫시터 정보 삭제 후 재등록
-                try {
+            // 펫시터 신청 처리
+            PetSitterResponseDto result = petSitterService.applyForPetSitter(requestDto, image);
 
-                    // 삭제 후 새로 등록
-                    PetSitterResponseDto result = petSitterService.applyForPetSitter(requestDto, image);
-                    return ResponseEntity.ok(new CustomResponse("펫시터 신청이 완료되었습니다. 관리자 승인 후 활동이 가능합니다.", result));
-                } catch (Exception e) {
-                    // 삭제 실패 시
-                    return ResponseEntity.status(HttpStatus.CONFLICT)
-                            .body(new CustomResponse("이미 신청된 정보가 있습니다. 잠시 후 다시 시도해주세요.", null));
-                }
-            } else {
-                // 존재하지 않는 경우 새로 등록
-                PetSitterResponseDto result = petSitterService.applyForPetSitter(requestDto, image);
-                return ResponseEntity.ok(new CustomResponse("펫시터 신청이 완료되었습니다. 관리자 승인 후 활동이 가능합니다.", result));
-            }
+            return ResponseEntity.ok(
+                    new CustomResponse("펫시터 신청이 완료되었습니다. 관리자 승인 후 활동이 가능합니다.", result));
+
         } catch (Exception e) {
-            log.error("펫시터 신청 중 예외 발생: userId={}", userPrincipal.getUserId(), e);
+            log.error("펫시터 신청 중 오류 발생: userId={}, error={}", userPrincipal.getUserId(), e.getMessage(), e);
+
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(new CustomResponse("펫시터 신청 중 오류가 발생했습니다: " + e.getMessage(), null));
         }
@@ -72,11 +68,11 @@ public class PetSitterController {
     @GetMapping("/status")
     public ResponseEntity<?> getPetSitterStatus(@AuthenticationPrincipal UserPrincipal userPrincipal) {
         if (userPrincipal == null) {
-            return ResponseEntity.status(401).body(new CustomResponse("로그인이 필요합니다.", null));
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(new CustomResponse("로그인이 필요합니다.", null));
         }
 
         try {
-            // 먼저 펫시터 정보가 있는지 확인
             boolean exists = petSitterService.existsById(userPrincipal.getUserId());
 
             if (!exists) {
@@ -87,14 +83,9 @@ public class PetSitterController {
             PetSitterResponseDto result = petSitterService.getPetSitterStatus(userPrincipal.getUserId());
             return ResponseEntity.ok(new CustomResponse("조회 성공", result));
 
-        } catch (IllegalArgumentException e) {
-            // 펫시터 정보가 없는 경우
-            log.info("펫시터 상태 조회 - 정보 없음: userId={}", userPrincipal.getUserId());
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(new CustomResponse(e.getMessage(), null));
-
         } catch (Exception e) {
             log.error("펫시터 상태 조회 오류: userId={}", userPrincipal.getUserId(), e);
+
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(new CustomResponse("펫시터 상태 조회 중 오류가 발생했습니다: " + e.getMessage(), null));
         }
@@ -106,7 +97,8 @@ public class PetSitterController {
     @PostMapping("/quit")
     public ResponseEntity<?> quitPetSitter(@AuthenticationPrincipal UserPrincipal userPrincipal) {
         if (userPrincipal == null) {
-            return ResponseEntity.status(401).body(new CustomResponse("로그인이 필요합니다.", null));
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(new CustomResponse("로그인이 필요합니다.", null));
         }
 
         try {

@@ -1,12 +1,16 @@
 package tf.tailfriend.petsitter.service;
 
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 import tf.tailfriend.global.service.StorageService;
+import tf.tailfriend.global.service.StorageServiceException;
 import tf.tailfriend.pet.entity.PetType;
 import tf.tailfriend.petsitter.dto.PetSitterRequestDto;
 import tf.tailfriend.petsitter.dto.PetSitterResponseDto;
@@ -17,18 +21,19 @@ import org.springframework.web.multipart.MultipartFile;
 import tf.tailfriend.file.entity.File;
 import tf.tailfriend.file.service.FileService;
 import tf.tailfriend.pet.repository.PetTypeDao;
-import tf.tailfriend.global.service.StorageServiceException;
+
+
 import tf.tailfriend.user.repository.UserDao;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
-import java.util.Optional;
+
 import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.dao.DataIntegrityViolationException;
+
 
 @Service
 @RequiredArgsConstructor
@@ -42,24 +47,11 @@ public class PetSitterService {
     private final PetTypeDao petTypeDao;
     private final FileService fileService;
 
-    /**
-     * 사용자의 현재 펫시터 상태를 확인하는 메소드
-     *
-     * @param userId 사용자 ID
-     * @return 펫시터 상태 (PENDING, APPROVE, DELETE, NONE) 또는 null(정보 없음)
-     */
-    @Transactional(readOnly = true)
-    public PetSitter.PetSitterStatus checkCurrentStatus(Integer userId) {
-        Optional<PetSitter> petSitter = petSitterDao.findById(userId);
-        return petSitter.map(PetSitter::getStatus).orElse(null);
-    }
+    @PersistenceContext
+    private EntityManager entityManager;
 
-    /**
-     * 사용자 ID로 펫시터 존재 여부 확인
-     *
-     * @param userId 사용자 ID
-     * @return 존재 여부
-     */
+
+    // 사용자 ID로 펫시터 존재 여부
     @Transactional(readOnly = true)
     public boolean existsById(Integer userId) {
         return petSitterDao.existsById(userId);
@@ -173,112 +165,82 @@ public class PetSitterService {
     }
 
     /**
-     * 사용자의 펫시터 신청을 처리하는 메소드
-     * 동시성 제어를 위한 간단한 메커니즘 적용 (DB락 대신 애플리케이션 레벨 동기화)
+     * 펫시터 신청 처리
      */
-    @Transactional
+    @Transactional(isolation = Isolation.SERIALIZABLE)
     public PetSitterResponseDto applyForPetSitter(PetSitterRequestDto requestDto, MultipartFile imageFile) throws IOException {
+        logger.info("펫시터 신청 시작: userId={}", requestDto.getUserId());
+
         try {
-//            petSitterDao.findById(requestDto.getUserId()).ifPresent(petSitter -> {
-//                petSitterDao.delete(petSitter);
-//                petSitterDao.flush();
-//            });
-            logger.info("펫시터 신청 시작: userId={}", requestDto.getUserId());
-
-            // 사용자 정보 조회
+            // 1. 사용자 정보 조회
             User user = userDao.findById(requestDto.getUserId())
-                    .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자입니다: " + requestDto.getUserId()));
+                    .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다"));
 
-            // 이미지 파일 처리
+            // 2. 기존 펫시터 정보 확인 및 삭제 - 이 부분을 조건부 삭제로 변경
+            PetSitter existing = petSitterDao.findById(user.getId()).orElse(null);
+            if (existing != null) {
+                logger.info("기존 펫시터 정보 상태 변경: userId={}", user.getId());
+                existing.delete();
+                petSitterDao.save(existing);
+                entityManager.flush();
+            }
+
+            // 3. 이미지 파일 처리
             File imageFileEntity;
             if (imageFile != null && !imageFile.isEmpty()) {
                 imageFileEntity = fileService.save(imageFile.getOriginalFilename(), "petsitter", File.FileType.PHOTO);
-
-                // 물리적 파일 저장
                 try (InputStream is = imageFile.getInputStream()) {
                     storageService.upload(imageFileEntity.getPath(), is);
                 } catch (StorageServiceException e) {
                     throw new RuntimeException("파일 업로드 실패: " + e.getMessage());
                 }
             } else {
-                // 기본 이미지 사용
                 imageFileEntity = fileService.getDefaultImage();
             }
 
-            // 펫 타입 조회 (선택사항)
+            // 4. 펫 타입 조회 (선택사항)
             PetType petType = null;
             if (requestDto.getPetTypeId() != null) {
-                petType = petTypeDao.findById(requestDto.getPetTypeId())
-                        .orElse(null);
+                petType = petTypeDao.findById(requestDto.getPetTypeId()).orElse(null);
             }
 
-            // 기존 펫시터 정보 확인
-            Optional<PetSitter> existingSitterOpt = petSitterDao.findById(user.getId());
-            PetSitter petSitter;
+            // 5. 펫시터 엔티티 생성 및 저장
+            PetSitter petSitter = PetSitter.builder()
+                    .id(user.getId())
+                    .user(user)
+                    .petType(petType)
+                    .age(requestDto.getAge())
+                    .houseType(requestDto.getHouseType())
+                    .comment(requestDto.getComment())
+                    .grown(requestDto.getGrown())
+                    .petCount(requestDto.getPetCount())
+                    .sitterExp(requestDto.getSitterExp())
+                    .file(imageFileEntity)
+                    .status(PetSitter.PetSitterStatus.NONE) // 승인 대기 상태로 설정
+                    .build();
 
-            if (existingSitterOpt.isPresent()) {
-                // 기존 정보가 있으면 업데이트
-                logger.info("기존 펫시터 정보 업데이트: userId={}", user.getId());
-                PetSitter existingSitter = existingSitterOpt.get();
+            // 저장 전에 영속성 컨텍스트 초기화
+            entityManager.clear();
 
-                // updateInformation 메소드 사용하여 정보 업데이트
-                existingSitter.updateInformation(
-                        requestDto.getAge(),
-                        requestDto.getHouseType(),
-                        requestDto.getComment(),
-                        requestDto.getGrown(),
-                        requestDto.getPetCount(),
-                        requestDto.getSitterExp(),
-                        imageFileEntity,
-                        petType
-                );
+            // JpaRepository의 save 메서드 사용
+            PetSitter savedPetSitter = petSitterDao.save(petSitter);
+            entityManager.flush();
 
-                // 상태 변경
-                existingSitter.waitForApproval();
+            // 6. 응답 DTO 생성
+            PetSitterResponseDto responseDto = PetSitterResponseDto.fromEntity(savedPetSitter);
+            responseDto.setImagePath(storageService.generatePresignedUrl(imageFileEntity.getPath()));
 
-                petSitter = petSitterDao.save(existingSitter);
-            } else {
-                // 새로 생성
-                logger.info("새로운 펫시터 정보 생성: userId={}", user.getId());
-                petSitter = PetSitter.builder()
-                        .id(user.getId())
-                        .user(user)
-                        .petType(petType)
-                        .age(requestDto.getAge())
-                        .houseType(requestDto.getHouseType())
-                        .comment(requestDto.getComment())
-                        .grown(requestDto.getGrown())
-                        .petCount(requestDto.getPetCount())
-                        .sitterExp(requestDto.getSitterExp())
-                        .file(imageFileEntity)
-                        .status(PetSitter.PetSitterStatus.NONE) // NONE 상태로 설정
-                        .build();
-
-                petSitter = petSitterDao.save(petSitter);
-            }
-
-            logger.info("펫시터 정보 저장 완료: userId={}, status={}", petSitter.getId(), petSitter.getStatus());
-
-            // 응답 DTO 생성
-            PetSitterResponseDto responseDto = PetSitterResponseDto.fromEntity(petSitter);
-
-            // 이미지 URL 설정
-            String imageUrl = storageService.generatePresignedUrl(imageFileEntity.getPath());
-            responseDto.setImagePath(imageUrl);
-
+            logger.info("펫시터 신청 완료: userId={}", user.getId());
             return responseDto;
 
-        } catch (DataIntegrityViolationException e) {
-            logger.error("펫시터 신청 중 데이터 무결성 오류 발생: {}", e.getMessage());
-            throw new IllegalStateException("데이터 무결성 오류가 발생했습니다. 입력한 정보를 확인해주세요.", e);
         } catch (Exception e) {
-            logger.error("펫시터 신청 중 예외 발생: {}", e.getMessage(), e);
-            throw e;
+            logger.error("펫시터 신청 중 오류 발생: {}", e.getMessage(), e);
+            throw new RuntimeException("펫시터 신청 중 오류가 발생했습니다: " + e.getMessage(), e);
         }
     }
 
     /**
-     * 사용자의 펫시터 신청 상태를 조회하는 메소드
+     * 펫시터 상태 조회
      */
     @Transactional(readOnly = true)
     public PetSitterResponseDto getPetSitterStatus(Integer userId) {
@@ -293,7 +255,7 @@ public class PetSitterService {
     }
 
     /**
-     * 사용자가 펫시터를 그만두는 메소드
+     * 펫시터 탈퇴 처리
      */
     @Transactional
     public void quitPetSitter(Integer userId) {
@@ -305,9 +267,8 @@ public class PetSitterService {
             throw new IllegalArgumentException("승인된 펫시터만 그만둘 수 있습니다");
         }
 
-        // 상태를 DELETE로 변경
-        petSitter.delete();
-        petSitterDao.save(petSitter);
+        // 펫시터 정보 삭제
+        petSitterDao.delete(petSitter);
     }
 
     // 페이지 객체를 DTO로 변환하는 공통 메서드
@@ -322,14 +283,5 @@ public class PetSitterService {
                 .collect(Collectors.toList());
 
         return new PageImpl<>(petSitterDtos, pageable, petSitters.getTotalElements());
-    }
-
-    @Transactional
-    public void cleanupExistingPetSitter(Integer userId) {
-        petSitterDao.findById(userId).ifPresent(existing -> {
-            logger.info("기존 펫시터 정보 삭제: userId={}", userId);
-            petSitterDao.delete(existing);
-            petSitterDao.flush(); // 즉시 DB에 반영
-        });
     }
 }

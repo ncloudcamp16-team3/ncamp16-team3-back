@@ -18,12 +18,12 @@ import java.time.LocalDateTime;
 public class PetSitter {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id")
     private Integer id;
 
     @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "id", nullable = false)
+    @MapsId // User의 ID를 PetSitter의 ID로 사용
+    @JoinColumn(name = "id")
     private User user;
 
     @ManyToOne(fetch = FetchType.LAZY)

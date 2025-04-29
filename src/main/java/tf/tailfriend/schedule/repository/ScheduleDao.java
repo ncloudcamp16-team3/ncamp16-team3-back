@@ -6,6 +6,7 @@ import tf.tailfriend.schedule.entity.dto.ScheduleDTO.*;
 
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -13,4 +14,6 @@ import java.util.Optional;
 public interface ScheduleDao extends JpaRepository<Schedule, Integer>  {
 
     List<Schedule> findByUserId(Integer UserId);
+
+    List<Schedule> findByStartDateBetween(LocalDateTime now, LocalDateTime tenMinutesLater);
 }

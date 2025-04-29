@@ -4,6 +4,7 @@ import lombok.*;
 import tf.tailfriend.facility.entity.Facility;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Getter
 @Builder
@@ -22,6 +23,7 @@ public class FacilityResponseDto {
     private String address;
     private String detailAddress;
     private String imagePath;
+    private List<String> imagePaths;
     private LocalDateTime createdAt;
 
     // Entity를 DTO로 변환하는 정적 메서드

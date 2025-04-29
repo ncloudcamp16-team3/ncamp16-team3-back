@@ -5,6 +5,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import tf.tailfriend.reserve.dto.DateTimeRange;
 import tf.tailfriend.reserve.dto.ListResponseDto;
 import tf.tailfriend.reserve.dto.PaymentInfoResponseDto;
 import tf.tailfriend.reserve.dto.PaymentListRequestDto;
@@ -23,11 +24,10 @@ public class PaymentController {
     @RequestMapping("/get")
     public ResponseEntity<ListResponseDto<PaymentInfoResponseDto>> getPayments(
             @RequestParam("id") int userId,
-            @RequestParam("fid") int facilityTypeId,
             @RequestParam(value = "startDate", required = false) String startDate,
             @RequestParam(value = "endDate", required = false) String endDate,
-            @RequestParam("page") int page,
-            @RequestParam("size") int size) {
+            @RequestParam(value = "page", required = false, defaultValue = "0") int page,
+            @RequestParam(value = "size", required = false, defaultValue = "10") int size) {
 
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
@@ -48,9 +48,7 @@ public class PaymentController {
 
         PaymentListRequestDto requestDto = PaymentListRequestDto.builder()
                 .userId(userId)
-                .facilityTypeId(facilityTypeId)
-                .startDate(parsedStartDate)
-                .endDate(parsedEndDate)
+                .datetimeRange(new DateTimeRange(parsedStartDate, parsedEndDate))
                 .page(page)
                 .size(size)
                 .build();

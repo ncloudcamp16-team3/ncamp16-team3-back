@@ -12,10 +12,10 @@ public class SessionConfig {
     public CookieSerializer cookieSerializer() {
         DefaultCookieSerializer serializer = new DefaultCookieSerializer();
         serializer.setCookieName("SESSION");
-        serializer.setDomainName("tailfriends.kro.kr"); // 반드시 일치하는 도메인
-        serializer.setCookiePath("/");
-        serializer.setUseSecureCookie(true); // HTTPS 사용 중이므로 true 권장
-        serializer.setSameSite("Lax"); // SameSite 설정 (CSRF 보호)
+        serializer.setDomainName("tailfriends.kro.kr"); // . 제거 주의!
+        serializer.setUseSecureCookie(true); // HTTPS면 true
+        serializer.setSameSite("Lax");
         return serializer;
     }
+
 }

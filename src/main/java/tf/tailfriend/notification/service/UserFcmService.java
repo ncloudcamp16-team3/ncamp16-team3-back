@@ -16,24 +16,30 @@ public class UserFcmService {
     private final UserFcmDao userFcmDao;
 
     // FCM 토큰 저장 또는 갱신
+
+    public Optional<UserFcm> findByUserId(Integer userId) {
+        return userFcmDao.findByUserId(userId);
+    }
+
     @Transactional
-    public void registerOrUpdateFcmToken(UserFcmDto dto) {
-        UserFcm userFcm = UserFcm.builder()
-                .userId(dto.getUserId())
-                .fcmToken(dto.getFcmToken())
-                .build();
+    public void saveOrUpdate(UserFcmDto dto) {
+        Optional<UserFcm> existing = userFcmDao.findByUserId(dto.getUserId());
 
-        userFcmDao.save(userFcm);  // 새로운 FCM 토큰을 저장
+        if (existing.isPresent()) {
+            UserFcm updated = UserFcm.builder()
+                    .id(existing.get().getId())  // 기존 ID 유지
+                    .userId(dto.getUserId())
+                    .fcmToken(dto.getFcmToken())
+                    .build();
+            userFcmDao.save(updated);
+        } else {
+            UserFcm newFcm = UserFcm.builder()
+                    .userId(dto.getUserId())
+                    .fcmToken(dto.getFcmToken())
+                    .build();
+            userFcmDao.save(newFcm);
+        }
     }
 
-    @Transactional(readOnly = true)
-    public Optional<String> getFcmTokenByUserId(Integer userId) {
-        return userFcmDao.findByUserId(userId)
-                .map(UserFcm::getFcmToken);
-    }
-    @Transactional(readOnly = true)
-    public boolean existsByUserId(Integer userId) {
-        return userFcmDao.existsByUserId(userId);
-    }
 
 }

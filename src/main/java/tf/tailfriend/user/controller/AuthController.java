@@ -43,11 +43,13 @@ public class AuthController {
 
 
     @GetMapping("/csrf")
-    public Map<String, String> getCsrfToken(CsrfToken csrfToken) {
+    public Map<String, String> getCsrfToken(HttpServletRequest request, CsrfToken csrfToken) {
+        request.getSession(true); // ✅ 반드시 세션을 생성하도록 강제
         Map<String, String> token = new HashMap<>();
         token.put("csrfToken", csrfToken.getToken());
         return token;
     }
+
 
 
     // ✅ 유저 상세정보 조회

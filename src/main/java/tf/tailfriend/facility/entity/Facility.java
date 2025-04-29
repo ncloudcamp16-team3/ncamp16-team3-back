@@ -3,11 +3,9 @@ package tf.tailfriend.facility.entity;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CurrentTimestamp;
-import tf.tailfriend.board.entity.BoardPhoto;
 
 import java.sql.Time;
 import java.time.LocalDateTime;
-import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -17,6 +15,7 @@ import java.util.List;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@ToString
 public class Facility {
 
     @Id
@@ -65,6 +64,9 @@ public class Facility {
     @OneToMany(mappedBy = "facility", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<FacilityTimetable> timetables = new ArrayList<>();
 
+    @Transient
+    private Double distance;
+
     public void addTimetable(FacilityTimetable.Day day, Time openTime, Time closeTime) {
         FacilityTimetable timetable = FacilityTimetable.builder()
                 .day(day)
@@ -74,5 +76,21 @@ public class Facility {
                 .build();
 
         timetables.add(timetable);
+    }
+
+    // 두 지점 간의 거리를 계산하는 메서드 (예시: Haversine 공식을 이용한 거리 계산)
+    public void setDistance(Double userLatitude, Double userLongitude) {
+        double earthRadius = 6371; // 지구 반지름 (킬로미터 단위)
+
+        double latDistance = Math.toRadians(userLatitude - this.latitude);
+        double lonDistance = Math.toRadians(userLongitude - this.longitude);
+
+        double a = Math.sin(latDistance / 2) * Math.sin(latDistance / 2)
+                + Math.cos(Math.toRadians(this.latitude)) * Math.cos(Math.toRadians(userLatitude))
+                * Math.sin(lonDistance / 2) * Math.sin(lonDistance / 2);
+
+        double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+        this.distance = earthRadius * c; // 거리 (킬로미터 단위)
     }
 }

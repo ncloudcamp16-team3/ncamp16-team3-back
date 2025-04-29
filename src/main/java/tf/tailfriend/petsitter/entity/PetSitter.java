@@ -21,8 +21,8 @@ public class PetSitter {
     @Column(name = "id")
     private Integer id;
 
-    @MapsId
     @OneToOne(fetch = FetchType.LAZY)
+    @MapsId // User의 ID를 PetSitter의 ID로 사용
     @JoinColumn(name = "id")
     private User user;
 

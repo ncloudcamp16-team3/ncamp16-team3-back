@@ -11,6 +11,7 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 public class PetDetailResponseDto {
+    private Integer ownerId;
     private Integer id;
     private String name;
     private String type;

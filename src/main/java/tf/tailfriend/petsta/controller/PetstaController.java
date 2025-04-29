@@ -52,19 +52,27 @@ public class PetstaController {
     @GetMapping("/users/{userId}/followers")
     public ResponseEntity<List<PetstaFollowingUserDto>> getFollowers(
             @AuthenticationPrincipal UserPrincipal userPrincipal,
-            @PathVariable Integer userId
-    ){
+            @PathVariable Integer userId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size
+    ) {
         int currentId = userPrincipal.getUserId();
-        return ResponseEntity.ok(petstaService.getFollowersWithFollowingStatus(userId, currentId));
+        return ResponseEntity.ok(
+                petstaService.getFollowersWithFollowingStatus(userId, currentId, page, size)
+        );
     }
 
     @GetMapping("/users/{userId}/followings")
     public ResponseEntity<List<PetstaFollowingUserDto>> getFollowings(
             @AuthenticationPrincipal UserPrincipal userPrincipal,
-            @PathVariable Integer userId
-    ){
+            @PathVariable Integer userId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size
+    ) {
         int currentId = userPrincipal.getUserId();
-        return ResponseEntity.ok(petstaService.getFollowingsWithFollowingStatus(userId, currentId));
+        return ResponseEntity.ok(
+                petstaService.getFollowingsWithFollowingStatus(userId, currentId, page, size)
+        );
     }
 
 

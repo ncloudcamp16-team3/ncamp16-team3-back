@@ -10,10 +10,13 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
+import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+import java.time.Duration;
 import java.util.List;
 
 @Configuration
@@ -49,7 +52,10 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-                .csrf(csrf -> csrf.disable())
+//                .csrf(csrf -> csrf.disable()) // 안되면 이거 주석 풀고 밑에꺼 주석
+                .csrf(csrf -> csrf
+                        .csrfTokenRepository(csrfTokenRepository())
+                        .ignoringRequestMatchers(new AntPathRequestMatcher("/api/admin/**")))
                 .formLogin(form -> form.disable()) // 폼 로그인 제거
                 .httpBasic(httpBasic -> httpBasic.disable()) // HTTP Basic 제거
                 .exceptionHandling(exception -> exception.authenticationEntryPoint(jwtAuthEntryPoint))
@@ -57,7 +63,8 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         // OAuth2 관련
                         .requestMatchers("/api/oauth2/authorization/**").permitAll()
-
+                                .requestMatchers("/api/login/oauth2/code/**").permitAll()
+                                .requestMatchers("/api/auth/csrf").permitAll()
                         // 관리자 API - 로그인, 인증 체크, 로그아웃은 누구나 접근 가능
                         .requestMatchers("/api/admin/login", "/api/admin/auth/validate", "/api/admin/logout").permitAll()
                         .requestMatchers("/api/admin/register").permitAll()
@@ -66,7 +73,8 @@ public class SecurityConfig {
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
 
                         // 일반 API
-                        .requestMatchers("/api/**").permitAll()
+//                        .requestMatchers("/api/**").permitAll()
+                        .requestMatchers("/api/**").hasRole("USER")
 
                         // 정적 페이지
                         .requestMatchers("/login").permitAll()
@@ -97,6 +105,23 @@ public class SecurityConfig {
         return http.build();
     }
 
+    @Bean
+    public CookieCsrfTokenRepository csrfTokenRepository() {
+
+        String osName = System.getProperty("os.name").toLowerCase();
+        boolean isLinux = osName.contains("linux");
+        // CSRF 토큰을 쿠키로 저장하고, 만료 시간을 30초로 설정
+        CookieCsrfTokenRepository repository = CookieCsrfTokenRepository.withHttpOnlyFalse();
+        repository.setCookieCustomizer(cookie -> cookie
+                .maxAge(Duration.ofSeconds(3600))// 30초 만료 시간 설정
+                .httpOnly(false)
+                .secure(isLinux)
+                .sameSite(isLinux ? "None" : "Lax")
+                .path("/")
+        );
+        return repository;
+    }
+
 
 
     @Bean
@@ -105,6 +130,7 @@ public class SecurityConfig {
         configuration.addAllowedOrigin("http://localhost:5173");
         configuration.addAllowedOrigin("http://tailfriends.kro.kr");
         configuration.addAllowedOrigin("https://tailfriends.kro.kr");
+        configuration.addAllowedOrigin("https://tailfriends.kro.kr:8080");
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setAllowCredentials(true);

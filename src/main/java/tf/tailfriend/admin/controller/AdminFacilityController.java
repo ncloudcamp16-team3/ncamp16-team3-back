@@ -1,18 +1,25 @@
 package tf.tailfriend.admin.controller;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+import tf.tailfriend.facility.dto.FacilityRequestDto;
 import tf.tailfriend.facility.dto.FacilityResponseDto;
-import tf.tailfriend.facility.entity.FacilityType;
 import tf.tailfriend.facility.service.FacilityService;
+
+import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/admin")
 @RequiredArgsConstructor
+@Slf4j
 public class AdminFacilityController {
 
     private final FacilityService facilityService;
@@ -41,9 +48,27 @@ public class AdminFacilityController {
         return ResponseEntity.ok(facilities);
     }
 
-    @GetMapping("/facility/list/{id}")
+    @GetMapping("/facility/{id}")
     public ResponseEntity<?> getFacilityDetail(@PathVariable Integer id) {
         FacilityResponseDto facility = facilityService.getFacilityById(id);
         return ResponseEntity.ok(facility);
+    }
+
+    @PostMapping("/facility/add")
+    public ResponseEntity<?> addFacility(
+            @RequestPart("data")FacilityRequestDto requestDto,
+            @RequestPart(value = "images", required = false) List<MultipartFile> images
+    ) {
+        log.info("Facility added: {}", requestDto);
+        facilityService.saveFacility(requestDto, images);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(Map.of("message", "업체가 성공적으로 등록되었습니다"));
+    }
+
+    @DeleteMapping("/facility/{id}/delete")
+    public ResponseEntity<?> deleteFacility(@PathVariable Integer id) {
+        facilityService.deleteFacilityById(id);
+        return ResponseEntity.status(HttpStatus.OK)
+                .body(Map.of("message", "업체가 성공적으로 삭제되었습니다"));
     }
 }

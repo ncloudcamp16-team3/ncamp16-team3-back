@@ -14,7 +14,6 @@ public class PaymentService {
      private final PaymentDao paymentDao;
 
      public ListResponseDto<PaymentInfoResponseDto> getList(PaymentListRequestDto requestDto) {
-          System.out.println("PaymentService.getList()");
         return paymentDao.findPaymentsByRequestDto(requestDto);
      }
 

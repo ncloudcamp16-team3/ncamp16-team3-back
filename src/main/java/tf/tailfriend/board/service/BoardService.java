@@ -202,6 +202,7 @@ public class BoardService {
         return convertToDtoPage(boards);
     }
 
+    @Transactional
     public Board createBoard(String title, String content, BoardType boardType, User user, List<File> files) {
         // 필수 파라미터 검증
         if (title == null || title.trim().isEmpty()) {
@@ -234,6 +235,14 @@ public class BoardService {
         }
 
         return boardDao.save(board);
+    }
+
+    @Transactional
+    public void deleteBoardById(Integer boardId) {
+        Board board = boardDao.findById(boardId)
+                .orElseThrow(() -> new IllegalArgumentException("게시글 번호가 없습니다"));
+
+        boardDao.delete(board);
     }
 
     // Board Entity를 BoardResponseDto로 변환하는 헬퍼 메서드

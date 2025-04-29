@@ -4,6 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import java.util.Collection;
@@ -22,7 +23,8 @@ public class UserPrincipal implements UserDetails {
     // 권한이 필요한 경우 확장 가능
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return Collections.emptyList(); // 추후 ROLE_USER 같은 거 설정 가능
+        // ROLE_USER 권한을 부여 (기본적으로 모든 사용자에게 ROLE_USER)
+        return Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER"));
     }
 
     // 비밀번호 사용 안하므로 빈 문자열

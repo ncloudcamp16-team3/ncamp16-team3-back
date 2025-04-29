@@ -5,6 +5,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import tf.tailfriend.notification.entity.UserFcm;
 import tf.tailfriend.notification.entity.dto.NotificationDto;
 import tf.tailfriend.notification.service.NotificationService;
 import tf.tailfriend.schedule.entity.Schedule;
@@ -60,8 +61,8 @@ public class ScheduleService {
         notification.setUserId(dto.getUserId());
         notification.setContent("일정이 추가되었습니다."); // 알림 내용
         notification.setNotifyTypeId(3);
+        notification.setFcmToken(dto.getFcmToken());
 
-        // RabbitMQ로 알림 전송
         notificationService.sendNotification(notification);
     }
 
@@ -88,5 +89,6 @@ public class ScheduleService {
     public void deleteSchedule(Integer id) {
         scheduleDao.deleteById(id);
     }
+
 
 }

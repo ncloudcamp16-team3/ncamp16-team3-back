@@ -43,14 +43,11 @@ public class FacilityPhoto {
 
         @Override
         public boolean equals(Object obj) {
-            if (this == obj) {
-                return true;
-            }
-            if (obj == null || getClass() != obj.getClass()) {
-                return false;
-            }
+            if (this == obj) return true;
+            if (obj == null || getClass() != obj.getClass()) return false;
             FacilityPhotoId that = (FacilityPhotoId) obj;
-            return fileId.equals(that.fileId) && facilityId.equals(that.facilityId);
+            return fileId.equals(that.fileId) &&
+                    facilityId.equals(that.facilityId);
         }
 
         @Override

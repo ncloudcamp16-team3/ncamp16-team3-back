@@ -14,4 +14,5 @@ public interface ChatRoomDao extends JpaRepository<ChatRoom, Integer> {
     List<ChatRoom> findAllByUser1OrUser2(User user1, User user2);
 
 
+    List<ChatRoom> findByUniqueIdIn(List<String> uniqueIds);
 }

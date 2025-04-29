@@ -4,10 +4,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
-import tf.tailfriend.chat.entity.ChatRoom;
-import tf.tailfriend.chat.entity.dto.ChatRoomResponseDto;
+import tf.tailfriend.chat.entity.dto.ChatRoomListResponseDto;
 import tf.tailfriend.chat.service.ChatService;
 import tf.tailfriend.global.config.UserPrincipal;
+import tf.tailfriend.global.response.CustomResponse;
 
 import java.util.List;
 
@@ -30,12 +30,26 @@ public class ChatController {
     }
 
     @GetMapping("/rooms")
-    public ResponseEntity<List<String>> getMyChatRooms(
+    public ResponseEntity<List<ChatRoomListResponseDto>> getMyChatRooms(
             @AuthenticationPrincipal UserPrincipal userPrincipal
     ) {
         Integer userId = userPrincipal.getUserId();
-        List<String> rooms = chatService.findAllMyChatRoomIds(userId);
-        return ResponseEntity.ok(rooms); // ✅ 바로 uniqueId 리스트 반환
+        List<ChatRoomListResponseDto> rooms = chatService.findAllMyChatRooms(userId);
+        System.out.println(rooms);
+        return ResponseEntity.ok(rooms);
+    }
+
+
+
+    @PostMapping("/match/start")
+    public void match(@RequestParam Integer petId1, @RequestParam Integer petId2) {
+        chatService.checkOrCreateMatch(petId1, petId2);
+    }
+
+    @GetMapping("/match/check")
+    public CustomResponse checkMatch(@RequestParam Integer petId1, @RequestParam Integer petId2) {
+        boolean matched = chatService.isMatched(petId1, petId2);
+        return new CustomResponse("매칭 여부 조회 성공", matched);
     }
 
 

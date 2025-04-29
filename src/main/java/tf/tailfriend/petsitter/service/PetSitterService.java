@@ -13,7 +13,6 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
-import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import tf.tailfriend.file.entity.File;
@@ -52,13 +51,6 @@ public class PetSitterService {
 
     @Autowired
     private EntityManager entityManager;
-
-    //사용자의 현재 펫시터 상태를 확인하는 메소드
-    @Transactional(readOnly = true)
-    public PetSitter.PetSitterStatus checkCurrentStatus(Integer userId) {
-        Optional<PetSitter> petSitter = petSitterDao.findById(userId);
-        return petSitter.map(PetSitter::getStatus).orElse(null);
-    }
 
     //사용자 ID로 펫시터 존재 여부 확인
     @Transactional(readOnly = true)
@@ -223,15 +215,14 @@ public class PetSitterService {
                 petType = petTypeDao.findById(requestDto.getPetTypeId()).orElse(null);
             }
 
-            // 트랜잭션 밖에서 사용자 ID로 펫시터 존재 여부 확인
+            //사용자 ID로 펫시터 존재 여부 확인
             boolean exists = petSitterDao.existsById(requestDto.getUserId());
 
             Integer petTypeId = petType != null ? petType.getId() : null;
             Integer fileId = imageFileEntity.getId();
 
-            // 네이티브 쿼리 실행을 위한 EntityManager 사용
+            //EntityManager 사용
             if (exists) {
-                // 기존 데이터 업데이트 쿼리
                 String updateQuery =
                         "UPDATE pet_sitters SET " +
                                 "age = ?1, " +

@@ -1,17 +1,12 @@
 package tf.tailfriend.notification.service;
 
+import com.google.firebase.messaging.FirebaseMessaging;
+import com.google.firebase.messaging.Message;
+import com.google.firebase.messaging.Notification;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import tf.tailfriend.notification.config.FirebaseConfig;
 import tf.tailfriend.notification.config.NotificationMessageProducer;
-import tf.tailfriend.notification.entity.Notification;
-import tf.tailfriend.notification.entity.NotificationType;
 import tf.tailfriend.notification.entity.dto.NotificationDto;
-import tf.tailfriend.notification.repository.NotificationDao;
-import tf.tailfriend.notification.repository.NotificationTypeDao;
-import tf.tailfriend.user.entity.User;
-import tf.tailfriend.user.repository.UserDao;
 
 
 @Service
@@ -19,12 +14,36 @@ import tf.tailfriend.user.repository.UserDao;
 public class NotificationService {
 
     private final NotificationMessageProducer notificationMessageProducer; // 🔥 추가
+    private final UserFcmService userFcmService;
 
 
     public void sendNotification(NotificationDto dto) {
 
-        // Firebase 푸시 알림 전송
         notificationMessageProducer.sendNotification(dto);
     }
+
+    public void sendNotificationToUser(Integer userId, String title, String body) {
+        userFcmService.getFcmTokenByUserId(userId).ifPresentOrElse(
+                fcmToken -> {
+                    try {
+                        Message message = Message.builder()
+                                .setToken(fcmToken)
+                                .setNotification(Notification.builder()
+                                        .setTitle(title)
+                                        .setBody(body)
+                                        .build())
+                                .build();
+                        FirebaseMessaging.getInstance().send(message);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                },
+                () -> {
+                    System.out.println("FCM 토큰이 없는 사용자입니다: userId = " + userId);
+
+                }
+        );
+    }
+
 
 }

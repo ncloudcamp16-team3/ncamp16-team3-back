@@ -119,6 +119,8 @@ logging:
     tf.tailfriend.user.controller: DEBUG
     org.springframework.web: DEBUG
     org.springframework.http.converter.json: DEBUG
+    tf.tailfriend.notification.scheduler.NotificationScheduler: DEBUG
+
 
 URL: ${baseUrl}
 

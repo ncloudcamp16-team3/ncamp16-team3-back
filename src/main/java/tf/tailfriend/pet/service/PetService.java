@@ -82,6 +82,7 @@ public class PetService {
         setPresignedUrl(photoDtos);
 
         return PetDetailResponseDto.builder()
+                .ownerId(pet.getUser().getId())
                 .id(pet.getId())
                 .name(pet.getName())
                 .type(mapEnglishToKoreanPetType(pet.getPetType().getName()))

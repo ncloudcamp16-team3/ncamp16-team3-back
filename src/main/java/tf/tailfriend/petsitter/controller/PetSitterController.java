@@ -26,6 +26,7 @@ public class PetSitterController {
 
     /**
      * 사용자가 펫시터 신청을 제출하는 API
+     * 오류 처리 및 응답 개선
      */
     @PostMapping("/apply")
     public ResponseEntity<?> applyForPetSitter(
@@ -40,22 +41,31 @@ public class PetSitterController {
 
         try {
             // JSON 문자열을 DTO로 변환
+            log.info("펫시터 신청 요청 데이터: {}", requestDtoJson);
             PetSitterRequestDto requestDto = objectMapper.readValue(requestDtoJson, PetSitterRequestDto.class);
 
             // 사용자 ID 설정
             requestDto.setUserId(userPrincipal.getUserId());
 
-            log.info("펫시터 신청 요청: userId={}, age={}, houseType={}",
+            log.info("펫시터 신청 처리 시작: userId={}, age={}, houseType={}",
                     userPrincipal.getUserId(), requestDto.getAge(), requestDto.getHouseType());
 
             // 펫시터 신청 처리
             PetSitterResponseDto result = petSitterService.applyForPetSitter(requestDto, image);
+            log.info("펫시터 신청 처리 완료: userId={}, status={}",
+                    userPrincipal.getUserId(), result.getStatus());
 
             return ResponseEntity.ok(
                     new CustomResponse("펫시터 신청이 완료되었습니다. 관리자 승인 후 활동이 가능합니다.", result));
 
         } catch (Exception e) {
             log.error("펫시터 신청 중 오류 발생: userId={}, error={}", userPrincipal.getUserId(), e.getMessage(), e);
+
+            // 특정 오류 타입에 따른 응답 처리
+            if (e instanceof IllegalArgumentException) {
+                return ResponseEntity.badRequest()
+                        .body(new CustomResponse(e.getMessage(), null));
+            }
 
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(new CustomResponse("펫시터 신청 중 오류가 발생했습니다: " + e.getMessage(), null));
@@ -73,14 +83,18 @@ public class PetSitterController {
         }
 
         try {
+            log.info("펫시터 상태 조회 요청: userId={}", userPrincipal.getUserId());
             boolean exists = petSitterService.existsById(userPrincipal.getUserId());
 
             if (!exists) {
+                log.info("펫시터 정보 없음: userId={}", userPrincipal.getUserId());
                 return ResponseEntity.status(HttpStatus.NOT_FOUND)
                         .body(new CustomResponse("펫시터 정보가 없습니다.", null));
             }
 
             PetSitterResponseDto result = petSitterService.getPetSitterStatus(userPrincipal.getUserId());
+            log.info("펫시터 상태 조회 완료: userId={}, status={}", userPrincipal.getUserId(), result.getStatus());
+
             return ResponseEntity.ok(new CustomResponse("조회 성공", result));
 
         } catch (Exception e) {

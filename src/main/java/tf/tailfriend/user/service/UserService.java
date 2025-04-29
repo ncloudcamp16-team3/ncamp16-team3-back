@@ -1,0 +1,259 @@
+package tf.tailfriend.user.service;
+
+import jakarta.transaction.Transactional;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
+import tf.tailfriend.file.entity.File;
+import tf.tailfriend.file.repository.FileDao;
+import tf.tailfriend.file.service.FileService;
+import tf.tailfriend.global.service.StorageService;
+import tf.tailfriend.global.service.StorageServiceException;
+import tf.tailfriend.pet.entity.Pet;
+import tf.tailfriend.pet.entity.PetPhoto;
+import tf.tailfriend.pet.entity.PetType;
+import tf.tailfriend.pet.repository.PetPhotoDao;
+import tf.tailfriend.pet.repository.PetDao;
+import tf.tailfriend.pet.repository.PetTypeDao;
+import tf.tailfriend.petsitter.repository.PetSitterDao;
+import tf.tailfriend.user.distance.Distance;
+import tf.tailfriend.user.entity.SnsType;
+import tf.tailfriend.user.entity.User;
+import tf.tailfriend.user.entity.UserFollow;
+import tf.tailfriend.user.entity.dto.*;
+import tf.tailfriend.user.exception.UserException;
+import tf.tailfriend.user.exception.UserSaveException;
+import tf.tailfriend.user.repository.SnsTypeDao;
+import tf.tailfriend.user.repository.UserDao;
+import tf.tailfriend.user.repository.UserFollowDao;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.List;
+import java.util.stream.Collectors;
+import java.util.Optional;
+
+@Service
+@RequiredArgsConstructor
+@Slf4j
+public class UserService {
+
+    private final UserDao userDao;
+    private final PetSitterDao petSitterDao;
+    private final FileDao fileDao;
+    private final PetDao petDao;
+    private final PetPhotoDao petPhotoDao;
+    private final UserFollowDao userFollowDao;
+    private final StorageService storageService;
+
+
+    /**
+     * 회원의 마이페이지 정보를 조회합니다.
+     *
+     * @param userId 조회할 회원의 ID
+     * @return 회원 정보와 반려동물 정보가 포함된 MyPageResponseDto
+     */
+    public MypageResponseDto getMemberInfo(Integer userId) {
+        // 1. 회원 정보 조회
+        User user = userDao.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회원입니다: " + userId));
+
+        // 2. 반려동물 정보 변환
+        List<PetResponseDto> petDtos = user.getPet().stream()
+                .map(this::convertToPetDto)
+                .collect(Collectors.toList());
+
+        // 3. 펫시터 여부 확인
+        boolean isSitter = petSitterDao.existsById(userId);
+
+        // 4. 응답 DTO 생성 및 반환
+        return MypageResponseDto.builder()
+                .userId(user.getId())
+                .nickname(user.getNickname())
+                .profileImageUrl(storageService.generatePresignedUrl(user.getFile().getPath()))
+                .pets(petDtos)
+                .isSitter(isSitter)
+                .build();
+    }
+
+    /**
+     * 회원의 닉네임을 업데이트합니다.
+     *
+     * @param userId      수정할 회원의 ID
+     * @param newNickname 새로운 닉네임
+     * @return 업데이트된 닉네임
+     */
+    @Transactional
+    public String updateNickname(Integer userId, String newNickname) {
+        // 1. 닉네임 유효성 검사
+        if (newNickname == null || newNickname.trim().isEmpty()) {
+            throw new IllegalArgumentException("닉네임은 비어있을 수 없습니다.");
+        }
+
+        // 2. 닉네임 길이 제한 (예시: 2-20자)
+        if (newNickname.length() < 2 || newNickname.length() > 20) {
+            throw new IllegalArgumentException("닉네임은 2-20자 사이여야 합니다.");
+        }
+
+        // 3. 회원 조회
+        User user = userDao.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회원입니다: " + userId));
+
+        // 4. 닉네임 중복 검사
+        userDao.findByNickname(newNickname)
+                .filter(u -> !u.getId().equals(userId))
+                .ifPresent(u -> {
+                    throw new IllegalArgumentException("이미 사용 중인 닉네임입니다: " + newNickname);
+                });
+
+        // 5. 닉네임 업데이트 (instanceof 검사 제거)
+        if (user != null) { // null 검사만 유지
+            user.updateNickname(newNickname);
+        } else {
+            throw new UnsupportedOperationException("닉네임 업데이트를 할 수 없습니다.");
+        }
+
+        // 6. 저장 및 반환
+        user.updateNickname(newNickname);
+        userDao.save(user);
+        return newNickname;
+    }
+
+    /**
+     * 회원 프로필 이미지를 업데이트합니다.
+     *
+     * @param userId 수정할 회원의 ID
+     * @param fileId 새 프로필 이미지 파일 ID
+     * @return 업데이트된 이미지 URL
+     */
+    @Transactional
+    public String updateProfileImage(Integer userId, Integer fileId) {
+        // 1. 회원 조회
+        User user = userDao.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회원입니다: " + userId));
+
+        // 2. 파일 조회
+        File file = fileDao.findById(fileId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 파일입니다: " + fileId));
+
+        // 3. 프로필 이미지 업데이트
+        user.updateProfileImage(file);
+
+        // 4. 저장 및 URL 반환
+        userDao.save(user);
+        return file.getPath();
+    }
+
+    /**
+     * 회원을 탈퇴시킵니다.
+     *
+     * @param userId 탈퇴할 회원의 ID
+     */
+    @Transactional
+    public void withdrawMember(Integer userId) {
+        // 1. 회원 조회
+        User user = userDao.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회원입니다: " + userId));
+
+
+        // 2. 팔로우 관계 삭제 (팔로워 및 팔로잉)
+        userFollowDao.deleteByFollowerId(userId);
+        userFollowDao.deleteByFollowedId(userId);
+
+        // 3. 펫시터 정보가 있다면 함께 삭제
+        petSitterDao.findById(userId).ifPresent(petSitterDao::delete);
+
+        // 4. 반려동물 관련 데이터 삭제
+        user.getPet().forEach(pet -> {
+            // 반려동물 사진 삭제
+            petPhotoDao.deleteByPetId(pet.getId());
+
+            // 반려동물 삭제
+            petDao.delete(pet);
+        });
+
+        // 5. 회원 삭제
+        userDao.delete(user);
+    }
+
+    /**
+     * Pet 엔티티를 PetResponseDto로 변환합니다.
+     */
+    private PetResponseDto convertToPetDto(Pet pet) {
+        // 1. 반려동물 썸네일 이미지 URL 찾기
+        String petProfileImageUrl = pet.getPhotos().stream()
+                .filter(PetPhoto::isThumbnail)  // 썸네일로 설정된 사진 필터링
+                .findFirst()
+                .or(() -> pet.getPhotos().stream().findFirst())
+                .map(photo -> storageService.generatePresignedUrl(photo.getFile().getPath()))
+                .orElse(null);  // 썸네일이 없으면 null
+
+        // 2. PetResponseDto 생성 및 반환
+        return PetResponseDto.builder()
+                .id(pet.getId())
+                .name(pet.getName())
+                .type(pet.getPetType().getName())  // ID가 아닌 이름으로 반환
+                .gender(pet.getGender())
+                .birth(pet.getBirth())
+                .weight(pet.getWeight())
+                .info(pet.getInfo())
+                .neutered(pet.getNeutered())
+                .profileImageUrl(petProfileImageUrl)
+                .build();
+    }
+
+    @Transactional
+    public void toggleFollow(Integer followerId, Integer followedId) {
+        User followerUser = userDao.findById(followerId)
+                .orElseThrow(() -> new IllegalArgumentException("팔로우하는 유저를 찾을 수 없습니다."));
+
+        User followedUser = userDao.findById(followedId)
+                .orElseThrow(() -> new IllegalArgumentException("팔로우받는 유저를 찾을 수 없습니다."));
+
+        Optional<UserFollow> existingFollow = userFollowDao.findByFollowerIdAndFollowedId(followerId, followedId);
+
+        if (existingFollow.isPresent()) {
+            userFollowDao.delete(existingFollow.get());
+
+            userDao.decrementFollowCount(followerId);   // 내가 언팔 → 팔로우 수 감소
+            userDao.decrementFollowerCount(followedId); // 상대방 → 팔로워 수 감소
+
+        } else {
+            UserFollow newFollow = UserFollow.of(followerUser, followedUser);
+            userFollowDao.save(newFollow);
+
+            userDao.incrementFollowCount(followerId);   // 내가 팔로우 → 팔로우 수 증가
+            userDao.incrementFollowerCount(followedId); // 상대방 → 팔로워 수 증가
+        }
+    }
+
+    @Transactional
+    public String getUsername(Integer userId) {
+        return userDao.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("유저를 찾을 수 없습니다."))
+                .getNickname(); // ← 여기서 닉네임만 추출
+    }
+  
+    public void userInfoSave(UserInfoDto userInfoDto) {
+
+        User userEntity = userDao.findById(userInfoDto.getId())
+                .orElseThrow(() -> new UserException());
+
+        try {
+            User updatedUser = userEntity.toBuilder()
+                    .nickname(userInfoDto.getNickname())
+                    .distance(userInfoDto.getDistance())
+                    .latitude(userInfoDto.getLatitude())
+                    .longitude(userInfoDto.getLongitude())
+                    .address(userInfoDto.getAddress())
+                    .dongName(userInfoDto.getDongName())
+                    .build();
+
+            userDao.save(updatedUser);
+
+        }  catch (Exception e) {
+            throw new UserSaveException();
+        }
+    }
+}

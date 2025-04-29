@@ -1,0 +1,36 @@
+package tf.tailfriend.board.repository;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+import org.springframework.stereotype.Repository;
+import tf.tailfriend.board.entity.Board;
+import tf.tailfriend.board.entity.BoardType;
+
+@Repository
+public interface BoardDao extends JpaRepository<Board, Integer> {
+
+    Page<Board> findAll(Pageable pageable);
+
+    Page<Board> findByBoardType(BoardType boardTypeId, Pageable pageable);
+
+    Page<Board> findByTitleContaining(String title, Pageable pageable);
+
+    Page<Board> findByTitleContainingAndBoardType(String title, BoardType boardTypeId, Pageable pageable);
+
+    Page<Board> findByContentContaining(String content, Pageable pageable);
+
+    Page<Board> findByContentContainingAndBoardType(String content, BoardType boardTypeId, Pageable pageable);
+
+    // 작성자 검색
+    @Query("SELECT b FROM Board b JOIN b.user u WHERE u.nickname LIKE %:nickname%")
+    Page<Board> findByUserNicknameContaining(@Param("nickname") String nickname, Pageable pageable);
+
+    @Query("SELECT b FROM Board b JOIN b.user u WHERE u.nickname LIKE %:nickname% AND b.boardType = :boardType")
+    Page<Board> findByUserNicknameContainingAndBoardType(
+            @Param("nickname") String nickname,
+            @Param("boardType") BoardType boardType,
+            Pageable pageable);
+}

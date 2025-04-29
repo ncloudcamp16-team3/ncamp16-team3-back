@@ -1,10 +1,8 @@
-package tf.tailfriend.facility.entity.dto.ResponseForReserve;
+package tf.tailfriend.facility.entity.dto.forReserve;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
-
-import java.sql.Time;
 
 @Getter
 @Builder

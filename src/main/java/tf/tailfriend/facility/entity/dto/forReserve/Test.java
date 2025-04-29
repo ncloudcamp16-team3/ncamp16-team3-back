@@ -1,4 +1,4 @@
-package tf.tailfriend.facility.entity.dto.ResponseForReserve;
+package tf.tailfriend.facility.entity.dto.forReserve;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;

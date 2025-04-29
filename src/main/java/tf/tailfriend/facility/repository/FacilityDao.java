@@ -7,13 +7,9 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
-import tf.tailfriend.facility.entity.FacilityTimetable;
 import tf.tailfriend.facility.entity.FacilityType;
-import tf.tailfriend.facility.entity.dto.ResponseForReserve.FacilityCard;
 import tf.tailfriend.facility.entity.Facility;
-import tf.tailfriend.facility.entity.dto.ResponseForReserve.FacilityWithDistanceProjection;
-
-import java.util.List;
+import tf.tailfriend.facility.entity.dto.forReserve.FacilityWithDistanceProjection;
 
 @Repository
 public interface FacilityDao extends JpaRepository<Facility, Integer> {
@@ -36,29 +32,29 @@ public interface FacilityDao extends JpaRepository<Facility, Integer> {
     // JOIN facility_photos fp ON fp.facility_id = f.id
     //    JOIN files fi ON fi.id = fp.file_id
     // AND fp.thumbnail = true
-    @Query("SELECT " +
+    @Query("SELECT DISTINCT " +
             "f.id AS id, " +
             "ft.name AS category, " +
             "f.name AS name, " +
             "f.starPoint AS starPoint, " +
             "f.reviewCount AS reviewCount, " +
-            "ROUND(function('ST_DISTANCE_SPHERE', function('POINT', :lng, :lat), function('POINT', f.longitude, f.latitude)), 2) AS distance, " +
+            "ROUND(function('ST_DISTANCE_SPHERE', function('POINT', :lng, :lat), function('POINT', f.longitude, f.latitude)), 0) AS distance, " +
             "f.address AS address " +
             "FROM Facility f JOIN f.facilityType ft " +
             "WHERE f.facilityType.name = :category " +
-            "ORDER BY ROUND(function('ST_DISTANCE_SPHERE', function('POINT', :lng, :lat), function('POINT', f.longitude, f.latitude)), 2)")
+            "ORDER BY ROUND(function('ST_DISTANCE_SPHERE', function('POINT', :lng, :lat), function('POINT', f.longitude, f.latitude)), 0)")
     Slice<FacilityWithDistanceProjection> findByCategoryWithSortByDistance(@Param("lng") Double lng, @Param("lat") Double lat, @Param("category") String category, Pageable pageable);
 
-    @Query("SELECT " +
+    @Query("SELECT DISTINCT " +
             "f.id AS id, " +
             "ft.name AS category, " +
             "f.name AS name, " +
             "f.starPoint AS starPoint, " +
             "f.reviewCount AS reviewCount, " +
-            "ROUND(function('ST_DISTANCE_SPHERE', function('POINT', :lng, :lat), function('POINT', f.longitude, f.latitude)), 2) AS distance, " +
+            "ROUND(function('ST_DISTANCE_SPHERE', function('POINT', :lng, :lat), function('POINT', f.longitude, f.latitude)), 0) AS distance, " +
             "f.address AS address " +
             "FROM Facility f JOIN f.facilityType ft " +
             "WHERE f.facilityType.name = :category " +
-            "ORDER BY f.starPoint")
+            "ORDER BY f.starPoint DESC")
     Slice<FacilityWithDistanceProjection> findByCategoryWithSortByStarPoint(@Param("lng") Double lng, @Param("lat") Double lat, @Param("category") String category, Pageable pageable);
 }

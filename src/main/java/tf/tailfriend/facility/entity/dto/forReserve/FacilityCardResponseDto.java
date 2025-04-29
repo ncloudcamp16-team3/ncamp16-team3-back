@@ -1,34 +1,30 @@
-package tf.tailfriend.facility.entity.dto.ResponseForReserve;
+package tf.tailfriend.facility.entity.dto.forReserve;
 
 import lombok.*;
 
-import tf.tailfriend.facility.entity.FacilityTimetable;
 import tf.tailfriend.reserve.dto.Card;
-
-import java.util.List;
 
 @Getter
 @Setter
-@ToString
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class FacilityCard implements Card {
+public class FacilityCardResponseDto implements Card {
 
     private Integer id;
     private String category;
     private String name;
     private Double rating;
     private Integer reviewCount;
-    private Double distance;
+    private Integer distance;
     private String address;
-//    private String openTime;
-//    private String closeTime;
-//    private String image;
+    private String openTimeRange;
+    private boolean isOpened;
+    private String image;
 
     @Override
     public String toString() {
-        return "FacilityCard{" +
+        return "FacilityCardResponseDto{" +
                 "id=" + id +
                 ", category='" + category + '\'' +
                 ", name='" + name + '\'' +
@@ -36,8 +32,9 @@ public class FacilityCard implements Card {
                 ", reviewCount=" + reviewCount +
                 ", distance=" + distance +
                 ", address='" + address + '\'' +
-//                ", openTime='" + openTime + '\'' +
-//                ", closeTime='" + closeTime + '\'' +
+                ", openTime='" + openTimeRange + '\'' +
+                ", isOpened=" + isOpened + '\'' +
+                ", image=" + image + '\'' +
                 '}';
     }
 }

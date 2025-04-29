@@ -1,4 +1,4 @@
-package tf.tailfriend.facility.entity.dto.ResponseForReserve;
+package tf.tailfriend.facility.entity.dto.forReserve;
 
 import org.springframework.beans.factory.annotation.Value;
 
@@ -20,7 +20,7 @@ public interface FacilityWithDistanceProjection {
     Integer getReviewCount();
 
     @Value("#{target.distance}")
-    Double getDistance();
+    Integer getDistance();
 
     @Value("#{target.address}")
     String getAddress();

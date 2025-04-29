@@ -15,13 +15,13 @@ public class DateTimeFormatProviderImpl implements DateTimeFormatProvider {
     @Override
     public String getKorDayName(FacilityTimetable.Day day) {
         return switch (day) {
-            case MONDAY -> "월";
-            case TUESDAY -> "화";
-            case WEDNESDAY -> "수";
-            case THURSDAY -> "목";
-            case FRIDAY -> "금";
-            case SATURDAY -> "토";
-            case SUNDAY -> "일";
+            case MON -> "월";
+            case TUE -> "화";
+            case WED -> "수";
+            case THU -> "목";
+            case FRI -> "금";
+            case SAT -> "토";
+            case SUN -> "일";
         };
     }
 

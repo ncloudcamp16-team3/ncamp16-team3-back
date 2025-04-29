@@ -13,9 +13,9 @@ import tf.tailfriend.facility.entity.Facility;
 import tf.tailfriend.facility.entity.FacilityPhoto;
 import tf.tailfriend.facility.entity.FacilityTimetable;
 import tf.tailfriend.facility.entity.FacilityType;
-import tf.tailfriend.facility.entity.dto.ResponseForReserve.FacilityCard;
-import tf.tailfriend.facility.entity.dto.ResponseForReserve.FacilityWithDistanceProjection;
-import tf.tailfriend.facility.entity.dto.ResponseForReserve.Test;
+import tf.tailfriend.facility.entity.dto.forReserve.FacilityCardResponseDto;
+import tf.tailfriend.facility.entity.dto.forReserve.FacilityWithDistanceProjection;
+import tf.tailfriend.facility.entity.dto.forReserve.ThumbnailForCardDto;
 import tf.tailfriend.facility.repository.*;
 import tf.tailfriend.file.entity.File;
 import tf.tailfriend.file.service.FileService;
@@ -27,9 +27,12 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.sql.Time;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 
@@ -343,15 +346,15 @@ public class FacilityService {
         return dto;
     }
 
-    public Slice<FacilityCard> getFacilityCardsForReserve(FacilityList requestDto) {
+    public Slice<FacilityCardResponseDto> getFacilityCardsForReserve(FacilityList requestDto) {
         String day = requestDto.getDay();
+        FacilityTimetable.Day dayEnum = FacilityTimetable.Day.valueOf(day.toUpperCase());
         String category = requestDto.getCategory();
         double lat = requestDto.getUserLatitude();
         double lng = requestDto.getUserLongitude();
         Pageable pageable = PageRequest.of(requestDto.getPage(), requestDto.getSize());
 
-        Slice<FacilityWithDistanceProjection> list = null;
-
+        Slice<FacilityWithDistanceProjection> list;
         if (requestDto.getSortBy().equals("distance")) {
             list = facilityDao.findByCategoryWithSortByDistance(lng, lat, category, pageable);
         } else if (requestDto.getSortBy().equals("starPoint")) {
@@ -360,20 +363,53 @@ public class FacilityService {
             throw new IllegalArgumentException("유효하지 않은 정렬 기준입니다.");
         }
 
-        if (list.isEmpty()) {
-            throw new IllegalArgumentException("시설을 찾을 수 없습니다.");
-        }
+        List<Integer> facilityIds = list.getContent().stream()
+                .map(FacilityWithDistanceProjection::getId)
+                .collect(Collectors.toList());
 
-        List<FacilityCard> mappedList = list.getContent().stream()
-                .map(f -> FacilityCard.builder()
-                .id(f.getId())
-                .category(f.getCategory())
-                .name(f.getName())
-                .rating(f.getStarPoint())
-                .reviewCount(f.getReviewCount())
-                .distance(f.getDistance())
-                .address(f.getAddress())
-                .build())
+        List<FacilityTimetable> timetables = facilityTimetableDao.findByFacility_IdInAndDay(facilityIds, dayEnum);
+        List<ThumbnailForCardDto> thumbnails = facilityPhotoDao.findThumbnailPathByFacilityIds(facilityIds);
+
+        // Map으로 변환해서 빠르게 찾을 수 있도록
+        Map<Integer, FacilityTimetable> timetableMap = timetables.stream()
+                .collect(Collectors.toMap(t -> t.getFacility().getId(), Function.identity()));
+        Map<Integer, ThumbnailForCardDto> thumbnailMap = thumbnails.stream()
+                .collect(Collectors.toMap(ThumbnailForCardDto::getFacilityId, Function.identity()));
+
+        LocalTime now = LocalTime.now();
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("HH:mm");
+
+        List<FacilityCardResponseDto> mappedList = list.getContent().stream()
+                .map(f -> {
+                    FacilityTimetable timetable = timetableMap.get(f.getId());
+                    ThumbnailForCardDto thumbnail = thumbnailMap.get(f.getId());
+                    boolean isOpened = false;
+                    String openTimeRange = "휴무";
+
+                    if (timetable != null && timetable.getOpenTime() != null && timetable.getCloseTime() != null) {
+                        LocalTime openTime = timetable.getOpenTime().toLocalTime();
+                        LocalTime closeTime = timetable.getCloseTime().toLocalTime();
+                        openTimeRange = openTime.format(formatter) + " - " + closeTime.format(formatter);
+
+                        isOpened = (openTime.isBefore(closeTime))
+                                ? !now.isBefore(openTime) && !now.isAfter(closeTime)
+                                : !now.isBefore(openTime) || !now.isAfter(closeTime);
+                    }
+                    log.info("facilityName: {}, openTime: {}, closeTime: {}, openTimeRange: {}, isOpened: {}, image: {}", f.getName(), timetable != null ? timetable.getOpenTime() : null, timetable != null ? timetable.getCloseTime() : null, openTimeRange, isOpened, thumbnail != null ? storageService.generatePresignedUrl(thumbnail.getPath()) : null);
+
+                    return FacilityCardResponseDto.builder()
+                            .id(f.getId())
+                            .category(f.getCategory())
+                            .name(f.getName())
+                            .rating(f.getStarPoint())
+                            .reviewCount(f.getReviewCount())
+                            .distance(f.getDistance())
+                            .address(f.getAddress())
+                            .openTimeRange(openTimeRange)
+                            .isOpened(isOpened)
+                            .image(thumbnail != null ? storageService.generatePresignedUrl(thumbnail.getPath()) : null)
+                            .build();
+                })
                 .collect(Collectors.toList());
 
         return new SliceImpl<>(mappedList, list.getPageable(), list.hasNext());

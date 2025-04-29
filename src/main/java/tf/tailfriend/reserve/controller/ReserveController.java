@@ -5,13 +5,11 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import tf.tailfriend.facility.entity.dto.ResponseForReserve.FacilityCard;
+import tf.tailfriend.facility.entity.dto.forReserve.FacilityCardResponseDto;
 import tf.tailfriend.facility.service.FacilityService;
 import tf.tailfriend.reserve.dto.RequestForFacility.FacilityList;
 import tf.tailfriend.reserve.service.ReserveService;
 import lombok.extern.slf4j.Slf4j;
-
-import java.util.List;
 
 @Slf4j
 @RestController
@@ -27,7 +25,7 @@ public class ReserveController {
     }
 
     @GetMapping("/facility/lists")
-    public Slice<FacilityCard> getFacilityList(
+    public Slice<FacilityCardResponseDto> getFacilityList(
             @RequestParam("latitude") double latitude,
             @RequestParam("longitude") double longitude,
             @RequestParam("category") String category,

@@ -10,6 +10,11 @@ spring:
     locations: classpath:db/migration
     baseline-on-migrate: true
 
+  session:
+    store-type: redis
+    redis:
+      namespace: spring:session
+
 
   server:
     forward-headers-strategy: framework

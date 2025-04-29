@@ -10,9 +10,11 @@ spring:
     locations: classpath:db/migration
     baseline-on-migrate: true
 
+  session:
+    redis:
+      namespace: spring:session
 
-  server:
-    forward-headers-strategy: framework
+
 
   datasource:
     url: jdbc:mysql://db-33p2cg-kr.vpc-pub-cdb.ntruss.com/tailfriends?serverTimezone=Asia/Seoul&characterEncoding=UTF-8
@@ -31,6 +33,7 @@ spring:
     multipart:
       max-file-size: 10MB
       max-request-size: 10MB
+
 
   jpa:
     database-platform: org.hibernate.dialect.MySQLDialect
@@ -103,11 +106,19 @@ spring:
             token-uri: https://oauth2.googleapis.com/token
             user-info-uri: https://www.googleapis.com/oauth2/v3/userinfo
             user-name-attribute: sub
+<<<<<<< HEAD
+  data:
+    redis:
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT}
+      password: ${DB_PASSWORD}
+=======
 
 #  data:
 #    redis:
 #      host: ${REDIS_HOST}
 #      port: ${REDIS_PORT}
+>>>>>>> f5efff1b67e995a1d342a9ab93309156906c6d86
 jwt:
   secret: ${JWT_SECRET}
   token-validity: 86400

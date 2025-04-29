@@ -2,6 +2,7 @@ package tf.tailfriend.petsitter.service;
 
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.Query;
+import jakarta.persistence.TypedQuery;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
@@ -30,7 +31,9 @@ import tf.tailfriend.user.repository.UserDao;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -50,24 +53,14 @@ public class PetSitterService {
     @Autowired
     private EntityManager entityManager;
 
-    /**
-     * 사용자의 현재 펫시터 상태를 확인하는 메소드
-     *
-     * @param userId 사용자 ID
-     * @return 펫시터 상태 (PENDING, APPROVE, DELETE, NONE) 또는 null(정보 없음)
-     */
+    //사용자의 현재 펫시터 상태를 확인하는 메소드
     @Transactional(readOnly = true)
     public PetSitter.PetSitterStatus checkCurrentStatus(Integer userId) {
         Optional<PetSitter> petSitter = petSitterDao.findById(userId);
         return petSitter.map(PetSitter::getStatus).orElse(null);
     }
 
-    /**
-     * 사용자 ID로 펫시터 존재 여부 확인
-     *
-     * @param userId 사용자 ID
-     * @return 존재 여부
-     */
+    //사용자 ID로 펫시터 존재 여부 확인
     @Transactional(readOnly = true)
     public boolean existsById(Integer userId) {
         return petSitterDao.existsById(userId);
@@ -198,10 +191,7 @@ public class PetSitterService {
         return dto;
     }
 
-    /**
-     * 사용자의 펫시터 신청을 처리하는 메소드
-     * Native Query를 활용하여 동시성 충돌 방지
-     */
+    // 사용자의 펫시터 신청을 처리하는 메소드
     @Transactional(isolation = Isolation.READ_UNCOMMITTED)
     public PetSitterResponseDto applyForPetSitter(PetSitterRequestDto requestDto, MultipartFile imageFile) throws IOException {
         logger.info("펫시터 신청 시작: userId={}", requestDto.getUserId());
@@ -295,7 +285,7 @@ public class PetSitterService {
             }
 
             // DB에서 다시 데이터 조회하여 응답 생성
-            entityManager.clear(); // 영속성 컨텍스트 초기화
+            entityManager.clear();
 
             PetSitter updatedPetSitter = petSitterDao.findById(requestDto.getUserId())
                     .orElseThrow(() -> new IllegalStateException("저장된 펫시터 정보를 조회할 수 없습니다"));
@@ -313,9 +303,7 @@ public class PetSitterService {
         }
     }
 
-    /**
-     * 사용자의 펫시터 신청 상태를 조회하는 메소드
-     */
+    // 사용자의 펫시터 신청 상태를 조회하는 메소드
     @Transactional(readOnly = true)
     public PetSitterResponseDto getPetSitterStatus(Integer userId) {
         PetSitter petSitter = petSitterDao.findById(userId)
@@ -332,10 +320,7 @@ public class PetSitterService {
         return responseDto;
     }
 
-    /**
-     * 사용자가 펫시터를 그만두는 메소드
-     * 격리 수준 READ_UNCOMMITTED로 변경하여 동시성 향상
-     */
+    //사용자가 펫시터를 그만두는 메소드
     @Transactional(isolation = Isolation.READ_UNCOMMITTED)
     public void quitPetSitter(Integer userId) {
         logger.info("펫시터 그만두기 요청: userId={}", userId);
@@ -375,5 +360,99 @@ public class PetSitterService {
                 .collect(Collectors.toList());
 
         return new PageImpl<>(petSitterDtos, pageable, petSitters.getTotalElements());
+    }
+
+    /**
+     * 승인된 펫시터 중 검색 조건에 맞는 펫시터 목록을 조회하는 메소드
+     *
+     * @param age          연령대 (20대, 30대, 40대, 50대이상)
+     * @param petOwnership 반려동물 소유 여부
+     * @param sitterExp    펫시터 경험 여부
+     * @param houseType    주거 형태
+     * @param pageable     페이징 정보
+     * @return 조건에 맞는 펫시터 목록 (페이징)
+     */
+    @Transactional(readOnly = true)
+    public Page<PetSitterResponseDto> findApprovedPetSittersWithCriteria(
+            String age, Boolean petOwnership, Boolean sitterExp, String houseType, Pageable pageable) {
+
+        logger.info("승인된 펫시터 검색 시작: age={}, petOwnership={}, sitterExp={}, houseType={}",
+                age, petOwnership, sitterExp, houseType);
+
+        //기본 쿼리
+        String baseQuery = "SELECT ps FROM PetSitter ps WHERE ps.status = :status";
+        String countQuery = "SELECT COUNT(ps) FROM PetSitter ps WHERE ps.status = :status";
+
+        // 조건에 따라 동적으로 쿼리 구성
+        StringBuilder queryBuilder = new StringBuilder(baseQuery);
+        StringBuilder countQueryBuilder = new StringBuilder(countQuery);
+
+        // 파라미터 맵
+        Map<String, Object> params = new HashMap<>();
+        params.put("status", PetSitter.PetSitterStatus.APPROVE);
+
+        // 연령대 조건
+        if (age != null && !age.isEmpty()) {
+            queryBuilder.append(" AND ps.age = :age");
+            countQueryBuilder.append(" AND ps.age = :age");
+            params.put("age", age);
+        }
+
+        // 반려동물 소유 여부 조건
+        if (petOwnership != null) {
+            queryBuilder.append(" AND ps.grown = :grown");
+            countQueryBuilder.append(" AND ps.grown = :grown");
+            params.put("grown", petOwnership);
+        }
+
+        // 펫시터 경험 여부 조건
+        if (sitterExp != null) {
+            queryBuilder.append(" AND ps.sitterExp = :sitterExp");
+            countQueryBuilder.append(" AND ps.sitterExp = :sitterExp");
+            params.put("sitterExp", sitterExp);
+        }
+
+        // 주거 형태 조건
+        if (houseType != null && !houseType.isEmpty()) {
+            queryBuilder.append(" AND ps.houseType = :houseType");
+            countQueryBuilder.append(" AND ps.houseType = :houseType");
+            params.put("houseType", houseType);
+        }
+
+        // 쿼리 실행
+        TypedQuery<PetSitter> query = entityManager.createQuery(queryBuilder.toString(), PetSitter.class);
+        TypedQuery<Long> countQueryResult = entityManager.createQuery(countQueryBuilder.toString(), Long.class);
+
+        // 파라미터 설정
+        for (Map.Entry<String, Object> entry : params.entrySet()) {
+            query.setParameter(entry.getKey(), entry.getValue());
+            countQueryResult.setParameter(entry.getKey(), entry.getValue());
+        }
+        // 페이징 적용
+        query.setFirstResult((int) pageable.getOffset());
+        query.setMaxResults(pageable.getPageSize());
+
+        // 결과 조회
+        List<PetSitter> petSitters = query.getResultList();
+        Long total = countQueryResult.getSingleResult();
+
+        // DTO 변환
+        List<PetSitterResponseDto> dtoList = petSitters.stream()
+                .map(petSitter -> {
+                    PetSitterResponseDto dto = PetSitterResponseDto.fromEntity(petSitter);
+
+                    // 이미지 URL 설정
+                    if (petSitter.getFile() != null) {
+                        String imageUrl = storageService.generatePresignedUrl(petSitter.getFile().getPath());
+                        dto.setImagePath(imageUrl);
+                    }
+
+                    return dto;
+                })
+                .collect(Collectors.toList());
+
+        logger.info("승인된 펫시터 검색 완료: 결과 수={}", dtoList.size());
+
+        return new PageImpl<>(dtoList, pageable, total);
     }
 }

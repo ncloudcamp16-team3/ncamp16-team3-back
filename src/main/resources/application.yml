@@ -11,13 +11,10 @@ spring:
     baseline-on-migrate: true
 
   session:
-    store-type: redis
     redis:
       namespace: spring:session
 
 
-  server:
-    forward-headers-strategy: framework
 
   datasource:
     url: jdbc:mysql://db-33p2cg-kr.vpc-pub-cdb.ntruss.com/tailfriends?serverTimezone=Asia/Seoul&characterEncoding=UTF-8

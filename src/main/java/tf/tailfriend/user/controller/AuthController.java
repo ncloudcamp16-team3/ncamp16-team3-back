@@ -3,6 +3,7 @@ package tf.tailfriend.user.controller;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -44,10 +45,15 @@ public class AuthController {
 
     @GetMapping("/csrf")
     public Map<String, String> getCsrfToken(HttpServletRequest request) {
-        request.getSession(true); // 세션 강제 생성
-        CsrfToken csrfToken = (CsrfToken) request.getAttribute("_csrf"); // 필터가 세팅한 진짜 토큰
-        return Map.of("csrfToken", csrfToken.getToken());
+        HttpSession session = request.getSession(true); // 세션 강제 생성
+        CsrfToken token = (CsrfToken) request.getAttribute("_csrf"); // 필터가 주입한 진짜 토큰
+
+        // ✅ 반드시 setAttribute로 세션에 무언가 저장해야 Redis에 기록됨
+        session.setAttribute("csrf-dummy", "csrf-enabled");
+
+        return Map.of("csrfToken", token.getToken());
     }
+
 
 
 

@@ -96,7 +96,7 @@ public class SecurityConfig {
                 )
                 .exceptionHandling(exception -> exception.authenticationEntryPoint(jwtAuthEntryPoint)); // 인증 실패시 처리
 
-        http.addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
+        http.addFilterAfter(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }

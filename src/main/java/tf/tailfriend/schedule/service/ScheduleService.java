@@ -57,13 +57,6 @@ public class ScheduleService {
 
         scheduleDao.save(schedule);
 
-        NotificationDto notification = new NotificationDto();
-        notification.setUserId(dto.getUserId());
-        notification.setContent("일정이 추가되었습니다."); // 알림 내용
-        notification.setNotifyTypeId(3);
-        notification.setFcmToken(dto.getFcmToken());
-
-        notificationService.sendNotification(notification);
     }
 
     public void putSchedule(SchedulePutDTO dto) {

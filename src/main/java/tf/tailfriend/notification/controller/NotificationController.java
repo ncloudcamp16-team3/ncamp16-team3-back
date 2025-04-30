@@ -13,13 +13,13 @@ import tf.tailfriend.notification.service.NotificationService;
 @RequestMapping("/api/test")
 public class NotificationController {
 
-    private final NotificationService notificationService;
-
-
-    @PostMapping("/push")
-    public ResponseEntity<Void> sendNotification(@RequestBody NotificationDto notificationDto) {
-        notificationService.sendNotification(notificationDto);
-        return ResponseEntity.ok().build(); // 성공적으로 알림 전송
-    }
+//    private final NotificationService notificationService;
+//
+//
+//    @PostMapping("/push")
+//    public ResponseEntity<Void> sendNotification(@RequestBody NotificationDto notificationDto) {
+//        notificationService.sendNotification(notificationDto);
+//        return ResponseEntity.ok().build(); // 성공적으로 알림 전송
+//    }
 
 }

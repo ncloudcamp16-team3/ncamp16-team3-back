@@ -56,7 +56,7 @@ public class SecurityConfig {
                 .formLogin(form -> form.disable()) // 폼 로그인 제거
                 .httpBasic(httpBasic -> httpBasic.disable()) // HTTP Basic 제거
                 .exceptionHandling(exception -> exception.authenticationEntryPoint(jwtAuthEntryPoint))
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         // OAuth2 관련
                         .requestMatchers("/api/oauth2/authorization/**").permitAll()

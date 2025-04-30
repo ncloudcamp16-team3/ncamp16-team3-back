@@ -4,11 +4,13 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import tf.tailfriend.reserve.entity.Reserve;
 import tf.tailfriend.schedule.entity.Schedule;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 public interface ReserveDao extends JpaRepository<Reserve, Integer> {
     List<Reserve> findByUserId(Integer UserId);
 
+    List<Reserve> findByEntryTimeBetween(LocalDateTime now, LocalDateTime tenMinutesLater);
 
 
 }

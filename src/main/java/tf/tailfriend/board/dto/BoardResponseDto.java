@@ -2,16 +2,19 @@ package tf.tailfriend.board.dto;
 
 import lombok.*;
 import tf.tailfriend.board.entity.Board;
+import tf.tailfriend.board.entity.Product;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
+@Setter
 @Getter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@ToString
 public class BoardResponseDto {
 
     private Integer id;
@@ -20,9 +23,14 @@ public class BoardResponseDto {
     private String content;
     private String authorNickname;
     private Integer authorId;
+    private String authorAddress;
+    private String authorProfileImg;
     private LocalDateTime createdAt;
     private Integer likeCount;
     private Integer commentCount;
+    private Integer price;
+    private Boolean sell;
+    private String address;
 
     private String firstImageUrl;
     private List<String> imageUrls = new ArrayList<>();
@@ -58,6 +66,8 @@ public class BoardResponseDto {
                 .content(board.getContent())
                 .authorNickname(board.getUser().getNickname())
                 .authorId(board.getUser().getId())
+                .authorAddress(board.getUser().getAddress())
+                .authorProfileImg(board.getUser().getFile().getPath())
                 .createdAt(board.getCreatedAt())
                 .likeCount(board.getLikeCount())
                 .commentCount(board.getCommentCount())
@@ -71,6 +81,9 @@ public class BoardResponseDto {
                 .title(board.getTitle())
                 .content(board.getContent())
                 .authorNickname(board.getUser().getNickname())
+                .authorId(board.getUser().getId())
+                .authorAddress(board.getUser().getAddress())
+                .authorProfileImg(board.getUser().getFile().getPath())
                 .createdAt(board.getCreatedAt())
                 .likeCount(board.getLikeCount())
                 .commentCount(board.getCommentCount())
@@ -81,8 +94,25 @@ public class BoardResponseDto {
                 .build();
     }
 
-    public static class AuthorDto {
-        private Integer id;
-        private String nickname;
+    public static BoardResponseDto fromProductEntity(Product product) {
+        return BoardResponseDto.builder()
+                .id(product.getBoard().getId())
+                .boardTypeId(product.getBoard().getBoardType().getId())
+                .title(product.getBoard().getTitle())
+                .content(product.getBoard().getContent())
+                .authorNickname(product.getBoard().getUser().getNickname())
+                .authorId(product.getBoard().getUser().getId())
+                .authorAddress(product.getBoard().getUser().getAddress())
+                .authorProfileImg(product.getBoard().getUser().getFile().getPath())
+                .createdAt(product.getBoard().getCreatedAt())
+                .likeCount(product.getBoard().getLikeCount())
+                .commentCount(product.getBoard().getCommentCount())
+                .imageUrls(product.getBoard().getPhotos().stream()
+                        .map(photo -> photo.getFile().getPath())
+                        .collect(Collectors.toList()))
+                .price(product.getPrice())
+                .sell(product.getSell())
+                .address(product.getAddress())
+                .build();
     }
 }

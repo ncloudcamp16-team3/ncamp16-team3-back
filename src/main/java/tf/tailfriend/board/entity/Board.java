@@ -70,8 +70,21 @@ public class Board {
         commentCount++;
     }
 
+
     public Optional<Product> getProduct() {
         return Optional.ofNullable(product);
+
+    public void decreaseCommentCount() {
+        commentCount--;
+    }
+
+    public void increaseLikeCount() {
+        likeCount++;
+    }
+
+    public void decreaseLikeCount() {
+        likeCount--;
+
     }
 }
 

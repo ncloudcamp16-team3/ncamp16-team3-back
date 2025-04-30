@@ -14,4 +14,6 @@ public interface CommentDao extends JpaRepository<Comment, Integer> {
     List<Comment> findByBoardIdOrderByCreatedAtDesc(Integer boardId);
 
     long countByBoardId(Integer boardId);
+
+    List<Comment> findByBoardIdAndParentIdIsNull(Integer boardId);
 }

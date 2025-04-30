@@ -16,9 +16,9 @@ public interface BoardBookmarkDao extends JpaRepository<BoardBookmark, BoardBook
     //사용자 ID와 게시글 ID로 게시글 북마크를 조회
     Optional<BoardBookmark> findByUserIdAndBoardId(Integer userId, Integer boardId);
 
-    // 사용자 ID와 게시판 타입 ID로 게시글 북마크 목록을 조회
-    List<BoardBookmark> findByUserIdAndBoardBoardTypeId(Integer userId, Integer boardTypeId);
-
     // 사용자 ID와 게시글 ID로 게시글 북마크 존재 여부
     boolean existsByUserIdAndBoardId(Integer userId, Integer boardId);
+  
+    Optional<BoardBookmark> findByIdUserIdAndIdBoardPostId(Integer userId, Integer boardPostId);
 }
+

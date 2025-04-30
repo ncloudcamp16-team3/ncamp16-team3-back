@@ -13,10 +13,8 @@ import tf.tailfriend.file.service.FileService;
 import tf.tailfriend.global.service.RedisService;
 import tf.tailfriend.global.service.StorageService;
 import tf.tailfriend.global.service.StorageServiceException;
-import tf.tailfriend.petsta.entity.PetstaBookmark;
-import tf.tailfriend.petsta.entity.PetstaComment;
-import tf.tailfriend.petsta.entity.PetstaLike;
-import tf.tailfriend.petsta.entity.PetstaPost;
+import tf.tailfriend.petsta.entity.*;
+import tf.tailfriend.petsta.entity.dto.MentionDto;
 import tf.tailfriend.petsta.entity.dto.PetstaCommentResponseDto;
 import tf.tailfriend.petsta.entity.dto.PetstaPostResponseDto;
 import tf.tailfriend.petsta.repository.PetstaBookmarkDao;
@@ -230,15 +228,13 @@ public class PetstaPostService {
             petstaBookmarkDao.save(newBookmark);
         }
     }
-
     @Transactional
-    public void addComment(Integer postId, Integer userId, String content, Integer parentId) {
+    public void addComment(Integer postId, Integer userId, String content, Integer parentId, MentionDto mention) {
         PetstaPost post = petstaPostDao.findById(postId)
                 .orElseThrow(() -> new IllegalArgumentException("게시글을 찾을 수 없습니다: " + postId));
 
         User user = userDao.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("회원을 찾을 수 없습니다: " + userId));
-
 
         PetstaComment parent = null;
         if (parentId != null) {
@@ -253,17 +249,30 @@ public class PetstaPostService {
                 .parent(parent)
                 .build();
 
+        // ⬇️ 멘션 있을 경우 저장
+        if (mention != null) {
+            User mentionedUser = userDao.findById(mention.getUserId())
+                    .orElseThrow(() -> new IllegalArgumentException("멘션된 유저를 찾을 수 없습니다: " + mention.getUserId()));
+
+            PetstaCommentMention mentionEntity = PetstaCommentMention.builder()
+                    .comment(comment)
+                    .mentionedUser(mentionedUser)
+                    .mentionedNickname(mention.getNickname())
+                    .build();
+
+            comment.setMention(mentionEntity);
+        }
+
         PetstaComment savedComment = petstaCommentDao.save(comment);
 
-        // 부모 댓글이 있으면, 대댓글 추가 처리
         if (parent != null) {
             parent.addReply(savedComment);
-            petstaCommentDao.save(parent); // replyCount 증가 저장
+            petstaCommentDao.save(parent);
         }
 
         petstaPostDao.incrementCommentCount(postId);
-
     }
+
 
     @Transactional
     public List<PetstaCommentResponseDto> getParentCommentsByPostId(Integer currentId, Integer postId) {
@@ -272,9 +281,19 @@ public class PetstaPostService {
 
         return petstaCommentDao.findByPostAndParentIsNullOrderByCreatedAtDesc(post)
                 .stream()
+                .filter(comment -> !(comment.isDeleted() && comment.getReplyCount() == 0)) // 🔥 필터 조건
                 .map(comment -> {
                     Integer commentUserId = comment.getUser().getId();
-                    boolean isVisited = redisService.hasVisitedStory(commentUserId, currentId); // ✅ 방문 여부 조회
+                    boolean isVisited = redisService.hasVisitedStory(commentUserId, currentId);
+
+                    PetstaCommentMention mention = comment.getMention();
+                    MentionDto mentionDto = null;
+                    if (mention != null) {
+                        mentionDto = new MentionDto(
+                                mention.getMentionedUser().getId(),
+                                mention.getMentionedNickname()
+                        );
+                    }
 
                     return new PetstaCommentResponseDto(
                             comment.getId(),
@@ -285,10 +304,13 @@ public class PetstaPostService {
                             comment.getCreatedAt(),
                             null,
                             comment.getReplyCount(),
-                            isVisited
+                            isVisited,
+                            mentionDto,
+                            comment.isDeleted() // 🔥 포함
                     );
                 })
                 .collect(Collectors.toList());
+
     }
 
 
@@ -299,9 +321,19 @@ public class PetstaPostService {
 
         return petstaCommentDao.findByParentOrderByCreatedAtAsc(parentComment)
                 .stream()
+                .filter(reply -> !(reply.isDeleted() && reply.getReplyCount() == 0)) // 🔥 동일 필터
                 .map(reply -> {
                     Integer replyUserId = reply.getUser().getId();
                     boolean isVisited = redisService.hasVisitedStory(replyUserId, currentUserId);
+
+                    PetstaCommentMention mention = reply.getMention();
+                    MentionDto mentionDto = null;
+                    if (mention != null) {
+                        mentionDto = new MentionDto(
+                                mention.getMentionedUser().getId(),
+                                mention.getMentionedNickname()
+                        );
+                    }
 
                     return new PetstaCommentResponseDto(
                             reply.getId(),
@@ -312,14 +344,39 @@ public class PetstaPostService {
                             reply.getCreatedAt(),
                             reply.getParent().getId(),
                             reply.getReplyCount(),
-                            isVisited // 🔄 이제 동적으로 처리
+                            isVisited,
+                            mentionDto,
+                            reply.isDeleted() // 🔥 추가
                     );
                 })
                 .collect(Collectors.toList());
     }
 
 
+    @Transactional
+    public void deleteComment(Integer userId, Integer commentId) {
+        PetstaComment comment = petstaCommentDao.findById(commentId)
+                .orElseThrow(() -> new IllegalArgumentException("댓글을 찾을 수 없습니다: " + commentId));
 
+        if (!comment.getUser().getId().equals(userId)) {
+            throw new SecurityException("자신의 댓글만 삭제할 수 있습니다.");
+        }
+
+        comment.markAsDeleted(); // 삭제 표시
+
+        // 부모 댓글이면 replyCount 감소
+        if (comment.getParent() != null) {
+            PetstaComment parent = comment.getParent();
+            parent.setReplyCount(parent.getReplyCount() - 1);
+            petstaCommentDao.save(parent);
+        }
+
+        // 포스트 전체 댓글 수 감소
+        petstaPostDao.decrementCommentCount(comment.getPost().getId());
+
+        // 삭제된 댓글 저장
+        petstaCommentDao.save(comment);
+    }
 
 
 }

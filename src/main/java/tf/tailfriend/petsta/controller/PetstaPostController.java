@@ -113,10 +113,21 @@ public class PetstaPostController {
                 postId,
                 userPrincipal.getUserId(),
                 requestDto.getContent(),
-                requestDto.getParentId()
+                requestDto.getParentId(),
+                requestDto.getMention() // 🔥 mention 전달!
         );
         return ResponseEntity.ok("댓글이 성공적으로 작성되었습니다.");
     }
+
+    @DeleteMapping("/comment/{commentId}")
+    public ResponseEntity<Void> deleteComment(
+            @AuthenticationPrincipal UserPrincipal userPrincipal,
+            @PathVariable Integer commentId
+    ) {
+        petstaPostService.deleteComment(userPrincipal.getUserId(), commentId);
+        return ResponseEntity.noContent().build(); // 204 No Content
+    }
+
 
     @GetMapping("/{postId}/comments")
     public ResponseEntity<List<PetstaCommentResponseDto>> getParentComments(
@@ -134,7 +145,7 @@ public class PetstaPostController {
             @PathVariable Integer commentId
     ) {
         int currentId = userPrincipal.getUserId();
-        List<PetstaCommentResponseDto> parentComments = petstaPostService.getReplyCommentsByCommentId(currentId,commentId);
+        List<PetstaCommentResponseDto> parentComments = petstaPostService.getReplyCommentsByCommentId(commentId,currentId);
         return ResponseEntity.ok(parentComments);
     }
 

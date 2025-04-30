@@ -5,17 +5,13 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import tf.tailfriend.notification.entity.UserFcm;
-import tf.tailfriend.notification.entity.dto.NotificationDto;
-import tf.tailfriend.notification.service.NotificationService;
+
 import tf.tailfriend.schedule.entity.Schedule;
 import tf.tailfriend.schedule.entity.dto.ScheduleDTO.*;
 import tf.tailfriend.schedule.repository.ScheduleDao;
 import tf.tailfriend.user.entity.User;
 import tf.tailfriend.user.repository.UserDao;
 
-import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.List;
 
 import java.util.stream.Collectors;

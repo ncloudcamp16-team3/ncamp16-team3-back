@@ -14,6 +14,10 @@ import tf.tailfriend.file.entity.File;
 import tf.tailfriend.file.service.FileService;
 import tf.tailfriend.global.service.StorageService;
 import tf.tailfriend.global.service.StorageServiceException;
+import tf.tailfriend.notification.scheduler.NotificationScheduler;
+import tf.tailfriend.reserve.entity.Reserve;
+import tf.tailfriend.user.entity.User;
+import tf.tailfriend.user.repository.UserDao;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -28,6 +32,8 @@ public class AnnounceService {
     private final AnnounceDao announceDao;
     private final FileService fileService;
     private final StorageService storageService;
+    private final NotificationScheduler notificationScheduler;
+    private final UserDao userDao;
 
     @Transactional
     public Announce createAnnounce(String title, String content, BoardType boardType, List<MultipartFile> images) {
@@ -82,7 +88,9 @@ public class AnnounceService {
             }
         }
 
+
         return announceDao.save(announce);
+
     }
 
     @Transactional(readOnly = true)

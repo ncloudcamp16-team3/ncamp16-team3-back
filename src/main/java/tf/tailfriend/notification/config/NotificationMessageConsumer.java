@@ -32,19 +32,18 @@ public class NotificationMessageConsumer {
     private final UserDao userDao;
     private final NotificationDao notificationDao;
     private final NotificationTypeDao notificationTypeDao;
-    private final FirebaseService firebaseService; // FCM 발송용 서비스 주입
     private final NotificationService notificationService;
 
-    private final Set<String> processedMessageIds = new HashSet<>()
+
 
     @RabbitListener(queues = RabbitConfig.QUEUE_NAME)
     public void receiveMessage(NotificationDto message) {
 
+        String messageId = message.getMessageId();
 
-
-        if (processedMessageIds.contains(messageId)) {
-            log.info("Message with ID {} has already been processed. Skipping.", messageId);
-            return;
+        if (notificationDao.existsByMessageId(messageId)) {
+            log.info("이미 처리된 메시지 ID입니다. 수신을 건너뜁니다. 메시지 ID: {}", messageId);
+            return;  // 중복 메시지라면 전송하지 않음
         }
 
         try {
@@ -59,6 +58,7 @@ public class NotificationMessageConsumer {
                     .notificationType(notificationType)
                     .content(message.getContent())
                     .readStatus(false)
+                    .messageId(messageId)
                     .build();
             notificationDao.save(notification);
 

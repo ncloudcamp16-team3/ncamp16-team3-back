@@ -13,10 +13,17 @@ import tf.tailfriend.board.entity.BoardType;
 import tf.tailfriend.board.service.BoardTypeService;
 import tf.tailfriend.file.entity.File;
 import tf.tailfriend.file.service.FileService;
+import tf.tailfriend.notification.entity.UserFcm;
+import tf.tailfriend.notification.repository.UserFcmDao;
+import tf.tailfriend.notification.scheduler.NotificationScheduler;
+import tf.tailfriend.user.entity.User;
+import tf.tailfriend.user.repository.UserDao;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/admin")
@@ -26,6 +33,9 @@ public class AdminAnnounceController {
 
     private final BoardTypeService boardTypeService;
     private final AnnounceService announceService;
+    private final UserDao userDao;
+    private final NotificationScheduler notificationScheduler;
+    private final UserFcmDao userFcmDao;
 
     @PostMapping("/announce/post")
     public ResponseEntity<?> createAnnounce(
@@ -42,7 +52,26 @@ public class AdminAnnounceController {
                         .body(Map.of("message", "유효하지 않은 게시판 타입입니다"));
             }
 
-            announceService.createAnnounce(title, content, boardType, images);
+            // 알람 전송을 위한 객체 저장
+            Announce announce=announceService.createAnnounce(title, content, boardType, images);
+
+            // 공지 작성시 fcm 토큰 있는 유저만 웹푸시 보냄
+            List<UserFcm> userFcmtokens = userFcmDao.findAll();
+
+            for (UserFcm userFcm : userFcmtokens) {
+                Integer userId = userFcm.getUserId(); 
+                notificationScheduler.sendNotificationAndSaveLog(
+                        userId,
+                        6,
+                        String.valueOf(announce.getId()),
+                        announce.getCreatedAt(),
+                        "📌 공지 알림 전송 완료: 제목={}, 내용={}",
+                        announce.getTitle(),
+                        announce.getContent(),
+                        "❌ 공지 알림 전송 실패: announceId=" + announce.getId()
+                );
+            }
+            //
 
             return ResponseEntity.status(HttpStatus.CREATED)
                     .body(Map.of("message", "공지사항이 성공적으로 등록되었습니다"));

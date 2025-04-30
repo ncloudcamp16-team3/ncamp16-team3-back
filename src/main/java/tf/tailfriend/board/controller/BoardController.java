@@ -12,17 +12,29 @@ import org.springframework.web.bind.annotation.*;
 import tf.tailfriend.board.dto.BoardResponseDto;
 import tf.tailfriend.board.dto.CommentRequestDto;
 import tf.tailfriend.board.dto.SearchRequestDto;
+import tf.tailfriend.board.entity.Board;
+import tf.tailfriend.board.entity.Comment;
 import tf.tailfriend.board.exception.GetBoardStatusException;
 import tf.tailfriend.board.exception.GetBoardTypeException;
 import tf.tailfriend.board.exception.GetPostException;
 import tf.tailfriend.board.exception.SearchPostException;
+import tf.tailfriend.board.repository.BoardDao;
 import tf.tailfriend.board.service.BoardService;
 import tf.tailfriend.board.service.BoardTypeService;
 import tf.tailfriend.board.service.CommentService;
 import tf.tailfriend.global.config.UserPrincipal;
 import tf.tailfriend.global.exception.CustomException;
 import tf.tailfriend.global.response.CustomResponse;
+import tf.tailfriend.notification.entity.UserFcm;
+import tf.tailfriend.notification.repository.UserFcmDao;
+import tf.tailfriend.notification.scheduler.NotificationScheduler;
+import tf.tailfriend.user.entity.User;
 import tf.tailfriend.user.exception.UnauthorizedException;
+import tf.tailfriend.user.service.UserService;
+
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 import static tf.tailfriend.board.message.SuccessMessage.*;
 import static tf.tailfriend.user.message.ErrorMessage.UNAUTHORIZED_ACCESS_ERROR;
@@ -36,6 +48,9 @@ public class BoardController {
     private final BoardService boardService;
     private final BoardTypeService boardTypeService;
     private final CommentService commentService;
+    private final NotificationScheduler notificationScheduler;
+    private final UserFcmDao userFcmDao;
+    private final BoardDao boardDao;
 
     @GetMapping("/detail/{postId}")
     public ResponseEntity<?> getBoardDetail(@PathVariable Integer postId) {
@@ -166,8 +181,43 @@ public class BoardController {
         log.info("\n댓글 요청 Dto {}", commentRequestDto);
 
         try {
-            commentService.addComment(commentRequestDto.getComment(),
+            Comment comment=commentService.addComment(commentRequestDto.getComment(),
                     commentRequestDto.getBoardId(), commentRequestDto.getUserId(), commentRequestDto.getCommentId());
+
+            Board board = boardDao.getBoardById(commentRequestDto.getBoardId());
+            Integer postOwnerId = board.getUser().getId(); // 게시글 작성자 ID
+
+            // 대댓글일 경우, 부모 댓글 작성자도 조회
+            Integer parentCommentWriterId = null;
+            if (comment.getParent() != null) {
+                parentCommentWriterId = comment.getParent().getUser().getId(); // 상위 댓글 작성자 ID
+            }
+
+            Set<Integer> targetUserIds = new HashSet<>();
+
+            // 게시글 작성자에게 알림
+            if (!postOwnerId.equals(comment.getUser().getId())) {
+                targetUserIds.add(postOwnerId);
+            }
+
+            // 대댓글이라면, 부모 댓글 작성자에게도 알림 (단, 중복 및 본인 제외)
+            if (parentCommentWriterId != null && !parentCommentWriterId.equals(comment.getUser().getId())) {
+                targetUserIds.add(parentCommentWriterId);
+            }
+
+            for (Integer userId : targetUserIds) {
+                notificationScheduler.sendNotificationAndSaveLog(
+                        userId,
+                        1, // 댓글 알림 타입 예시
+                        String.valueOf(comment.getId()),
+                        comment.getCreatedAt(),
+                        "💬 댓글 알림 전송 완료: 게시글 제목={}, 댓글={}",
+                        comment.getBoard().getTitle(),
+                        comment.getContent(),
+                        "❌ 댓글 알림 전송 실패: commentId=" + comment.getId()
+                );
+            }
+
             return ResponseEntity.status(HttpStatus.OK)
                     .body(new CustomResponse("댓글 저장에 성공하였습니다", null));
         } catch (Exception e) {

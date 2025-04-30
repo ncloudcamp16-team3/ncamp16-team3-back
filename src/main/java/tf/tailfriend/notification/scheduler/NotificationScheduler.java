@@ -23,7 +23,9 @@ import tf.tailfriend.user.entity.User;
 import tf.tailfriend.user.repository.UserDao;
 
 import java.time.LocalDateTime;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @Slf4j
 @Component
@@ -32,12 +34,10 @@ public class NotificationScheduler {
 
     private final ScheduleDao scheduleDao;
     private final ReserveDao reserveDao;
-    private final NotificationService notificationService;
     private final NotificationDao notificationDao;
-    private final UserDao userDao;
-    private final NotificationTypeDao notificationTypeDao;
     private final NotificationMessageProducer NotificationMessageProducer;
     private final UserFcmDao userFcmDao;
+
 
     @PostConstruct
     public void init() {
@@ -69,6 +69,7 @@ public class NotificationScheduler {
                     reserve.getUser().getId(),
                     3,
                     String.valueOf(reserve.getId()),
+                    reserve.getEntryTime(),
                     "📌 예약 알림 전송 완료: userId={}, 시설명={}",
                     reserve.getUser().getId(),
                     reserve.getFacility().getName(),
@@ -91,6 +92,7 @@ public class NotificationScheduler {
                     schedule.getUser().getId(),
                     4,
                     String.valueOf(schedule.getId()),
+                    schedule.getStartDate(),
                     "📅 일정 알림 전송 및 저장 완료: userId={}, 일정명={}",
                     schedule.getUser().getId(),
                     schedule.getTitle(),
@@ -99,41 +101,44 @@ public class NotificationScheduler {
         }
     }
 
-    private void sendNotificationAndSaveLog(Integer userId, Integer notifyTypeId, String content,
+    private String generateMessageId(Integer userId, Integer notifyTypeId, String content, LocalDateTime scheduleStartDate) {
+        // 예시로 userId, notifyTypeId, content를 조합하여 messageId를 생성
+        return String.format("%d-%d-%d-%s", userId, notifyTypeId, content.hashCode(), scheduleStartDate.toString());
+    }
+
+    public void sendNotificationAndSaveLog(Integer userId, Integer notifyTypeId, String content, LocalDateTime scheduleStartDate,
                                             String successLogFormat, Object arg1, Object arg2, String errorLogMsg) {
+
         try {
             log.debug("🔍 알림 전송 로직 시작: userId={}, notifyTypeId={}, content={}", userId, notifyTypeId, content);
 
             // 1. FCM 토큰 조회
-            UserFcm userFcm = userFcmDao.findByUserId(userId).orElseThrow();
+            UserFcm userFcm = userFcmDao.findByUserId(userId)
+                    .orElseThrow(() -> new IllegalStateException("FCM 토큰을 찾을 수 없습니다: userId=" + userId));
             log.debug("📱 FCM 토큰 조회 성공: fcmToken={}", userFcm.getFcmToken());
 
-            // 2. DTO 생성 및 RabbitMQ 전송
+            // 2. 메세지 ID 생성
+            String messageId = generateMessageId(userId, notifyTypeId, content, scheduleStartDate); // messageId 생성 로직
+
+
+            if (notificationDao.existsByMessageId(messageId)) {
+                log.info("이미 처리된 메시지 ID입니다. 전송을 건너뜁니다. 메시지 ID: {}", messageId);
+                return;  // 중복 메시지라면 전송하지 않음
+            }
+
+            // 3. DTO 생성 및 RabbitMQ 전송
             NotificationDto dto = NotificationDto.builder()
                     .userId(userId)
                     .notifyTypeId(notifyTypeId)
                     .content(content)
                     .fcmToken(userFcm.getFcmToken())
+                    .messageId(messageId)  // messageId 포함
                     .build();
 
             log.debug("📦 RabbitMQ 전송 전 DTO: {}", dto);
             NotificationMessageProducer.sendNotification(dto);
             log.info("🚀 RabbitMQ 전송 완료");
 
-            // 3. DB 저장
-            User user = userDao.findById(userId).orElseThrow();
-            NotificationType type = notificationTypeDao.findById(notifyTypeId).orElseThrow();
-
-            Notification notification = Notification.builder()
-                    .user(user)
-                    .notificationType(type)
-                    .content(content)
-                    .readStatus(false)
-                    .build();
-
-            log.debug("📝 DB 저장 전 Notification 객체: {}", notification);
-            notificationDao.save(notification);
-            log.info("💾 알림 DB 저장 완료");
 
             // 4. 완료 로그
             log.info(successLogFormat, arg1, arg2);
@@ -141,6 +146,4 @@ public class NotificationScheduler {
             log.error(errorLogMsg, e);
         }
     }
-
-
 }

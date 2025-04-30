@@ -138,7 +138,7 @@ public class PetstaPostController {
         );
 
         // 게시글 및 작성자 정보 조회
-        PetstaPost petstaPost = petstaPostDao.getPetstaPostById(petstaComment.getId());
+        PetstaPost petstaPost = petstaPostDao.getPetstaPostById(postId);
         Integer postOwnerId = petstaPost.getUser().getId();
         Integer commentWriterId = petstaComment.getUser().getId();
 
@@ -163,7 +163,7 @@ public class PetstaPostController {
             notificationScheduler.sendNotificationAndSaveLog(
                     userId,
                     2, // 댓글 알림 타입
-                    String.valueOf(petstaPost.getId()),
+                    String.valueOf(petstaComment.getId()),
                     petstaComment.getCreatedAt(),
                     "💬 펫스타 댓글 알림 전송 완료: 작성 유저 닉네임={}, 댓글내용={}",
                     petstaComment.getUser().getNickname(),

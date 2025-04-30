@@ -9,6 +9,7 @@ import tf.tailfriend.user.entity.User;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 @Entity
 @Table(name = "boards")
@@ -50,6 +51,9 @@ public class Board {
     @Builder.Default
     private List<BoardPhoto> photos = new ArrayList<>();
 
+    @OneToOne(mappedBy = "board", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private Product product;
+
     public void addPhoto(File file) {
         BoardPhoto photo = BoardPhoto.builder()
                 .board(this)
@@ -65,4 +69,9 @@ public class Board {
     public void increaseCommentCount() {
         commentCount++;
     }
+
+    public Optional<Product> getProduct() {
+        return Optional.ofNullable(product);
+    }
 }
+

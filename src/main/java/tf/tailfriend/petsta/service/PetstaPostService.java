@@ -17,6 +17,7 @@ import tf.tailfriend.petsta.entity.*;
 import tf.tailfriend.petsta.entity.dto.MentionDto;
 import tf.tailfriend.petsta.entity.dto.PetstaCommentResponseDto;
 import tf.tailfriend.petsta.entity.dto.PetstaPostResponseDto;
+import tf.tailfriend.petsta.exception.PostNotFoundException;
 import tf.tailfriend.petsta.repository.PetstaBookmarkDao;
 import tf.tailfriend.petsta.repository.PetstaCommentDao;
 import tf.tailfriend.petsta.repository.PetstaLikeDao;
@@ -27,6 +28,7 @@ import tf.tailfriend.user.repository.UserFollowDao;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.AccessDeniedException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
@@ -130,61 +132,65 @@ public class PetstaPostService {
     @Transactional
     public List<PetstaPostResponseDto> getAllPosts(Integer loginUserId, int page, int size) {
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
-        List<PetstaPost> posts = petstaPostDao.findAllByOrderByCreatedAtDesc(pageable).getContent();
 
+        // 🔥 삭제되지 않은 게시글만 가져옴
+        List<PetstaPost> posts = petstaPostDao.findAllByDeletedFalseOrderByCreatedAtDesc(pageable).getContent();
 
         return posts.stream()
                 .map(post -> {
                     boolean initialLiked = petstaLikeDao.existsByUserIdAndPetstaPostId(loginUserId, post.getId());
                     boolean initialBookmarked = petstaBookmarkDao.existsByUserIdAndPetstaPostId(loginUserId, post.getId());
                     boolean initialFollowed = userFollowDao.existsByFollowerIdAndFollowedId(loginUserId, post.getUser().getId());
-                    boolean isVisited = redisService.hasVisitedStory(post.getUser().getId(), loginUserId); // ✅ 방문 여부 조회
-
+                    boolean isVisited = redisService.hasVisitedStory(post.getUser().getId(), loginUserId);
 
                     PetstaPostResponseDto dto = new PetstaPostResponseDto(post, initialLiked, initialBookmarked, initialFollowed, isVisited);
 
-                    // 게시글 파일 URL
+                    // 파일 presigned URL
                     String fileUrl = storageService.generatePresignedUrl(post.getFile().getPath());
                     dto.setFileName(fileUrl);
 
-                    // 글쓴이(유저) 정보
+                    // 작성자 프로필 사진 presigned URL
                     User writer = post.getUser();
-
                     String userPhotoUrl = storageService.generatePresignedUrl(writer.getFile().getPath());
                     dto.setUserPhoto(userPhotoUrl);
-                    System.out.println(userPhotoUrl);
 
                     return dto;
                 })
-
                 .collect(Collectors.toList());
     }
 
+
     @Transactional
     public PetstaPostResponseDto getPostById(Integer loginUserId, Integer postId) {
-        // 1. postId로 게시글 조회
-        PetstaPost post = petstaPostDao.findById(postId)
-                .orElseThrow(() -> new EntityNotFoundException("해당 게시글을 찾을 수 없습니다."));
+        PetstaPost post = petstaPostDao.findByIdAndDeletedFalse(postId)
+                .orElseThrow(PostNotFoundException::new);
 
-        // 2. 좋아요, 북마크 여부 조회
         boolean initialLiked = petstaLikeDao.existsByUserIdAndPetstaPostId(loginUserId, post.getId());
         boolean initialBookmarked = petstaBookmarkDao.existsByUserIdAndPetstaPostId(loginUserId, post.getId());
         boolean initialFollowed = userFollowDao.existsByFollowerIdAndFollowedId(loginUserId, post.getUser().getId());
 
-        // 3. DTO 생성
         PetstaPostResponseDto dto = new PetstaPostResponseDto(post, initialLiked, initialBookmarked, initialFollowed, true);
 
-        // 4. 게시글 파일 presigned URL 생성
         String fileUrl = storageService.generatePresignedUrl(post.getFile().getPath());
         dto.setFileName(fileUrl);
 
-        // 5. 글쓴이 프로필사진 presigned URL 생성
-        User writer = post.getUser();
-
-        String userPhotoUrl = storageService.generatePresignedUrl(writer.getFile().getPath());
+        String userPhotoUrl = storageService.generatePresignedUrl(post.getUser().getFile().getPath());
         dto.setUserPhoto(userPhotoUrl);
 
         return dto;
+    }
+
+    @Transactional
+    public void updatePostContent(Integer userId, Integer postId, String newContent) throws AccessDeniedException {
+        PetstaPost post = petstaPostDao.findByIdAndDeletedFalse(postId)
+                .orElseThrow(() -> new PostNotFoundException());
+
+        if (!post.getUser().getId().equals(userId)) {
+            throw new AccessDeniedException("해당 게시글을 수정할 권한이 없습니다.");
+        }
+
+        post.setContent(newContent);
+        // 엔티티 변경 감지 → 자동 flush
     }
 
 
@@ -376,6 +382,21 @@ public class PetstaPostService {
 
         // 삭제된 댓글 저장
         petstaCommentDao.save(comment);
+    }
+
+    @Transactional
+    public void deletePost(Integer userId, Integer postId) {
+        PetstaPost post = petstaPostDao.findById(postId)
+                .orElseThrow(() -> new IllegalArgumentException("게시물을 찾을 수 없습니다: " + postId));
+
+        if (!post.getUser().getId().equals(userId)) {
+            throw new SecurityException("자신의 게시물만 삭제할 수 있습니다.");
+        }
+
+        post.markAsDeleted(); // 삭제 표시
+
+        // 삭제된 댓글 저장
+        petstaPostDao.save(post);
     }
 
 

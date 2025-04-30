@@ -12,6 +12,7 @@ import tf.tailfriend.petsta.service.PetstaPostService;
 import tf.tailfriend.petsta.service.PetstaService;
 
 import java.io.IOException;
+import java.nio.file.AccessDeniedException;
 import java.util.Collections;
 import java.util.List;
 
@@ -52,6 +53,27 @@ public class PetstaPostController {
         return ResponseEntity.ok("업로드 성공");
     }
 
+    @PatchMapping("/{postId}")
+    public ResponseEntity<Void> updatePostContent(
+            @AuthenticationPrincipal UserPrincipal userPrincipal,
+            @PathVariable Integer postId,
+            @RequestBody PostUpdateDto dto
+    ) throws AccessDeniedException {
+        Integer userId = userPrincipal.getUserId();
+        petstaPostService.updatePostContent(userId, postId, dto.getContent());
+        return ResponseEntity.ok().build();
+    }
+
+
+    @DeleteMapping("/{postId}")
+    public ResponseEntity<Void> deletePost(
+            @AuthenticationPrincipal UserPrincipal userPrincipal,
+            @PathVariable Integer postId
+    ) {
+        petstaPostService.deletePost(userPrincipal.getUserId(), postId);
+        return ResponseEntity.noContent().build(); // 204 No Content
+    }
+
     @GetMapping("/lists")
     public ResponseEntity<PetstaMainPageResponseDto> getPostListsAndFollowings(
             @AuthenticationPrincipal UserPrincipal userPrincipal,
@@ -77,8 +99,6 @@ public class PetstaPostController {
             @PathVariable("postId") Integer postId) {
         Integer userId = userPrincipal.getUserId();
         PetstaPostResponseDto post = petstaPostService.getPostById(userId,postId);
-        System.out.println(post);
-        System.out.println("너왜출력을안하냐?");
         return ResponseEntity.ok(post);
     }
 

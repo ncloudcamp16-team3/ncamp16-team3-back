@@ -27,7 +27,6 @@ public class ScheduleService {
 
     private final ScheduleDao scheduleDao;
     private final UserDao userDao;
-    private final NotificationService notificationService;
 
     @Transactional(readOnly = true)
     public List<ScheduleGetDTO> getAllSchedules(Integer userId) {

@@ -20,6 +20,9 @@ import tf.tailfriend.notification.service.NotificationService;
 import tf.tailfriend.user.entity.User;
 import tf.tailfriend.user.repository.UserDao;
 
+import java.util.HashSet;
+import java.util.Set;
+
 
 @Slf4j
 @Service
@@ -32,8 +35,17 @@ public class NotificationMessageConsumer {
     private final FirebaseService firebaseService; // FCM 발송용 서비스 주입
     private final NotificationService notificationService;
 
+    private final Set<String> processedMessageIds = new HashSet<>()
+
     @RabbitListener(queues = RabbitConfig.QUEUE_NAME)
     public void receiveMessage(NotificationDto message) {
+
+
+
+        if (processedMessageIds.contains(messageId)) {
+            log.info("Message with ID {} has already been processed. Skipping.", messageId);
+            return;
+        }
 
         try {
             User user = userDao.findById(message.getUserId())

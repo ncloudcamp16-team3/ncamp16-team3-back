@@ -1,8 +1,10 @@
 package tf.tailfriend.board.dto;
 
 import lombok.*;
+import org.springframework.web.multipart.MultipartFile;
 import tf.tailfriend.board.entity.Board;
 import tf.tailfriend.board.entity.Product;
+import tf.tailfriend.file.entity.File;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -34,6 +36,7 @@ public class BoardResponseDto {
 
     private String firstImageUrl;
     private List<String> imageUrls = new ArrayList<>();
+    private List<PhotoDto> photos = new ArrayList<>();
 
     @Builder.Default
     private List<CommentResponseDto> comments = new ArrayList<>();
@@ -68,6 +71,12 @@ public class BoardResponseDto {
                 .authorId(board.getUser().getId())
                 .authorAddress(board.getUser().getAddress())
                 .authorProfileImg(board.getUser().getFile().getPath())
+                .imageUrls(board.getPhotos().stream()
+                        .map(photo -> photo.getFile().getPath())
+                        .collect(Collectors.toList()))
+                .photos(board.getPhotos().stream()
+                        .map(photo -> new PhotoDto(photo.getFile()))
+                        .collect(Collectors.toList()))
                 .createdAt(board.getCreatedAt())
                 .likeCount(board.getLikeCount())
                 .commentCount(board.getCommentCount())
@@ -90,6 +99,9 @@ public class BoardResponseDto {
                 .imageUrls(board.getPhotos().stream()
                         .map(photo -> photo.getFile().getPath())
                         .collect(Collectors.toList()))
+                .photos(board.getPhotos().stream()
+                        .map(photo -> new PhotoDto(photo.getFile()))
+                        .collect(Collectors.toList()))
                 .comments(comments)
                 .build();
     }
@@ -110,9 +122,28 @@ public class BoardResponseDto {
                 .imageUrls(product.getBoard().getPhotos().stream()
                         .map(photo -> photo.getFile().getPath())
                         .collect(Collectors.toList()))
+                .photos(product.getBoard().getPhotos().stream()
+                        .map(photo -> new PhotoDto(photo.getFile()))
+                        .collect(Collectors.toList()))
                 .price(product.getPrice())
                 .sell(product.getSell())
                 .address(product.getAddress())
                 .build();
+    }
+
+    @ToString
+    @Setter
+    @Getter
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class PhotoDto {
+        Integer id;
+        String path;
+
+        public PhotoDto(File file){
+            this.id = file.getId();
+            this.path = file.getPath();
+        }
     }
 }

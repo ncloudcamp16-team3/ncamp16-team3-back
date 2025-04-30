@@ -65,4 +65,16 @@ public class Board {
     public void increaseCommentCount() {
         commentCount++;
     }
+
+    public void decreaseCommentCount() {
+        commentCount--;
+    }
+
+    public void increaseLikeCount() {
+        likeCount++;
+    }
+
+    public void decreaseLikeCount() {
+        likeCount--;
+    }
 }

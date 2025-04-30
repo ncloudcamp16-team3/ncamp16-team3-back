@@ -1,6 +1,8 @@
 package tf.tailfriend.admin.repository;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import tf.tailfriend.admin.entity.Announce;
 import tf.tailfriend.board.entity.BoardType;
 
@@ -25,6 +27,4 @@ public interface AnnounceDao extends JpaRepository<Announce, Integer> {
 
     // 제목 또는 내용으로 공지사항 검색
     List<Announce> findByTitleContainingOrContentContainingOrderByCreatedAtDesc(String titleKeyword, String contentKeyword);
-
-    List<Announce> findByBoardType_Id(Integer boardTypeId);
 }

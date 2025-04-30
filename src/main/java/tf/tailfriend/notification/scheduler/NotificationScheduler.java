@@ -47,7 +47,7 @@ public class NotificationScheduler {
 
 
     @Transactional
-    @Scheduled(fixedRate = 10000) // 1분마다 실행
+    @Scheduled(fixedRate = 60000) // 1분마다 실행
     public void sendScheduledNotifications() {
         LocalDateTime now = LocalDateTime.now();
         LocalDateTime tenMinutesLater = now.plusMinutes(10);

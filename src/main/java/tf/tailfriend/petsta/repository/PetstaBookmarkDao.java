@@ -2,7 +2,6 @@ package tf.tailfriend.petsta.repository;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import tf.tailfriend.petsta.entity.PetstaBookmark;
-import tf.tailfriend.petsta.entity.PetstaLike;
 
 import java.util.List;
 import java.util.Optional;

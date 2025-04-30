@@ -1,7 +1,6 @@
 package tf.tailfriend.user.controller;
 
-import jakarta.servlet.http.Cookie;
-import jakarta.servlet.http.HttpServletRequest;
+
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -11,19 +10,14 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.web.csrf.CsrfToken;
+
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-import tf.tailfriend.global.config.JwtAuthenticationFilter;
 import tf.tailfriend.global.config.JwtTokenProvider;
 import tf.tailfriend.global.config.UserPrincipal;
-import tf.tailfriend.global.service.NCPObjectStorageService;
-import tf.tailfriend.global.service.StorageService;
 import tf.tailfriend.user.entity.User;
-import tf.tailfriend.user.entity.dto.LoginRequestDto;
 import tf.tailfriend.user.entity.dto.RegisterUserDto;
 import tf.tailfriend.user.entity.dto.UserInfoDto;
-import tf.tailfriend.user.repository.UserDao;
 import tf.tailfriend.user.service.AuthService;
 
 import java.time.Duration;

@@ -7,17 +7,16 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import tf.tailfriend.board.dto.BoardResponseDto;
+import tf.tailfriend.board.dto.BoardStatusDto;
 import tf.tailfriend.board.dto.CommentResponseDto;
-import tf.tailfriend.board.entity.Board;
-import tf.tailfriend.board.entity.BoardPhoto;
-import tf.tailfriend.board.entity.BoardType;
-import tf.tailfriend.board.entity.Comment;
-import tf.tailfriend.board.repository.BoardDao;
-import tf.tailfriend.board.repository.BoardTypeDao;
-import tf.tailfriend.board.repository.CommentDao;
+import tf.tailfriend.board.entity.*;
+import tf.tailfriend.board.exception.GetPostException;
+import tf.tailfriend.board.repository.*;
 import tf.tailfriend.file.entity.File;
 import tf.tailfriend.global.service.StorageService;
 import tf.tailfriend.user.entity.User;
+import tf.tailfriend.user.exception.UserException;
+import tf.tailfriend.user.repository.UserDao;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -29,10 +28,14 @@ import java.util.stream.Collectors;
 @Slf4j
 public class BoardService {
 
+    private final UserDao userDao;
     private final BoardDao boardDao;
     private final BoardTypeDao boardTypeDao;
     private final CommentDao commentDao;
     private final StorageService storageService;
+    private final ProductDao productDao;
+    private final BoardBookmarkDao boardBookmarkDao;
+    private final BoardLikeDao boardLikeDao;
 
     @Transactional(readOnly = true)
     public Page<BoardResponseDto> getAllBoards(Pageable pageable) {
@@ -46,7 +49,7 @@ public class BoardService {
         BoardType boardType = boardTypeDao.findById(boardTypeId)
                 .orElseThrow(() -> new IllegalArgumentException("Board type not found"));
 
-        Page<Board> boards = boardDao.findByBoardType(boardType, pageable);
+        Page<Board> boards = boardDao.findByBoardTypeOrderByCreatedAtDesc(boardType, pageable);
         return convertToDtoPage(boards);
     }
 
@@ -55,30 +58,108 @@ public class BoardService {
         BoardType boardType = boardTypeDao.findById(boardTypeId)
                 .orElseThrow(() -> new IllegalArgumentException("Board type not found"));
 
-        Page<Board> boards = boardDao.findByTitleContainingAndBoardType(keyword, boardType, pageable);
+        Page<Board> boards = boardDao.findByTitleContainingAndBoardTypeOrderByCreatedAtDesc(keyword, boardType, pageable);
         return convertToDtoPage(boards);
+    }
+
+    public BoardStatusDto getBoardStatus(Integer userId, Integer boardId) {
+        boolean liked = boardLikeDao.findByIdUserIdAndIdBoardPostId(userId, boardId).isPresent();
+        boolean bookmarked = boardBookmarkDao.findByIdUserIdAndIdBoardPostId(userId, boardId).isPresent();
+
+        return BoardStatusDto.builder()
+                .liked(liked)
+                .bookmarked(bookmarked)
+                .build();
     }
 
     @Transactional(readOnly = true)
     public BoardResponseDto getBoardById(Integer boardId) {
-        Board board = boardDao.findById(boardId)
-                .orElseThrow(() -> new IllegalArgumentException("게시글이 존재하지 않습니다: " + boardId));
+        Optional<Product> usedBoard = productDao.findById(boardId);
 
-        List<Comment> comments = commentDao.findByBoardId(boardId);
-        List<CommentResponseDto> commentDtos = comments.stream()
-                .map(CommentResponseDto::fromEntity)
-                .collect(Collectors.toList());
+        BoardResponseDto boardResponseDto;
+        if(usedBoard.isEmpty()) {
+            Board board = boardDao.findById(boardId)
+                    .orElseThrow(() -> new IllegalArgumentException("게시글이 존재하지 않습니다: " + boardId));
 
-        BoardResponseDto boardResponseDto = BoardResponseDto.fromEntityWithComments(board, commentDtos);
+
+
+            List<Comment> comments = commentDao.findByBoardIdAndParentIdIsNull(boardId);
+            List<CommentResponseDto> commentDtos = comments.stream()
+                    .map(CommentResponseDto::fromEntity)
+                    .collect(Collectors.toList());
+
+            setCommentImgPreSignUrl(commentDtos);
+
+            boardResponseDto = BoardResponseDto.fromEntityWithComments(board, commentDtos);
+
+        } else {
+            boardResponseDto = BoardResponseDto.fromProductEntity(usedBoard.get());
+        }
 
         // 모든 사진의 URL 생성
-        List<String> imageUrls = board.getPhotos().stream()
-                .map(photo -> storageService.generatePresignedUrl(photo.getFile().getPath()))
+        List<String> imageUrls = boardResponseDto.getImageUrls().stream()
+                .map(photo -> storageService.generatePresignedUrl(photo))
                 .collect(Collectors.toList());
 
+        boardResponseDto.setAuthorProfileImg(storageService.generatePresignedUrl(boardResponseDto.getAuthorProfileImg()));
         boardResponseDto.setImageUrls(imageUrls);
 
+        log.info("\n게시판 응답Dto {}", boardResponseDto);
+
         return boardResponseDto;
+    }
+
+    private void setCommentImgPreSignUrl(List<CommentResponseDto> commentDtos) {
+        for(CommentResponseDto commentDto: commentDtos) {
+            commentDto.setAuthorProfileImg(storageService.generatePresignedUrl(commentDto.getAuthorProfileImg()));
+            for(CommentResponseDto child: commentDto.getChildren()) {
+                child.setAuthorProfileImg(storageService.generatePresignedUrl(child.getAuthorProfileImg()));
+            }
+        }
+    }
+
+    @Transactional
+    public void bookmarkAdd(Integer userId, Integer BoardId) {
+        User user = userDao.findById(userId).orElseThrow(() -> new UserException());
+        Board board = boardDao.findById(BoardId).orElseThrow(() -> new GetPostException());
+        BoardBookmark bookmarkEntity = BoardBookmark.of(board, user);
+
+        boardBookmarkDao.save(bookmarkEntity);
+    }
+
+    @Transactional
+    public void bookmarkDelete(Integer userId, Integer BoardId) {
+        User user = userDao.findById(userId).orElseThrow(() -> new UserException());
+        Board board = boardDao.findById(BoardId).orElseThrow(() -> new GetPostException());
+        BoardBookmark bookmarkEntity = BoardBookmark.of(board, user);
+
+        boardBookmarkDao.delete(bookmarkEntity);
+    }
+
+    @Transactional
+    public void likeAdd(Integer userId, Integer BoardId) {
+        User user = userDao.findById(userId).orElseThrow(() -> new UserException());
+        Board board = boardDao.findById(BoardId).orElseThrow(() -> new GetPostException());
+        BoardLike likeEntity = BoardLike.of(user, board);
+
+        board.increaseLikeCount();
+
+        log.info("\n\n\n 증가 후 좋아요 수 {}", board.getLikeCount());
+        boardDao.save(board);
+        boardLikeDao.save(likeEntity);
+    }
+
+    @Transactional
+    public void likeDelete(Integer userId, Integer BoardId) {
+        User user = userDao.findById(userId).orElseThrow(() -> new UserException());
+        Board board = boardDao.findById(BoardId).orElseThrow(() -> new GetPostException());
+        BoardLike likeEntity = BoardLike.of(user, board);
+
+        board.decreaseLikeCount();
+        
+        log.info("\n\n\n 감소 후 좋아요 수 {}", board.getLikeCount());
+        boardDao.save(board);
+        boardLikeDao.delete(likeEntity);
     }
 
     @Transactional(readOnly = true)
@@ -91,7 +172,7 @@ public class BoardService {
                 if (boardTypeId != null) {
                     BoardType boardType = boardTypeDao.findById(boardTypeId)
                             .orElseThrow(() -> new IllegalArgumentException("Invalid board type ID: " + boardTypeId));
-                    boards = boardDao.findByTitleContainingAndBoardType(searchTerm, boardType, pageable);
+                    boards = boardDao.findByTitleContainingAndBoardTypeOrderByCreatedAtDesc(searchTerm, boardType, pageable);
                 } else {
                     boards = boardDao.findByTitleContaining(searchTerm, pageable);
                 }
@@ -191,6 +272,4 @@ public class BoardService {
 //        log.info("boards: {}", boards.getContent());
         return boards.map(this::convertToDto);
     }
-
-
 }

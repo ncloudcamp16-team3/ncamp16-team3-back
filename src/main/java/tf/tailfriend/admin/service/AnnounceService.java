@@ -4,7 +4,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
-import tf.tailfriend.admin.dto.AnnounceResponseDto;
 import tf.tailfriend.admin.entity.Announce;
 import tf.tailfriend.admin.entity.AnnouncePhoto;
 import tf.tailfriend.admin.repository.AnnounceDao;
@@ -20,6 +19,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -88,7 +88,7 @@ public class AnnounceService {
     @Transactional(readOnly = true)
     public List<AnnounceDto> getAnnounces(Integer boardTypeId) {
 
-        List<Announce> announces = announceDao.findByBoardType_Id(boardTypeId);
+        List<Announce> announces = announceDao.findByBoardTypeIdOrderByCreatedAtDesc(boardTypeId);
         List<AnnounceDto> announceDtos = new ArrayList<>();
 
         for(Announce item: announces) {
@@ -103,8 +103,19 @@ public class AnnounceService {
 
         Announce announce = announceDao.findById(announceId)
                 .orElseThrow(() -> new GetAnnounceDetailException());
-        AnnounceDto.fromEntity(announce);
+        AnnounceDto responseAnnounceDto = AnnounceDto.fromEntity(announce);
 
-        return AnnounceDto.fromEntity(announce);
+        if(!responseAnnounceDto.getPhotos().isEmpty()) {
+            responseAnnounceDto.setPhotos(makePresignedPath(responseAnnounceDto.getPhotos()));
+        }
+
+        return responseAnnounceDto;
+    }
+
+    private List<String> makePresignedPath(List<String> paths) {
+
+        return paths.stream()
+                .map(path -> storageService.generatePresignedUrl(path))
+                .collect(Collectors.toList());
     }
 }

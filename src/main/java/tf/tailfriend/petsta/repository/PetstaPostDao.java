@@ -29,4 +29,6 @@ public interface PetstaPostDao extends JpaRepository<PetstaPost, Integer> {
     void incrementCommentCount(@Param("id") Integer postId);
 
     List<PetstaPost> findByUserIdOrderByCreatedAtDesc(Integer userId);
+
+    PetstaPost getPetstaPostById(Integer postId);
 }

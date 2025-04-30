@@ -266,6 +266,40 @@ public class PetstaPostService {
     }
 
     @Transactional
+    public PetstaComment addCommententity(Integer postId, Integer userId, String content, Integer parentId) {
+        PetstaPost post = petstaPostDao.findById(postId)
+                .orElseThrow(() -> new IllegalArgumentException("게시글을 찾을 수 없습니다: " + postId));
+
+        User user = userDao.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("회원을 찾을 수 없습니다: " + userId));
+
+        PetstaComment parent = null;
+        if (parentId != null) {
+            parent = petstaCommentDao.findById(parentId)
+                    .orElseThrow(() -> new IllegalArgumentException("부모 댓글을 찾을 수 없습니다: " + parentId));
+        }
+
+        PetstaComment comment = PetstaComment.builder()
+                .post(post)
+                .user(user)
+                .content(content)
+                .parent(parent)
+                .build();
+
+        PetstaComment savedComment = petstaCommentDao.save(comment);
+
+        if (parent != null) {
+            parent.addReply(savedComment);
+            petstaCommentDao.save(parent);
+        }
+
+        petstaPostDao.incrementCommentCount(postId);
+
+        return savedComment;
+    }
+
+
+    @Transactional
     public List<PetstaCommentResponseDto> getParentCommentsByPostId(Integer currentId, Integer postId) {
         PetstaPost post = petstaPostDao.findById(postId)
                 .orElseThrow(() -> new IllegalArgumentException("게시글을 찾을 수 없습니다: " + postId));

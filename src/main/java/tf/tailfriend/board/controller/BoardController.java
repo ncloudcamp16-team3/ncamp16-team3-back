@@ -49,7 +49,6 @@ public class BoardController {
     private final BoardTypeService boardTypeService;
     private final CommentService commentService;
     private final NotificationScheduler notificationScheduler;
-    private final UserFcmDao userFcmDao;
     private final BoardDao boardDao;
 
     @GetMapping("/detail/{postId}")
@@ -181,34 +180,36 @@ public class BoardController {
         log.info("\n댓글 요청 Dto {}", commentRequestDto);
 
         try {
+            // 댓글 객체로 받기
             Comment comment=commentService.addComment(commentRequestDto.getComment(),
                     commentRequestDto.getBoardId(), commentRequestDto.getUserId(), commentRequestDto.getCommentId());
 
+            // 게시글 정보 조회
             Board board = boardDao.getBoardById(commentRequestDto.getBoardId());
-            Integer postOwnerId = board.getUser().getId(); // 게시글 작성자 ID
+            Integer postOwnerId = board.getUser().getId();
+            Integer commentWriterId = comment.getUser().getId();
 
-            // 대댓글일 경우, 부모 댓글 작성자도 조회
+            // 부모 댓글 작성자 ID 조회 (대댓글일 경우)
             Integer parentCommentWriterId = null;
             if (comment.getParent() != null) {
-                parentCommentWriterId = comment.getParent().getUser().getId(); // 상위 댓글 작성자 ID
+                parentCommentWriterId = comment.getParent().getUser().getId();
             }
-
+            // 알림 대상 유저 식별
             Set<Integer> targetUserIds = new HashSet<>();
-
-            // 게시글 작성자에게 알림
-            if (!postOwnerId.equals(comment.getUser().getId())) {
+            if (!postOwnerId.equals(commentWriterId)) {
                 targetUserIds.add(postOwnerId);
             }
-
-            // 대댓글이라면, 부모 댓글 작성자에게도 알림 (단, 중복 및 본인 제외)
-            if (parentCommentWriterId != null && !parentCommentWriterId.equals(comment.getUser().getId())) {
+            if (parentCommentWriterId != null && !parentCommentWriterId.equals(commentWriterId)) {
                 targetUserIds.add(parentCommentWriterId);
             }
 
+            System.out.println("✅ 알림 대상 유저 ID 목록: " + targetUserIds);
+
+            // 알림 전송
             for (Integer userId : targetUserIds) {
                 notificationScheduler.sendNotificationAndSaveLog(
                         userId,
-                        1, // 댓글 알림 타입 예시
+                        1, // 댓글 알림 타입
                         String.valueOf(comment.getId()),
                         comment.getCreatedAt(),
                         "💬 댓글 알림 전송 완료: 게시글 제목={}, 댓글={}",

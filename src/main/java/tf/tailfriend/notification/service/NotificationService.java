@@ -49,6 +49,7 @@ public class NotificationService {
 
                     try {
                         int contentId = Integer.parseInt(dto.getContent());
+                        System.out.println("컨텐츠아이디 디버깅 : "+contentId);
 
                         switch (dto.getNotifyTypeId()) {
                             case 1 -> {

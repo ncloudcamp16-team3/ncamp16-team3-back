@@ -3,9 +3,13 @@ package tf.tailfriend.chat.service;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import tf.tailfriend.board.entity.Board;
+import tf.tailfriend.board.repository.BoardDao;
 import tf.tailfriend.chat.entity.ChatRoom;
+import tf.tailfriend.chat.entity.TradeMatch;
 import tf.tailfriend.chat.entity.dto.ChatRoomListResponseDto;
 import tf.tailfriend.chat.repository.ChatRoomDao;
+import tf.tailfriend.chat.repository.TradeMatchDao;
 import tf.tailfriend.global.service.StorageService;
 import tf.tailfriend.pet.entity.Pet;
 import tf.tailfriend.pet.entity.PetMatch;
@@ -28,8 +32,10 @@ public class ChatService {
     private final ChatRoomDao chatRoomDao;
     private final UserDao userDao;
     private final PetDao petDao;
+    private final BoardDao boardDao;
     private final PetMatchDao petMatchDao;
     private final StorageService storageService;
+    private final TradeMatchDao tradeMatchDao;
 
     @Transactional
     public String createOrGetRoom(Integer currentUserId, Integer targetUserId) {
@@ -113,6 +119,29 @@ public class ChatService {
                     );
                 })
                 .toList();
+    }
+
+    @Transactional
+    public void checkOrCreateTradeMatch(Integer userId, Integer postId) {
+        if (tradeMatchDao.existsByUserIdAndPostId(userId, postId)) {
+            return;
+        }
+
+        User user = userDao.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자입니다."));
+        Board board = boardDao.findById(postId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 게시글입니다."));
+
+        TradeMatch match = TradeMatch.of(user, board.getId());
+        tradeMatchDao.save(match);
+    }
+
+    /**
+     * 거래 매칭 여부 확인
+     */
+    @Transactional
+    public boolean isTradeMatched(Integer userId, Integer postId) {
+        return tradeMatchDao.existsByUserIdAndPostId(userId, postId);
     }
 
 }

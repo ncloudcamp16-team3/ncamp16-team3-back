@@ -234,8 +234,9 @@ public class PetstaPostService {
             petstaBookmarkDao.save(newBookmark);
         }
     }
+
     @Transactional
-    public void addComment(Integer postId, Integer userId, String content, Integer parentId, MentionDto mention) {
+    public PetstaCommentResponseDto addComment(Integer postId, Integer userId, String content, Integer parentId, MentionDto mention) {
         PetstaPost post = petstaPostDao.findById(postId)
                 .orElseThrow(() -> new IllegalArgumentException("게시글을 찾을 수 없습니다: " + postId));
 
@@ -255,12 +256,13 @@ public class PetstaPostService {
                 .parent(parent)
                 .build();
 
-        // ⬇️ 멘션 있을 경우 저장
+        // ⬇️ 멘션 처리
+        PetstaCommentMention mentionEntity = null;
         if (mention != null) {
             User mentionedUser = userDao.findById(mention.getUserId())
                     .orElseThrow(() -> new IllegalArgumentException("멘션된 유저를 찾을 수 없습니다: " + mention.getUserId()));
 
-            PetstaCommentMention mentionEntity = PetstaCommentMention.builder()
+            mentionEntity = PetstaCommentMention.builder()
                     .comment(comment)
                     .mentionedUser(mentionedUser)
                     .mentionedNickname(mention.getNickname())
@@ -277,7 +279,23 @@ public class PetstaPostService {
         }
 
         petstaPostDao.incrementCommentCount(postId);
+
+        // ✅ 최종 응답 DTO 생성 및 반환
+        return new PetstaCommentResponseDto(
+                savedComment.getId(),
+                savedComment.getContent(),
+                user.getNickname(),
+                user.getId(),
+                storageService.generatePresignedUrl(user.getFile().getPath()),
+                savedComment.getCreatedAt(),
+                parentId,
+                0,
+                true,
+                mention,
+                false
+        );
     }
+
 
 
     @Transactional

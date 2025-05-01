@@ -59,7 +59,7 @@ public class NotificationService {
     private final CommentDao commentDao;
     private final PetstaCommentDao petstaCommentDao;
 
-    @Value("${baseUrl}")
+    @Value("${URL}")
     private String baseUrl;
 
 

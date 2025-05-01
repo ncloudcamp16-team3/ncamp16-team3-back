@@ -23,6 +23,8 @@ public class GetNotifyDto {
     private String content;
     private Boolean readStatus;
     private LocalDateTime createdAt;
+    private String title;
+    private String body;
 
     public GetNotifyDto(Notification notification) {
         this.id = notification.getId();
@@ -31,5 +33,6 @@ public class GetNotifyDto {
         this.content = notification.getContent();
         this.readStatus = notification.getReadStatus();
         this.createdAt = notification.getCreatedAt();
+
     }
 }

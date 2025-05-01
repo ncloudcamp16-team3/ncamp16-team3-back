@@ -134,24 +134,12 @@ public class PetstaPostController {
     }
 
     @PostMapping("/{postId}/add/comment")
-    public ResponseEntity<?> addComment(
     public ResponseEntity<PetstaCommentResponseDto> addComment(
             @AuthenticationPrincipal UserPrincipal userPrincipal,
             @PathVariable Integer postId,
             @RequestBody PetstaCommentRequestDto requestDto
     ) {
 
-            //펫스타 댓글 알림 위해 주석
-
-//        petstaPostService.addComment(
-//                postId,
-//                userPrincipal.getUserId(),
-//                requestDto.getContent(),
-//                requestDto.getParentId()
-//        );
-
-        // 펫스타 댓글 알림
-        PetstaComment petstaComment=petstaPostService.addCommententity(
         PetstaCommentResponseDto responseDto = petstaPostService.addComment(
                 postId,
                 userPrincipal.getUserId(),
@@ -161,12 +149,12 @@ public class PetstaPostController {
         );
 
         try {
-            notificationService.sendPetstaCommentNotification(petstaComment, postId);
+            notificationService.sendPetstaCommentNotification(responseDto, postId);
         } catch (Exception e) {
             System.out.println("펫스타 댓글 알림 전송 실패: "+ e.getMessage());
         }
 
-        return ResponseEntity.ok("댓글이 성공적으로 작성되었습니다.");
+//        return ResponseEntity.ok("댓글이 성공적으로 작성되었습니다.");
         return ResponseEntity.ok(responseDto);
     }
 

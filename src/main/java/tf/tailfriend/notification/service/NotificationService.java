@@ -26,6 +26,7 @@ import tf.tailfriend.notification.repository.UserFcmDao;
 import tf.tailfriend.notification.scheduler.NotificationScheduler;
 import tf.tailfriend.petsta.entity.PetstaComment;
 import tf.tailfriend.petsta.entity.PetstaPost;
+import tf.tailfriend.petsta.entity.dto.PetstaCommentResponseDto;
 import tf.tailfriend.petsta.repository.PetstaCommentDao;
 import tf.tailfriend.petsta.repository.PetstaPostDao;
 import tf.tailfriend.reserve.entity.Reserve;
@@ -55,7 +56,8 @@ public class NotificationService {
     private final PetstaPostDao petstaPostDao;
     private final BoardDao boardDao;
     private final NotificationDao notificationDao;
-
+    private final CommentDao commentDao;
+    private final PetstaCommentDao petstaCommentDao;
 
     @Value("${baseUrl}")
     private String baseUrl;
@@ -174,16 +176,16 @@ public class NotificationService {
         }
     }
 
-    public void sendPetstaCommentNotification(PetstaComment petstaComment, Integer postId) {
+    public void sendPetstaCommentNotification(PetstaCommentResponseDto dto, Integer postId) {
         // 게시글 정보 조회
         PetstaPost petstaPost = petstaPostDao.getPetstaPostById(postId);
         Integer postOwnerId = petstaPost.getUser().getId();
-        Integer commentWriterId = petstaComment.getUser().getId();
+        Integer commentWriterId = dto.getUserId();
 
         // 부모 댓글 작성자 ID 추출
         Integer parentCommentWriterId = null;
-        if (petstaComment.getParent() != null) {
-            parentCommentWriterId = petstaComment.getParent().getUser().getId();
+        if (dto.getParentId() != null) {
+            parentCommentWriterId = dto.getParentId();
         }
 
         // 알림 대상 유저 식별
@@ -202,12 +204,12 @@ public class NotificationService {
             notificationScheduler.sendNotificationAndSaveLog(
                     userId,
                     2, // 댓글 알림 타입
-                    String.valueOf(petstaComment.getId()),
-                    petstaComment.getCreatedAt(),
+                    String.valueOf(dto.getId()),
+                    dto.getCreatedAt(),
                     "💬 펫스타 댓글 알림 전송 완료: 작성 유저 닉네임={}, 댓글내용={}",
-                    petstaComment.getUser().getNickname(),
-                    petstaComment.getContent(),
-                    "❌ 펫스타 댓글 알림 전송 실패: commentId=" + petstaComment.getId()
+                    dto.getUserName(),
+                    dto.getContent(),
+                    "❌ 펫스타 댓글 알림 전송 실패: commentId=" + dto.getId()
             );
         }
     }
@@ -251,11 +253,101 @@ public class NotificationService {
     }
 
 
+//    public List<GetNotifyDto> getNotificationsByUserId(Integer userId) {
+//        return notificationDao.findByUserId(userId).stream()
+//                .map(GetNotifyDto::new)
+//                .collect(Collectors.toList());
+//    }
+
     public List<GetNotifyDto> getNotificationsByUserId(Integer userId) {
-        return notificationDao.findByUserId(userId).stream()
-                .map(GetNotifyDto::new)
+        List<tf.tailfriend.notification.entity.Notification> notifications = notificationDao.findByUserIdOrderByCreatedAtDesc(userId);
+        return notifications.stream()
+                .map(this::getNotificationDetails) // title/body 설정 포함
                 .collect(Collectors.toList());
     }
 
+
+
+    public GetNotifyDto getNotificationDetails(tf.tailfriend.notification.entity.Notification notification) {
+        GetNotifyDto dto = new GetNotifyDto(notification);
+
+        try {
+            switch (dto.getNotificationTypeId()) {
+                case 1 -> {
+                    try {
+                        Comment comment = commentDao.findById(Integer.valueOf(dto.getContent()))
+                                .orElseThrow(() -> new RuntimeException("댓글을 찾을 수 없습니다"));
+                        dto.setTitle("내 게시글에 댓글이 달렸습니다.");
+                        dto.setBody(comment.getContent());
+                    } catch (RuntimeException e) {
+                        // 댓글을 찾을 수 없으면 스킵하고 계속 진행
+                        dto.setTitle("댓글을 찾을 수 없습니다.");
+                        dto.setBody("관련 댓글을 확인할 수 없습니다.");
+                    }
+                }
+                case 2 -> {
+                    try {
+                        PetstaComment petstaComment = petstaCommentDao.findById(Integer.valueOf(dto.getContent()))
+                                .orElseThrow(() -> new RuntimeException("펫스타 댓글을 찾을 수 없습니다"));
+                        dto.setTitle("내 펫스타에 댓글이 달렸습니다.");
+                        dto.setBody(petstaComment.getContent());
+                    } catch (RuntimeException e) {
+                        // 펫스타 댓글을 찾을 수 없으면 스킵하고 계속 진행
+                        dto.setTitle("펫스타 댓글을 찾을 수 없습니다.");
+                        dto.setBody("관련 펫스타 댓글을 확인할 수 없습니다.");
+                    }
+                }
+                case 3 -> {
+                    try {
+                        Reserve reserve = reserveDao.findById(Integer.valueOf(dto.getContent()))
+                                .orElseThrow(() -> new RuntimeException("예약 내역을 찾을 수 없습니다"));
+                        dto.setTitle("오늘은 " + reserve.getFacility().getName() + " 예약이 있습니다.");
+                        dto.setBody("예약 내용을 확인해보세요.");
+                    } catch (RuntimeException e) {
+                        // 예약 내역을 찾을 수 없으면 스킵하고 계속 진행
+                        dto.setTitle("예약 내역을 찾을 수 없습니다.");
+                        dto.setBody("관련 예약을 확인할 수 없습니다.");
+                    }
+                }
+                case 4 -> {
+                    try {
+                        Schedule schedule = scheduleDao.findById(Integer.valueOf(dto.getContent()))
+                                .orElseThrow(() -> new RuntimeException("일정을 찾을 수 없습니다"));
+                        dto.setTitle("오늘은 " + schedule.getTitle() + " 일정이 있습니다.");
+                        dto.setBody("일정 시작: " + schedule.getStartDate());
+                    } catch (RuntimeException e) {
+                        // 일정을 찾을 수 없으면 스킵하고 계속 진행
+                        dto.setTitle("일정을 찾을 수 없습니다.");
+                        dto.setBody("관련 일정을 확인할 수 없습니다.");
+                    }
+                }
+                case 5 -> {
+                    dto.setTitle("새로운 메세지가 왔습니다.");
+                    dto.setBody("채팅 내용을 확인하세요.");
+                }
+                case 6 -> {
+                    try {
+                        Announce announce = announceDao.findById(Integer.valueOf(dto.getContent()))
+                                .orElseThrow(() -> new RuntimeException("공지글을 찾을 수 없습니다"));
+                        dto.setTitle("새로운 공지가 등록되었습니다.");
+                        dto.setBody(announce.getTitle());
+                    } catch (RuntimeException e) {
+                        // 공지글을 찾을 수 없으면 스킵하고 계속 진행
+                        dto.setTitle("공지글을 찾을 수 없습니다.");
+                        dto.setBody("관련 공지글을 확인할 수 없습니다.");
+                    }
+                }
+                default -> {
+                    dto.setTitle("알림 내용이 없습니다.");
+                    dto.setBody("알림 내용을 확인하세요.");
+                }
+            }
+
+        } catch (NumberFormatException e) {
+            dto.setTitle("알림 ID가 올바르지 않습니다.");
+            dto.setBody("내용을 확인할 수 없습니다.");
+        }
+        return dto;
+    }
 
 }

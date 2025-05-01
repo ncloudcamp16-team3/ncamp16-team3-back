@@ -20,8 +20,8 @@ private final NotificationService notificationService;
 
 
     @GetMapping("/user/{userId}")
-    public ResponseEntity<List<GetNotifyDto>> getNotificationsByUserId(@PathVariable Integer userId) {
-        List<GetNotifyDto> notifications = notificationService.getNotificationsByUserId(userId);
-        return ResponseEntity.ok(notifications);
+    public ResponseEntity<List<GetNotifyDto>> getUserNotifications(@PathVariable Integer userId) {
+        List<GetNotifyDto> notifyList = notificationService.getNotificationsByUserId(userId);
+        return ResponseEntity.ok(notifyList);
     }
 }

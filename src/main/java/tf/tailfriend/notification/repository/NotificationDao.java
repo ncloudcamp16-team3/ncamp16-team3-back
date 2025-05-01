@@ -13,4 +13,5 @@ public interface NotificationDao extends JpaRepository<Notification, Integer> {
 
     List<Notification> findByUserId(Integer userId);
 
+    List<Notification> findByUserIdOrderByCreatedAtDesc(Integer userId);
 }

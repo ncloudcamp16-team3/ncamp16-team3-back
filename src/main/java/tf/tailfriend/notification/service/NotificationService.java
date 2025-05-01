@@ -77,7 +77,7 @@ public class NotificationService {
                         System.out.println("컨텐츠아이디 디버깅 : " + contentId);
 
                         // baseUrl에 따라 이미지 URL 분기
-                        String imagePrefix = baseUrl != null && baseUrl.contains("localhost:5173")
+                        String imagePrefix = baseUrl != null && baseUrl.contains("http://localhost:5173")
                                 ? "http://localhost:8080/images"
                                 : "https://tailfriend.kro.kr/images";
 

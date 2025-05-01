@@ -17,4 +17,6 @@ public class PetstaCommentResponseDto {
     private Integer parentId;
     private Integer replyCount;
     private Boolean isVisited;
+    private MentionDto mention;
+    boolean deleted;
 }

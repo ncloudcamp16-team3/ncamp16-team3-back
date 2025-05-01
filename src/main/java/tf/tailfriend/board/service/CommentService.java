@@ -19,18 +19,31 @@ public class CommentService {
     private final UserDao userDao;
 
     @Transactional
-    public Comment addComment(Integer boardId, String content, Integer userId) {
+    public Comment addComment(String content, Integer boardId, Integer userId, Integer refCommentId) {
         Board board = boardDao.findById(boardId)
                 .orElseThrow(() -> new IllegalArgumentException("Board not found"));
 
         User user = userDao.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
-        Comment comment = Comment.builder()
+        Comment.CommentBuilder builder = Comment.builder()
                 .user(user)
                 .board(board)
-                .content(content)
-                .build();
+                .content(content);
+
+        if (refCommentId != null) {
+            Comment refComment = commentDao.findById(refCommentId)
+                    .orElseThrow(() -> new IllegalArgumentException("comment not found"));
+
+            if (refComment.getParent() == null) {
+                builder.parent(refComment); // 직접 답글
+            } else {
+                builder.parent(refComment.getParent())
+                        .refComment(refComment); // 대댓글
+            }
+        }
+
+        Comment comment = builder.build();
 
         Comment savedComment = commentDao.save(comment);
 
@@ -38,5 +51,29 @@ public class CommentService {
         boardDao.save(board);
 
         return savedComment;
+    }
+
+    @Transactional
+    public void updateComment(String content, Integer commentId) {
+        Comment comment = commentDao.findById(commentId)
+                .orElseThrow(() -> new IllegalArgumentException("comment not found"));
+
+        comment.updateContent(content);
+
+        commentDao.save(comment);
+    }
+
+    @Transactional
+    public void deleteComment(Integer commentId) {
+        Comment comment = commentDao.findById(commentId)
+                .orElseThrow(() -> new IllegalArgumentException("comment not found"));
+
+        comment.setDeleted();
+
+        Board board = comment.getBoard();
+        board.decreaseCommentCount();
+        boardDao.save(board);
+
+        commentDao.save(comment);
     }
 }

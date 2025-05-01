@@ -74,4 +74,7 @@ public class PetPhoto {
                 .thumbnail(thumbnail)
                 .build();
     }
+    public void setThumbnail(boolean thumbnail) {
+        this.thumbnail = thumbnail;
+    }
 }

@@ -9,6 +9,7 @@ import lombok.*;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@ToString
 public class Product {
 
     @Id
@@ -16,7 +17,7 @@ public class Product {
     private Integer id;
 
     @MapsId
-    @OneToOne(fetch = FetchType.LAZY)
+    @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
     @JoinColumn(name = "board_id")
     private Board board;
 

@@ -9,4 +9,6 @@ import java.util.List;
 public interface ReserveDao extends JpaRepository<Reserve, Integer> {
     List<Reserve> findByUserId(Integer UserId);
 
+
+
 }

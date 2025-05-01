@@ -2,9 +2,7 @@ package tf.tailfriend.facility.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -15,26 +13,30 @@ import tf.tailfriend.facility.entity.Facility;
 import tf.tailfriend.facility.entity.FacilityPhoto;
 import tf.tailfriend.facility.entity.FacilityTimetable;
 import tf.tailfriend.facility.entity.FacilityType;
-import tf.tailfriend.facility.repository.FacilityDao;
-import tf.tailfriend.facility.repository.FacilityPhotoDao;
-import tf.tailfriend.facility.repository.FacilityTimetableDao;
-import tf.tailfriend.facility.repository.FacilityTypeDao;
+import tf.tailfriend.facility.entity.dto.forReserve.FacilityCardResponseDto;
+import tf.tailfriend.facility.entity.dto.forReserve.FacilityWithDistanceProjection;
+import tf.tailfriend.facility.entity.dto.forReserve.ThumbnailForCardDto;
+import tf.tailfriend.facility.repository.*;
 import tf.tailfriend.file.entity.File;
 import tf.tailfriend.file.repository.FileDao;
 import tf.tailfriend.file.service.FileService;
 import tf.tailfriend.global.service.StorageService;
 import tf.tailfriend.global.service.StorageServiceException;
+import tf.tailfriend.reserve.dto.RequestForFacility.FacilityList;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.sql.Time;
 import java.time.LocalDateTime;
 import java.util.*;
-import java.util.stream.Collectors;
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
 
+
+
+@Slf4j
 @Service
 @RequiredArgsConstructor
-@Slf4j
 public class FacilityService {
 
     private final FacilityDao facilityDao;
@@ -555,5 +557,74 @@ public class FacilityService {
         dto.setOpeningHours(openingHours);
 
         return dto;
+    }
+
+    public Slice<FacilityCardResponseDto> getFacilityCardsForReserve(FacilityList requestDto) {
+        String day = requestDto.getDay();
+        FacilityTimetable.Day dayEnum = FacilityTimetable.Day.valueOf(day.toUpperCase());
+        String category = requestDto.getCategory();
+        double lat = requestDto.getUserLatitude();
+        double lng = requestDto.getUserLongitude();
+        Pageable pageable = PageRequest.of(requestDto.getPage(), requestDto.getSize());
+
+        Slice<FacilityWithDistanceProjection> list;
+        if (requestDto.getSortBy().equals("distance")) {
+            list = facilityDao.findByCategoryWithSortByDistance(lng, lat, category, pageable);
+        } else if (requestDto.getSortBy().equals("starPoint")) {
+            list = facilityDao.findByCategoryWithSortByStarPoint(lng, lat, category, pageable);
+        } else {
+            throw new IllegalArgumentException("유효하지 않은 정렬 기준입니다.");
+        }
+
+        List<Integer> facilityIds = list.getContent().stream()
+                .map(FacilityWithDistanceProjection::getId)
+                .collect(Collectors.toList());
+
+        List<FacilityTimetable> timetables = facilityTimetableDao.findByFacility_IdInAndDay(facilityIds, dayEnum);
+        List<ThumbnailForCardDto> thumbnails = facilityPhotoDao.findThumbnailPathByFacilityIds(facilityIds);
+
+        // Map으로 변환해서 빠르게 찾을 수 있도록
+        Map<Integer, FacilityTimetable> timetableMap = timetables.stream()
+                .collect(Collectors.toMap(t -> t.getFacility().getId(), Function.identity()));
+        Map<Integer, ThumbnailForCardDto> thumbnailMap = thumbnails.stream()
+                .collect(Collectors.toMap(ThumbnailForCardDto::getFacilityId, Function.identity()));
+
+        LocalTime now = LocalTime.now();
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("HH:mm");
+
+        List<FacilityCardResponseDto> mappedList = list.getContent().stream()
+                .map(f -> {
+                    FacilityTimetable timetable = timetableMap.get(f.getId());
+                    ThumbnailForCardDto thumbnail = thumbnailMap.get(f.getId());
+                    boolean isOpened = false;
+                    String openTimeRange = "휴무";
+
+                    if (timetable != null && timetable.getOpenTime() != null && timetable.getCloseTime() != null) {
+                        LocalTime openTime = timetable.getOpenTime().toLocalTime();
+                        LocalTime closeTime = timetable.getCloseTime().toLocalTime();
+                        openTimeRange = openTime.format(formatter) + " - " + closeTime.format(formatter);
+
+                        isOpened = (openTime.isBefore(closeTime))
+                                ? !now.isBefore(openTime) && !now.isAfter(closeTime)
+                                : !now.isBefore(openTime) || !now.isAfter(closeTime);
+                    }
+                    log.info("facilityName: {}, openTime: {}, closeTime: {}, openTimeRange: {}, isOpened: {}, image: {}", f.getName(), timetable != null ? timetable.getOpenTime() : null, timetable != null ? timetable.getCloseTime() : null, openTimeRange, isOpened, thumbnail != null ? storageService.generatePresignedUrl(thumbnail.getPath()) : null);
+
+                    return FacilityCardResponseDto.builder()
+                            .id(f.getId())
+                            .category(f.getCategory())
+                            .name(f.getName())
+                            .rating(f.getStarPoint())
+                            .reviewCount(f.getReviewCount())
+                            .distance(f.getDistance())
+                            .address(f.getAddress())
+                            .openTimeRange(openTimeRange)
+                            .isOpened(isOpened)
+                            .image(thumbnail != null ? storageService.generatePresignedUrl(thumbnail.getPath()) : null)
+                            .build();
+                })
+                .collect(Collectors.toList());
+
+        return new SliceImpl<>(mappedList, list.getPageable(), list.hasNext());
     }
 }

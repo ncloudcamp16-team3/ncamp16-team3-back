@@ -23,6 +23,10 @@ public class Notification {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
+    // 메시지의 고유 식별자
+    @Column(name = "message_id", nullable = false, unique = true)
+    private String messageId;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "notify_type_id", nullable = false)
     private NotificationType notificationType;

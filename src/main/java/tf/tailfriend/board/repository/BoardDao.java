@@ -35,4 +35,5 @@ public interface BoardDao extends JpaRepository<Board, Integer> {
             Pageable pageable);
 
 
+    Board getBoardById(Integer boardId);
 }

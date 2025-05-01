@@ -16,8 +16,12 @@ import tf.tailfriend.notification.entity.dto.NotificationDto;
 import tf.tailfriend.notification.repository.NotificationDao;
 import tf.tailfriend.notification.repository.NotificationTypeDao;
 import tf.tailfriend.notification.service.FirebaseService;
+import tf.tailfriend.notification.service.NotificationService;
 import tf.tailfriend.user.entity.User;
 import tf.tailfriend.user.repository.UserDao;
+
+import java.util.HashSet;
+import java.util.Set;
 
 
 @Slf4j
@@ -28,10 +32,19 @@ public class NotificationMessageConsumer {
     private final UserDao userDao;
     private final NotificationDao notificationDao;
     private final NotificationTypeDao notificationTypeDao;
-    private final FirebaseService firebaseService; // FCM 발송용 서비스 주입
+    private final NotificationService notificationService;
+
+
 
     @RabbitListener(queues = RabbitConfig.QUEUE_NAME)
     public void receiveMessage(NotificationDto message) {
+
+        String messageId = message.getMessageId();
+
+        if (notificationDao.existsByMessageId(messageId)) {
+            log.info("이미 처리된 메시지 ID입니다. 수신을 건너뜁니다. 메시지 ID: {}", messageId);
+            return;  // 중복 메시지라면 전송하지 않음
+        }
 
         try {
             User user = userDao.findById(message.getUserId())
@@ -45,11 +58,12 @@ public class NotificationMessageConsumer {
                     .notificationType(notificationType)
                     .content(message.getContent())
                     .readStatus(false)
+                    .messageId(messageId)
                     .build();
             notificationDao.save(notification);
 
             System.out.println("[RabbitMQ] Notification saved to DB, now sending FCM...");
-            firebaseService.sendPushNotification(message);
+            notificationService.sendNotificationToUser(message);
 
         } catch (Exception e) {
             log.error("[RabbitMQ] Error while processing message", e);

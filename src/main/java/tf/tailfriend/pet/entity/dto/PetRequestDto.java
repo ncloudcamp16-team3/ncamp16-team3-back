@@ -17,4 +17,5 @@ public class PetRequestDto {
     private Boolean isNeutered;
     private Double weight;
     private String introduction;
+    private Integer mainPhotoIndex;
 }

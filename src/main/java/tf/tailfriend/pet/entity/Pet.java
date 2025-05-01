@@ -76,4 +76,19 @@ public class Pet {
         this.info = info;
         this.neutered = neutered;
     }
+
+    public void resetThumbnails() {
+        this.photos.forEach(photo -> photo.setThumbnail(false));
+    }
+
+    public void setThumbnail(int photoIndex) {
+        int idx = 0;
+        for (PetPhoto photo : this.photos) {
+            if (idx == photoIndex) {
+                photo.setThumbnail(true);
+                break;
+            }
+            idx++;
+        }
+    }
 }

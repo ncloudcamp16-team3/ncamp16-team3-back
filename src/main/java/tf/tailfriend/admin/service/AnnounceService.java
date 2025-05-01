@@ -14,11 +14,16 @@ import tf.tailfriend.file.entity.File;
 import tf.tailfriend.file.service.FileService;
 import tf.tailfriend.global.service.StorageService;
 import tf.tailfriend.global.service.StorageServiceException;
+import tf.tailfriend.notification.scheduler.NotificationScheduler;
+import tf.tailfriend.reserve.entity.Reserve;
+import tf.tailfriend.user.entity.User;
+import tf.tailfriend.user.repository.UserDao;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -27,6 +32,8 @@ public class AnnounceService {
     private final AnnounceDao announceDao;
     private final FileService fileService;
     private final StorageService storageService;
+    private final NotificationScheduler notificationScheduler;
+    private final UserDao userDao;
 
     @Transactional
     public Announce createAnnounce(String title, String content, BoardType boardType, List<MultipartFile> images) {
@@ -81,13 +88,15 @@ public class AnnounceService {
             }
         }
 
+
         return announceDao.save(announce);
+
     }
 
     @Transactional(readOnly = true)
     public List<AnnounceDto> getAnnounces(Integer boardTypeId) {
 
-        List<Announce> announces = announceDao.findByBoardType_Id(boardTypeId);
+        List<Announce> announces = announceDao.findByBoardTypeIdOrderByCreatedAtDesc(boardTypeId);
         List<AnnounceDto> announceDtos = new ArrayList<>();
 
         for(Announce item: announces) {
@@ -102,8 +111,19 @@ public class AnnounceService {
 
         Announce announce = announceDao.findById(announceId)
                 .orElseThrow(() -> new GetAnnounceDetailException());
-        AnnounceDto.fromEntity(announce);
+        AnnounceDto responseAnnounceDto = AnnounceDto.fromEntity(announce);
 
-        return AnnounceDto.fromEntity(announce);
+        if(!responseAnnounceDto.getPhotos().isEmpty()) {
+            responseAnnounceDto.setPhotos(makePresignedPath(responseAnnounceDto.getPhotos()));
+        }
+
+        return responseAnnounceDto;
+    }
+
+    private List<String> makePresignedPath(List<String> paths) {
+
+        return paths.stream()
+                .map(path -> storageService.generatePresignedUrl(path))
+                .collect(Collectors.toList());
     }
 }

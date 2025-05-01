@@ -77,4 +77,24 @@ public class Facility {
 
         timetables.add(timetable);
     }
+
+    public void updateInformation(
+            FacilityType facilityType,
+            String name,
+            String tel,
+            String address,
+            String detailAddress,
+            String comment,
+            Double latitude,
+            Double longitude) {
+
+        this.facilityType = facilityType;
+        this.name = name;
+        this.tel = tel;
+        this.address = address;
+        this.detailAddress = detailAddress;
+        this.comment = comment;
+        this.latitude = latitude;
+        this.longitude = longitude;
+    }
 }

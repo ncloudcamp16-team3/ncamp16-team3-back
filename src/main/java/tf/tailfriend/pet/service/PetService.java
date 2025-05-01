@@ -13,6 +13,8 @@ import tf.tailfriend.file.service.FileService;
 import tf.tailfriend.global.entity.Dong;
 import tf.tailfriend.global.repository.DongDao;
 import tf.tailfriend.global.service.NCPObjectStorageService;
+import tf.tailfriend.global.service.StorageService;
+import tf.tailfriend.global.service.StorageServiceException;
 import tf.tailfriend.pet.entity.Pet;
 import tf.tailfriend.pet.entity.PetType;
 import tf.tailfriend.pet.entity.dto.PetDetailResponseDto;
@@ -30,6 +32,8 @@ import tf.tailfriend.user.distance.Distance;
 import tf.tailfriend.user.entity.User;
 import tf.tailfriend.user.repository.UserDao;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -46,6 +50,7 @@ public class PetService {
     private final NCPObjectStorageService ncpObjectStorageService;
     private final PetPhotoDao petPhotoDao;
     private final DongDao dongDao;
+    private final StorageService storageService;
 
     //반려동물 상세조회
     @Transactional(readOnly = true)
@@ -62,7 +67,7 @@ public class PetService {
         List<Pet> myPets = petDao.findByUserId(userId);
 
         List<PetDetailResponseDto> myPetsDto = new ArrayList<>();
-        for(Pet pet: myPets) {
+        for (Pet pet : myPets) {
             myPetsDto.add(makePetDetailResponseDto(pet));
         }
 
@@ -78,8 +83,10 @@ public class PetService {
                         .thumbnail(photo.isThumbnail())
                         .build())
                 .collect(Collectors.toList());
-
-        setPresignedUrl(photoDtos);
+        System.out.println("시작======================================================================================");
+        System.out.println(photoDtos);
+        setPublicUrls(photoDtos);
+        System.out.println(photoDtos);
 
         return PetDetailResponseDto.builder()
                 .ownerId(pet.getUser().getId())
@@ -100,7 +107,7 @@ public class PetService {
     public Page<PetFriendDto> getFriends(String activityStatus, String dongName,
                                          String distance, int page, int size, double latitude, double longitude, Integer myId) {
 
-        if( Pet.ActivityStatus.valueOf(activityStatus) == Pet.ActivityStatus.NONE){
+        if (Pet.ActivityStatus.valueOf(activityStatus) == Pet.ActivityStatus.NONE) {
             throw new NoneActivityStatusException();
         }
 
@@ -110,12 +117,12 @@ public class PetService {
         Page<PetFriendDto> friends = petDao.findByDongNamesAndActivityStatus(
                 dongs, activityStatus, latitude, longitude, pageable, myId);
 
-        for(PetFriendDto item: friends.getContent()){
+        for (PetFriendDto item : friends.getContent()) {
             List<PetPhotoDto> photos = petPhotoDao.findByPetId(item.getId());
             item.setPhotos(photos);
         }
 
-        for(PetFriendDto friend: friends.getContent()){
+        for (PetFriendDto friend : friends.getContent()) {
             setPresignedUrl(friend.getPhotos());
         }
 
@@ -135,7 +142,6 @@ public class PetService {
 
     //NCP파일 접근url생성
     private void setPresignedUrl(List<PetPhotoDto> photoDtos) {
-
         if (photoDtos.isEmpty()) {
             File defaultImgFile = fileDao.findById(1)
                     .orElseThrow(() -> new FoundFileException());
@@ -153,6 +159,14 @@ public class PetService {
             }
         }
     }
+
+    private void setPublicUrls(List<PetPhotoDto> photoDtos) {
+        for (PetPhotoDto dto : photoDtos) {
+            dto.setPath(fileService.getFullUrl(dto.getPath()));
+        }
+    }
+
+
 
     //수정
     @Transactional
@@ -186,18 +200,50 @@ public class PetService {
 
         // 6. 이미지 처리
         if (images != null && !images.isEmpty()) {
+            // mainPhotoIndex 처리
+            Integer mainIndex = petRequestDto.getMainPhotoIndex();
 
-            boolean isFirst = true;
-            for (MultipartFile image : images) {
+            // 기존 썸네일 상태 초기화
+            pet.getPhotos().forEach(photo -> photo.setThumbnail(false));
+
+            // 새 이미지 추가
+            for (int i = 0; i < images.size(); i++) {
+                MultipartFile image = images.get(i);
                 if (image != null && !image.isEmpty()) {
                     // 파일 저장
                     File file = fileService.save(image.getOriginalFilename(), "pet", File.FileType.PHOTO);
 
-                    // S3 업로드 로직 (필요시)
+                    try (InputStream is = image.getInputStream()) {
+                        storageService.openUpload(file.getPath(), is);
+                    } catch (IOException | StorageServiceException e) {
+                        throw new RuntimeException("파일 업로드 실패: " + e.getMessage(), e);
+                    }
+
+                    // 현재 이미지가 메인 이미지인지 확인
+                    boolean isThumbnail = (mainIndex != null && i == mainIndex);
 
                     // Pet에 사진 추가
-                    pet.addPhoto(file, isFirst);
-                    isFirst = false;
+                    pet.addPhoto(file, isThumbnail);
+                }
+            }
+        }
+        // 이미지가 없는 경우에도 기존 이미지 중 하나를 썸네일로 설정 (아직 썸네일이 없는 경우)
+        else if (petRequestDto.getMainPhotoIndex() != null) {
+            // 기존 썸네일 초기화
+            pet.getPhotos().forEach(photo -> photo.setThumbnail(false));
+
+            // 기존 이미지 중 하나를 썸네일로 설정
+            int photoCount = pet.getPhotos().size();
+            int mainIndex = Math.min(petRequestDto.getMainPhotoIndex(), photoCount - 1);
+
+            if (photoCount > 0 && mainIndex >= 0) {
+                int idx = 0;
+                for (var photo : pet.getPhotos()) {
+                    if (idx == mainIndex) {
+                        photo.setThumbnail(true);
+                        break;
+                    }
+                    idx++;
                 }
             }
         }
@@ -254,6 +300,7 @@ public class PetService {
     //추가
     @Transactional
     public Integer addPet(Integer userId, PetRequestDto petRequestDto, List<MultipartFile> images) {
+
         // 1. 유저 조회
         User user = userDao.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회원입니다: " + userId));
@@ -279,15 +326,33 @@ public class PetService {
 
         // 5. 이미지 처리
         if (images != null && !images.isEmpty()) {
-            boolean isFirst = true;
-            for (MultipartFile image : images) {
+            // mainPhotoIndex 기본값은 0 (첫 번째 이미지)
+            int mainIndex = (petRequestDto.getMainPhotoIndex() != null)
+                    ? petRequestDto.getMainPhotoIndex() : 0;
+
+            // 유효한 인덱스인지 확인
+            if (mainIndex >= images.size()) {
+                mainIndex = 0;
+            }
+
+            // 모든 이미지 처리
+            for (int i = 0; i < images.size(); i++) {
+                MultipartFile image = images.get(i);
                 if (image != null && !image.isEmpty()) {
                     // 파일 저장
                     File file = fileService.save(image.getOriginalFilename(), "pet", File.FileType.PHOTO);
 
-                    // Pet에 사진 추가 (첫 번째 이미지를 썸네일로 설정)
-                    savedPet.addPhoto(file, isFirst);
-                    isFirst = false;
+                    try (InputStream is = image.getInputStream()) {
+                        storageService.openUpload(file.getPath(), is);
+                    } catch (IOException | StorageServiceException e) {
+                        throw new RuntimeException("파일 업로드 실패: " + e.getMessage(), e);
+                    }
+
+                    // 현재 이미지가 메인 이미지인지 확인
+                    boolean isThumbnail = (i == mainIndex);
+
+                    // Pet에 사진 추가
+                    savedPet.addPhoto(file, isThumbnail);
                 }
             }
         }

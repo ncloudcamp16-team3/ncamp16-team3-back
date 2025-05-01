@@ -14,11 +14,11 @@ public interface BoardDao extends JpaRepository<Board, Integer> {
 
     Page<Board> findAll(Pageable pageable);
 
-    Page<Board> findByBoardType(BoardType boardTypeId, Pageable pageable);
+    Page<Board> findByBoardTypeOrderByCreatedAtDesc(BoardType boardTypeId, Pageable pageable);
 
     Page<Board> findByTitleContaining(String title, Pageable pageable);
 
-    Page<Board> findByTitleContainingAndBoardType(String title, BoardType boardTypeId, Pageable pageable);
+    Page<Board> findByTitleContainingAndBoardTypeOrderByCreatedAtDesc(String title, BoardType boardType, Pageable pageable);
 
     Page<Board> findByContentContaining(String content, Pageable pageable);
 
@@ -33,4 +33,7 @@ public interface BoardDao extends JpaRepository<Board, Integer> {
             @Param("nickname") String nickname,
             @Param("boardType") BoardType boardType,
             Pageable pageable);
+
+
+    Board getBoardById(Integer boardId);
 }

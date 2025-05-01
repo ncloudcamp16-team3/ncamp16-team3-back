@@ -1,5 +1,5 @@
 spring:
-#  profiles:
+  #  profiles:
 #    active: local
 
   application:
@@ -10,9 +10,11 @@ spring:
     locations: classpath:db/migration
     baseline-on-migrate: true
 
+  session:
+    redis:
+      namespace: spring:session
 
-  server:
-    forward-headers-strategy: framework
+
 
   datasource:
     url: jdbc:mysql://db-33p2cg-kr.vpc-pub-cdb.ntruss.com/tailfriends?serverTimezone=Asia/Seoul&characterEncoding=UTF-8
@@ -31,6 +33,7 @@ spring:
     multipart:
       max-file-size: 10MB
       max-request-size: 10MB
+
 
   jpa:
     database-platform: org.hibernate.dialect.MySQLDialect
@@ -104,10 +107,11 @@ spring:
             user-info-uri: https://www.googleapis.com/oauth2/v3/userinfo
             user-name-attribute: sub
 
-#  data:
-#    redis:
-#      host: ${REDIS_HOST}
-#      port: ${REDIS_PORT}
+  data:
+    redis:
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT}
+      password: ${DB_PASSWORD}
 jwt:
   secret: ${JWT_SECRET}
   token-validity: 86400
@@ -119,6 +123,7 @@ logging:
     tf.tailfriend.user.controller: DEBUG
     org.springframework.web: DEBUG
     org.springframework.http.converter.json: DEBUG
+    tf.tailfriend.notification.scheduler.NotificationScheduler: DEBUG
     org.hibernate.SQL: DEBUG
     org.hibernate.type.descriptor.sql.BasicBinder: TRACE
 
@@ -130,6 +135,21 @@ ncp:
   access-key: ${NCR_USERNAME}
   secret-key: ${NCR_PASSWORD}
   bucket-name: ${NCP_BUCKET_NAME}
+
+
+firebase:
+  credentials:
+    type: "service_account"
+    project_id: "${FIREBASE_PROJECT_ID}"
+    private_key_id: "${FIREBASE_PRIVATE_KEY_ID}"
+    private_key: "${FIREBASE_PRIVATE_KEY}"
+    client_email: "${FIREBASE_CLIENT_EMAIL}"
+    client_id: "${FIREBASE_CLIENT_ID}"
+    auth_uri: "${FIREBASE_AUTH_URI}"
+    token_uri: "${FIREBASE_TOKEN_URI}"
+    auth_provider_x509_cert_url: "${FIREBASE_AUTH_PROVIDER_X509_CERT_URL}"
+    client_x509_cert_url: "${FIREBASE_CLIENT_X509_CERT_URL}"
+    universe_domain: "googleapis.com"
 
 
 

@@ -32,6 +32,7 @@ public interface PetstaPostDao extends JpaRepository<PetstaPost, Integer> {
     @Query("update PetstaPost p set p.commentCount = p.commentCount - 1 where p.id = :id and p.commentCount > 0")
     void decrementCommentCount(@Param("id") Integer postId);
 
+    List<PetstaPost> findByUserIdAndDeletedFalseOrderByCreatedAtDesc(Integer userId);
 
     List<PetstaPost> findByUserIdOrderByCreatedAtDesc(Integer userId);
 

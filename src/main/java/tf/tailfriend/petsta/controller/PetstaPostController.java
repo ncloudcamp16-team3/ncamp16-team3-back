@@ -124,19 +124,19 @@ public class PetstaPostController {
     }
 
     @PostMapping("/{postId}/add/comment")
-    public ResponseEntity<String> addComment(
+    public ResponseEntity<PetstaCommentResponseDto> addComment(
             @AuthenticationPrincipal UserPrincipal userPrincipal,
             @PathVariable Integer postId,
             @RequestBody PetstaCommentRequestDto requestDto
     ) {
-        petstaPostService.addComment(
+        PetstaCommentResponseDto responseDto = petstaPostService.addComment(
                 postId,
                 userPrincipal.getUserId(),
                 requestDto.getContent(),
                 requestDto.getParentId(),
-                requestDto.getMention() // 🔥 mention 전달!
+                requestDto.getMention()
         );
-        return ResponseEntity.ok("댓글이 성공적으로 작성되었습니다.");
+        return ResponseEntity.ok(responseDto);
     }
 
     @DeleteMapping("/comment/{commentId}")

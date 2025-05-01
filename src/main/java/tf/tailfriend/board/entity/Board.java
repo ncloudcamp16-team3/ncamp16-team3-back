@@ -85,12 +85,12 @@ public class Board {
         this.content = content;
     }
 
-    public void increaseCommentCount() {
-        commentCount++;
-    }
-
     public Optional<Product> getProduct() {
         return Optional.ofNullable(product);
+    }
+
+    public void increaseCommentCount() {
+        commentCount++;
     }
 
     public void decreaseCommentCount() {
@@ -103,5 +103,9 @@ public class Board {
 
     public void decreaseLikeCount() {
         likeCount--;
+
     }
 }
+
+
+

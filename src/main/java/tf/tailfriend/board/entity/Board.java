@@ -3,7 +3,6 @@ package tf.tailfriend.board.entity;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
-import tf.tailfriend.board.dto.BoardRequestDto;
 import tf.tailfriend.file.entity.File;
 import tf.tailfriend.user.entity.User;
 
@@ -90,9 +89,9 @@ public class Board {
         commentCount++;
     }
 
-
     public Optional<Product> getProduct() {
         return Optional.ofNullable(product);
+    }
 
     public void decreaseCommentCount() {
         commentCount--;
@@ -104,7 +103,5 @@ public class Board {
 
     public void decreaseLikeCount() {
         likeCount--;
-
     }
 }
-

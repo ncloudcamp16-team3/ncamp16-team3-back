@@ -79,7 +79,7 @@ public class NotificationService {
                         // baseUrl에 따라 이미지 URL 분기
                         String imagePrefix = baseUrl != null && baseUrl.contains("localhost:5173")
                                 ? "http://localhost:8080/images"
-                                : "http://tailfriend.kro.kr/images";
+                                : "https://tailfriend.kro.kr/images";
 
                         switch (dto.getNotifyTypeId()) {
                             case 1 -> {

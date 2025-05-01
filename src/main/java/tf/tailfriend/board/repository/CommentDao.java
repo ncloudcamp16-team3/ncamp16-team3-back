@@ -2,6 +2,7 @@ package tf.tailfriend.board.repository;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
+import tf.tailfriend.board.entity.Board;
 import tf.tailfriend.board.entity.Comment;
 
 import java.util.List;
@@ -16,4 +17,6 @@ public interface CommentDao extends JpaRepository<Comment, Integer> {
     long countByBoardId(Integer boardId);
 
     List<Comment> findByBoardIdAndParentIdIsNull(Integer boardId);
+
+    void deleteAllByBoard(Board board);
 }

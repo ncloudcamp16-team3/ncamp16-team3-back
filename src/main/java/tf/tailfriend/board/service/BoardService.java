@@ -1,25 +1,40 @@
 package tf.tailfriend.board.service;
 
+import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
+import tf.tailfriend.board.dto.BoardRequestDto;
 import tf.tailfriend.board.dto.BoardResponseDto;
 import tf.tailfriend.board.dto.BoardStatusDto;
 import tf.tailfriend.board.dto.CommentResponseDto;
 import tf.tailfriend.board.entity.*;
+import tf.tailfriend.board.exception.GetBoardTypeException;
 import tf.tailfriend.board.exception.GetPostException;
 import tf.tailfriend.board.repository.*;
 import tf.tailfriend.file.entity.File;
+import tf.tailfriend.file.service.FileService;
+import tf.tailfriend.global.config.UserPrincipal;
+import tf.tailfriend.global.exception.CustomException;
 import tf.tailfriend.global.service.StorageService;
+import tf.tailfriend.global.service.StorageServiceException;
 import tf.tailfriend.user.entity.User;
+import tf.tailfriend.user.exception.UnauthorizedException;
 import tf.tailfriend.user.exception.UserException;
 import tf.tailfriend.user.repository.UserDao;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -36,6 +51,7 @@ public class BoardService {
     private final ProductDao productDao;
     private final BoardBookmarkDao boardBookmarkDao;
     private final BoardLikeDao boardLikeDao;
+    private final FileService fileService;
 
     @Transactional(readOnly = true)
     public Page<BoardResponseDto> getAllBoards(Pageable pageable) {
@@ -54,7 +70,7 @@ public class BoardService {
     }
 
     @Transactional(readOnly = true)
-    public Page<BoardResponseDto> getBoardsByTypeAndKeyword(Integer boardTypeId, String keyword,Pageable pageable) {
+    public Page<BoardResponseDto> getBoardsByTypeAndKeyword(Integer boardTypeId, String keyword, Pageable pageable) {
         BoardType boardType = boardTypeDao.findById(boardTypeId)
                 .orElseThrow(() -> new IllegalArgumentException("Board type not found"));
 
@@ -77,11 +93,9 @@ public class BoardService {
         Optional<Product> usedBoard = productDao.findById(boardId);
 
         BoardResponseDto boardResponseDto;
-        if(usedBoard.isEmpty()) {
+        if (usedBoard.isEmpty()) {
             Board board = boardDao.findById(boardId)
                     .orElseThrow(() -> new IllegalArgumentException("게시글이 존재하지 않습니다: " + boardId));
-
-
 
             List<Comment> comments = commentDao.findByBoardIdAndParentIdIsNull(boardId);
             List<CommentResponseDto> commentDtos = comments.stream()
@@ -96,10 +110,14 @@ public class BoardService {
             boardResponseDto = BoardResponseDto.fromProductEntity(usedBoard.get());
         }
 
-        // 모든 사진의 URL 생성
         List<String> imageUrls = boardResponseDto.getImageUrls().stream()
-                .map(photo -> storageService.generatePresignedUrl(photo))
+                .map(storageService::generatePresignedUrl)
                 .collect(Collectors.toList());
+
+
+        for (BoardResponseDto.PhotoDto photoDto : boardResponseDto.getPhotos()) {
+            photoDto.setPath(storageService.generatePresignedUrl(photoDto.getPath()));
+        }
 
         boardResponseDto.setAuthorProfileImg(storageService.generatePresignedUrl(boardResponseDto.getAuthorProfileImg()));
         boardResponseDto.setImageUrls(imageUrls);
@@ -110,9 +128,9 @@ public class BoardService {
     }
 
     private void setCommentImgPreSignUrl(List<CommentResponseDto> commentDtos) {
-        for(CommentResponseDto commentDto: commentDtos) {
+        for (CommentResponseDto commentDto : commentDtos) {
             commentDto.setAuthorProfileImg(storageService.generatePresignedUrl(commentDto.getAuthorProfileImg()));
-            for(CommentResponseDto child: commentDto.getChildren()) {
+            for (CommentResponseDto child : commentDto.getChildren()) {
                 child.setAuthorProfileImg(storageService.generatePresignedUrl(child.getAuthorProfileImg()));
             }
         }
@@ -156,10 +174,186 @@ public class BoardService {
         BoardLike likeEntity = BoardLike.of(user, board);
 
         board.decreaseLikeCount();
-        
+
         log.info("\n\n\n 감소 후 좋아요 수 {}", board.getLikeCount());
         boardDao.save(board);
         boardLikeDao.delete(likeEntity);
+    }
+
+    @Transactional
+    public Integer saveBoard(BoardRequestDto boardRequestDto, List<MultipartFile> photos, Integer userId) throws StorageServiceException {
+        Integer boardTypeId = boardRequestDto.getBoardTypeId();
+        BoardType boardType = boardTypeDao.findById(boardTypeId)
+                .orElseThrow(() -> new GetBoardTypeException());
+
+        if (boardTypeId.equals(2)) {
+            return saveUsedMarketSave(boardRequestDto, photos, userId, boardType);
+        } else {
+            return saveBoardTable(boardRequestDto, photos, userId, boardType);
+        }
+
+    }
+
+    private Integer saveUsedMarketSave(BoardRequestDto boardRequestDto, List<MultipartFile> photos, Integer userId, BoardType boardType) throws StorageServiceException {
+        Integer postId = boardRequestDto.getId();
+
+        Product saveEntity;
+        if (postId == null) {
+            Integer newBoardId = saveBoardTable(boardRequestDto, photos, userId, boardType);
+            Board newBoard = boardDao.findById(newBoardId)
+                    .orElseThrow(() -> new GetPostException());
+
+            saveEntity = Product.builder()
+                    .board(newBoard)
+                    .price(boardRequestDto.getPrice())
+                    .sell(boardRequestDto.getSell())
+                    .address(boardRequestDto.getAddress())
+                    .build();
+
+            productDao.save(saveEntity);
+
+            return newBoardId;
+        } else {
+            if(!userId.equals(boardRequestDto.getAuthorId())) throw new UnauthorizedException();
+
+            Board updateTarget = boardDao.findById(postId)
+                    .orElseThrow(() -> new GetPostException());
+
+            updateTarget.updateBoard(boardRequestDto.getTitle(), boardRequestDto.getContent());
+
+            saveEntity = Product.builder()
+                    .id(updateTarget.getId())
+                    .board(updateTarget)
+                    .price(boardRequestDto.getPrice())
+                    .sell(boardRequestDto.getSell())
+                    .address(boardRequestDto.getAddress())
+                    .build();
+
+            productDao.save(saveEntity);
+
+            return postId;
+        }
+    }
+
+    private Integer saveBoardTable(BoardRequestDto boardRequestDto, List<MultipartFile> photos, Integer userId, BoardType boardType) throws StorageServiceException {
+        Integer postId = boardRequestDto.getId();
+
+        User user = userDao.findById(userId)
+                .orElseThrow(() -> new UserException());
+
+        Board saveEntity;
+        if (postId == null) {
+            saveEntity = Board.builder()
+                    .boardType(boardType)
+                    .title(boardRequestDto.getTitle())
+                    .content(boardRequestDto.getContent())
+                    .user(user)
+                    .build();
+
+            Board tempSaved = boardDao.save(saveEntity);
+
+            if (photos != null) {
+                List<File> imgs = fileSave(photos);
+                for (File img : imgs) {
+                    tempSaved.addPhoto(img);
+                }
+            }
+
+            Board savedBoard = boardDao.save(tempSaved);
+
+            return savedBoard.getId();
+        } else {
+            if (!userId.equals(boardRequestDto.getAuthorId())) throw new UnauthorizedException();
+            Board updateTarget = boardDao.findById(postId)
+                    .orElseThrow(() -> new GetPostException());
+
+            List<Integer> deleteFileIds = boardRequestDto.getDeleteFileIds();
+            for (Integer fileid : deleteFileIds) {
+                File deletedFile = updateTarget.removePhotoByFileId(fileid);
+                if (deletedFile != null) {
+                    storageService.delete(deletedFile.getPath());
+                }
+            }
+
+            if (photos != null) {
+                List<File> imgs = fileSave(photos);
+                for (File img : imgs) {
+                    updateTarget.addPhoto(img);
+                }
+            }
+            updateTarget.updateBoard(boardRequestDto.getTitle(), boardRequestDto.getContent());
+
+            boardDao.save(updateTarget);
+
+            return postId;
+        }
+    }
+
+    private List<File> fileSave(List<MultipartFile> photos) {
+        List<File> postImgs = new ArrayList<>();
+
+        for (MultipartFile photo : photos) {
+
+            File.FileType fileType = photo.getContentType().startsWith("image/")
+                    ? File.FileType.PHOTO
+                    : File.FileType.VIDEO;
+
+            File savedFile = fileService.save(photo.getOriginalFilename(), "board", fileType);
+            postImgs.add(savedFile);
+
+            try (InputStream inputStream = photo.getInputStream()) {
+                storageService.upload(savedFile.getPath(), inputStream);
+            } catch (StorageServiceException | IOException e) {
+                throw new CustomException() {
+                    @Override
+                    public HttpStatus getStatus() {
+                        return HttpStatus.INTERNAL_SERVER_ERROR;
+                    }
+
+                    @Override
+                    public String getMessage() {
+                        return "Storage 파일 업로드에 실패하였습니다";
+                    }
+                };
+            }
+        }
+
+        return postImgs;
+    }
+
+    @Transactional
+    public void deleteBoard(Integer postId, Integer userId) throws StorageServiceException {
+        Board deleteEntity = boardDao.findById(postId)
+                .orElseThrow(() -> new GetPostException());
+
+        if (!deleteEntity.getUser().getId().equals(userId)) {
+            throw new UnauthorizedException();
+        }
+
+        boardLikeDao.deleteAllByBoard(deleteEntity);
+        boardBookmarkDao.deleteAllByBoard(deleteEntity);
+        commentDao.deleteAllByBoard(deleteEntity);
+
+        if(deleteEntity.getBoardType().getId().equals(2)){
+            Product deleteProduct = productDao.findById(postId).orElseThrow(() -> new CustomException() {
+                @Override
+                public HttpStatus getStatus() {
+                    return HttpStatus.INTERNAL_SERVER_ERROR;
+                }
+
+                @Override
+                public String getMessage() {
+                    return "중고 상품을 찾지 못했습니다";
+                }
+            });
+            productDao.delete(deleteProduct);
+        }
+
+        for (BoardPhoto boardPhoto: deleteEntity.getPhotos()) {
+            storageService.delete(boardPhoto.getFile().getPath());
+        }
+
+        boardDao.delete(deleteEntity);
     }
 
     @Transactional(readOnly = true)

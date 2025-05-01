@@ -13,6 +13,7 @@ import java.util.Objects;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@ToString(exclude = {"board", "file"})
 public class BoardPhoto {
 
     @EmbeddedId
@@ -24,7 +25,7 @@ public class BoardPhoto {
     private Board board;
 
     @MapsId("fileId")
-    @OneToOne(fetch = FetchType.LAZY)
+    @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
     @JoinColumn(name = "file_id")
     private File file;
 

@@ -28,4 +28,11 @@ public class Product {
     private Boolean sell = true;
 
     private String address;
+
+    public void modifyProduct(Board board, Integer price, boolean sell, String address) {
+        this.board = board;
+        this.price = price;
+        this.sell = sell;
+        this.address = address;
+    }
 }

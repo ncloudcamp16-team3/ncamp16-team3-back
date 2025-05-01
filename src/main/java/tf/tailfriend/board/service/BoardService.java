@@ -198,9 +198,9 @@ public class BoardService {
         Integer postId = boardRequestDto.getId();
 
         Product saveEntity;
+        Integer saveBoardId = saveBoardTable(boardRequestDto, photos, userId, boardType);
         if (postId == null) {
-            Integer newBoardId = saveBoardTable(boardRequestDto, photos, userId, boardType);
-            Board newBoard = boardDao.findById(newBoardId)
+            Board newBoard = boardDao.findById(saveBoardId)
                     .orElseThrow(() -> new GetPostException());
 
             saveEntity = Product.builder()
@@ -212,26 +212,26 @@ public class BoardService {
 
             productDao.save(saveEntity);
 
-            return newBoardId;
+            return saveBoardId;
         } else {
             if(!userId.equals(boardRequestDto.getAuthorId())) throw new UnauthorizedException();
-
             Board updateTarget = boardDao.findById(postId)
                     .orElseThrow(() -> new GetPostException());
 
             updateTarget.updateBoard(boardRequestDto.getTitle(), boardRequestDto.getContent());
+            saveEntity = productDao.findById(postId)
+                    .orElseThrow(() -> new GetPostException());
 
-            saveEntity = Product.builder()
-                    .id(updateTarget.getId())
-                    .board(updateTarget)
-                    .price(boardRequestDto.getPrice())
-                    .sell(boardRequestDto.getSell())
-                    .address(boardRequestDto.getAddress())
-                    .build();
+            saveEntity.modifyProduct(
+                    updateTarget,
+                    boardRequestDto.getPrice(),
+                    boardRequestDto.getSell(),
+                    boardRequestDto.getAddress()
+            );
 
             productDao.save(saveEntity);
 
-            return postId;
+            return saveBoardId;
         }
     }
 

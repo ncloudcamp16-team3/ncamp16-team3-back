@@ -28,6 +28,7 @@ import tf.tailfriend.global.config.UserPrincipal;
 import tf.tailfriend.global.exception.CustomException;
 import tf.tailfriend.global.response.CustomResponse;
 import tf.tailfriend.global.service.StorageServiceException;
+import tf.tailfriend.notification.service.NotificationService;
 import tf.tailfriend.user.entity.User;
 import tf.tailfriend.notification.entity.UserFcm;
 import tf.tailfriend.notification.repository.UserFcmDao;
@@ -55,6 +56,7 @@ public class BoardController {
     private final CommentService commentService;
     private final NotificationScheduler notificationScheduler;
     private final BoardDao boardDao;
+    private final NotificationService notificationService;
 
     @PostMapping("")
     public ResponseEntity<?> saveBoard(@RequestPart("postData") BoardRequestDto boardRequestDto,
@@ -274,6 +276,14 @@ public class BoardController {
                         "❌ 댓글 알림 전송 실패: commentId=" + comment.getId()
                 );
             }
+
+            // 알림 전송 (예외는 무시)
+            try {
+                notificationService.sendBoardCommentNotification(comment);
+            } catch (Exception e) {
+                log.warn("게시판 댓글 알림 전송 실패: {}", e.getMessage());
+            }
+
 
             return ResponseEntity.status(HttpStatus.OK)
                     .body(new CustomResponse("댓글 저장에 성공하였습니다", null));

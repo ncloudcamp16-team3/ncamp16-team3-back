@@ -10,6 +10,7 @@ import tf.tailfriend.board.entity.Comment;
 import tf.tailfriend.global.config.UserPrincipal;
 import tf.tailfriend.global.service.StorageServiceException;
 import tf.tailfriend.notification.scheduler.NotificationScheduler;
+import tf.tailfriend.notification.service.NotificationService;
 import tf.tailfriend.petsta.entity.PetstaComment;
 import tf.tailfriend.petsta.entity.PetstaPost;
 import tf.tailfriend.petsta.entity.dto.*;
@@ -30,8 +31,7 @@ public class PetstaPostController {
 
     private final PetstaPostService petstaPostService;
     private final PetstaService petstaService;
-    private final PetstaPostDao petstaPostDao;
-    private final NotificationScheduler notificationScheduler;
+    private final NotificationService notificationService;
 
     @PostMapping("/add/photo")
     public ResponseEntity<String> addPhoto(
@@ -137,39 +137,10 @@ public class PetstaPostController {
                 requestDto.getParentId()
         );
 
-        // 게시글 및 작성자 정보 조회
-        PetstaPost petstaPost = petstaPostDao.getPetstaPostById(postId);
-        Integer postOwnerId = petstaPost.getUser().getId();
-        Integer commentWriterId = petstaComment.getUser().getId();
-
-        // 부모 댓글 작성자 ID 추출
-        Integer parentCommentWriterId = null;
-        if (petstaComment.getParent() != null) {
-            parentCommentWriterId = petstaComment.getParent().getUser().getId();
-        }
-
-        // 알림 대상 유저 식별
-        Set<Integer> targetUserIds = new HashSet<>();
-        if (!postOwnerId.equals(commentWriterId)) {
-            targetUserIds.add(postOwnerId);
-        }
-        if (parentCommentWriterId != null && !parentCommentWriterId.equals(commentWriterId)) {
-            targetUserIds.add(parentCommentWriterId);
-        }
-
-        System.out.println("✅ 알림 대상 유저 ID 목록: " + targetUserIds);
-
-        for (Integer userId : targetUserIds) {
-            notificationScheduler.sendNotificationAndSaveLog(
-                    userId,
-                    2, // 댓글 알림 타입
-                    String.valueOf(petstaComment.getId()),
-                    petstaComment.getCreatedAt(),
-                    "💬 펫스타 댓글 알림 전송 완료: 작성 유저 닉네임={}, 댓글내용={}",
-                    petstaComment.getUser().getNickname(),
-                    petstaComment.getContent(),
-                    "❌ 펫스타 댓글 알림 전송 실패: commentId=" + petstaComment.getId()
-            );
+        try {
+            notificationService.sendPetstaCommentNotification(petstaComment, postId);
+        } catch (Exception e) {
+            System.out.println("펫스타 댓글 알림 전송 실패: "+ e.getMessage());
         }
 
         return ResponseEntity.ok("댓글이 성공적으로 작성되었습니다.");

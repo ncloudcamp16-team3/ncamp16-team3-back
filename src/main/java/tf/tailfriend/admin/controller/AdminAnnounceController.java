@@ -16,6 +16,7 @@ import tf.tailfriend.file.service.FileService;
 import tf.tailfriend.notification.entity.UserFcm;
 import tf.tailfriend.notification.repository.UserFcmDao;
 import tf.tailfriend.notification.scheduler.NotificationScheduler;
+import tf.tailfriend.notification.service.NotificationService;
 import tf.tailfriend.user.entity.User;
 import tf.tailfriend.user.repository.UserDao;
 
@@ -33,9 +34,7 @@ public class AdminAnnounceController {
 
     private final BoardTypeService boardTypeService;
     private final AnnounceService announceService;
-    private final UserDao userDao;
-    private final NotificationScheduler notificationScheduler;
-    private final UserFcmDao userFcmDao;
+    private final NotificationService notificationService;
 
     @PostMapping("/announce/post")
     public ResponseEntity<?> createAnnounce(
@@ -55,23 +54,11 @@ public class AdminAnnounceController {
             // 알람 전송을 위한 객체 저장
             Announce announce=announceService.createAnnounce(title, content, boardType, images);
 
-            // 공지 작성시 fcm 토큰 있는 유저만 웹푸시 보냄
-            List<UserFcm> userFcmtokens = userFcmDao.findAll();
-
-            for (UserFcm userFcm : userFcmtokens) {
-                Integer userId = userFcm.getUserId(); 
-                notificationScheduler.sendNotificationAndSaveLog(
-                        userId,
-                        6,
-                        String.valueOf(announce.getId()),
-                        announce.getCreatedAt(),
-                        "📌 공지 알림 전송 완료: 제목={}, 내용={}",
-                        announce.getTitle(),
-                        announce.getContent(),
-                        "❌ 공지 알림 전송 실패: announceId=" + announce.getId()
-                );
+            try {
+                notificationService.sendAnnounceNotificationToAllUsers(announce);
+            } catch (Exception e) {
+                log.warn("공지 알림 전송 중 예외 발생: {}", e.getMessage());
             }
-            //
 
             return ResponseEntity.status(HttpStatus.CREATED)
                     .body(Map.of("message", "공지사항이 성공적으로 등록되었습니다"));

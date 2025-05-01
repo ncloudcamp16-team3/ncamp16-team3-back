@@ -6,9 +6,13 @@ import com.google.firebase.messaging.Notification;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 import tf.tailfriend.admin.entity.Announce;
 import tf.tailfriend.admin.repository.AnnounceDao;
+import tf.tailfriend.board.entity.Board;
+import tf.tailfriend.board.entity.BoardType;
 import tf.tailfriend.board.entity.Comment;
+import tf.tailfriend.board.repository.BoardDao;
 import tf.tailfriend.board.repository.CommentDao;
 import tf.tailfriend.chat.entity.ChatRoom;
 import tf.tailfriend.chat.repository.ChatRoomDao;
@@ -16,21 +20,20 @@ import tf.tailfriend.notification.config.NotificationMessageProducer;
 import tf.tailfriend.notification.entity.UserFcm;
 import tf.tailfriend.notification.entity.dto.NotificationDto;
 import tf.tailfriend.notification.entity.dto.UserFcmDto;
+import tf.tailfriend.notification.repository.UserFcmDao;
+import tf.tailfriend.notification.scheduler.NotificationScheduler;
 import tf.tailfriend.petsta.entity.PetstaComment;
+import tf.tailfriend.petsta.entity.PetstaPost;
 import tf.tailfriend.petsta.repository.PetstaCommentDao;
+import tf.tailfriend.petsta.repository.PetstaPostDao;
 import tf.tailfriend.reserve.entity.Reserve;
 import tf.tailfriend.reserve.repository.ReserveDao;
 import tf.tailfriend.schedule.entity.Schedule;
 import tf.tailfriend.schedule.repository.ScheduleDao;
 
-import javax.imageio.ImageIO;
-import java.awt.*;
-import java.awt.image.BufferedImage;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.net.URL;
-import java.util.Arrays;
-import java.util.Optional;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 
 @Service
@@ -44,6 +47,11 @@ public class NotificationService {
     private final ScheduleDao scheduleDao;
     private final ChatRoomDao chatRoomDao;
     private final AnnounceDao announceDao;
+    private final UserFcmDao userFcmDao;
+    private final NotificationScheduler notificationScheduler;
+    private final PetstaPostDao petstaPostDao;
+    private final BoardDao boardDao;
+
 
 
     @Value("${baseUrl}")
@@ -144,4 +152,100 @@ public class NotificationService {
                 }
         );
     }
+
+    public void sendAnnounceNotificationToAllUsers(Announce announce) {
+        List<UserFcm> userFcmtokens = userFcmDao.findAll();
+
+        for (UserFcm userFcm : userFcmtokens) {
+            Integer userId = userFcm.getUserId();
+            notificationScheduler.sendNotificationAndSaveLog(
+                    userId,
+                    6,
+                    String.valueOf(announce.getId()),
+                    announce.getCreatedAt(),
+                    "📌 공지 알림 전송 완료: 제목={}, 내용={}",
+                    announce.getTitle(),
+                    announce.getContent(),
+                    "❌ 공지 알림 전송 실패: announceId=" + announce.getId()
+            );
+        }
+    }
+
+    public void sendPetstaCommentNotification(PetstaComment petstaComment, Integer postId) {
+        // 게시글 정보 조회
+        PetstaPost petstaPost = petstaPostDao.getPetstaPostById(postId);
+        Integer postOwnerId = petstaPost.getUser().getId();
+        Integer commentWriterId = petstaComment.getUser().getId();
+
+        // 부모 댓글 작성자 ID 추출
+        Integer parentCommentWriterId = null;
+        if (petstaComment.getParent() != null) {
+            parentCommentWriterId = petstaComment.getParent().getUser().getId();
+        }
+
+        // 알림 대상 유저 식별
+        Set<Integer> targetUserIds = new HashSet<>();
+        if (!postOwnerId.equals(commentWriterId)) {
+            targetUserIds.add(postOwnerId);
+        }
+        if (parentCommentWriterId != null && !parentCommentWriterId.equals(commentWriterId)) {
+            targetUserIds.add(parentCommentWriterId);
+        }
+
+        System.out.println("✅ 펫스타 댓글 알림 대상 유저 ID 목록: " + targetUserIds);
+
+        // 알림 전송
+        for (Integer userId : targetUserIds) {
+            notificationScheduler.sendNotificationAndSaveLog(
+                    userId,
+                    2, // 댓글 알림 타입
+                    String.valueOf(petstaComment.getId()),
+                    petstaComment.getCreatedAt(),
+                    "💬 펫스타 댓글 알림 전송 완료: 작성 유저 닉네임={}, 댓글내용={}",
+                    petstaComment.getUser().getNickname(),
+                    petstaComment.getContent(),
+                    "❌ 펫스타 댓글 알림 전송 실패: commentId=" + petstaComment.getId()
+            );
+        }
+    }
+
+    public void sendBoardCommentNotification(Comment comment) {
+        // 게시글 정보 조회
+        Board board = boardDao.getBoardById(comment.getBoard().getId());
+        Integer postOwnerId = board.getUser().getId();
+        Integer commentWriterId = comment.getUser().getId();
+
+        // 부모 댓글 작성자 ID 추출
+        Integer parentCommentWriterId = null;
+        if (comment.getParent() != null) {
+            parentCommentWriterId = comment.getParent().getUser().getId();
+        }
+
+        // 알림 대상 유저 식별
+        Set<Integer> targetUserIds = new HashSet<>();
+        if (!postOwnerId.equals(commentWriterId)) {
+            targetUserIds.add(postOwnerId);
+        }
+        if (parentCommentWriterId != null && !parentCommentWriterId.equals(commentWriterId)) {
+            targetUserIds.add(parentCommentWriterId);
+        }
+
+        System.out.println("✅ 게시판 댓글 알림 대상 유저 ID 목록: "+ targetUserIds);
+
+        // 알림 전송
+        for (Integer userId : targetUserIds) {
+            notificationScheduler.sendNotificationAndSaveLog(
+                    userId,
+                    1, // 게시판 댓글 알림 타입
+                    String.valueOf(comment.getId()),
+                    comment.getCreatedAt(),
+                    "💬 댓글 알림 전송 완료: 게시글 제목={}, 댓글={}",
+                    comment.getBoard().getTitle(),
+                    comment.getContent(),
+                    "❌ 댓글 알림 전송 실패: commentId=" + comment.getId()
+            );
+        }
+    }
+
+
 }

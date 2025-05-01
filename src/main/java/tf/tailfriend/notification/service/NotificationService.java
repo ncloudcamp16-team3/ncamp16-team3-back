@@ -6,6 +6,7 @@ import com.google.firebase.messaging.Notification;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import tf.tailfriend.admin.entity.Announce;
 import tf.tailfriend.admin.repository.AnnounceDao;
@@ -349,5 +350,16 @@ public class NotificationService {
         }
         return dto;
     }
+
+    @Transactional
+    public void deleteNotificationById(Integer notificationId) {
+        notificationDao.deleteById(notificationId);
+    }
+
+    @Transactional
+    public void deleteAllNotificationsByUserId(Integer userId) {
+        notificationDao.deleteByUserId(userId);
+    }
+
 
 }

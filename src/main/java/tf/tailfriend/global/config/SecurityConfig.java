@@ -52,14 +52,17 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-                .csrf(csrf -> csrf.disable()) // 안되면 이거 주석 풀고 밑에꺼 주석
+                .csrf(csrf -> csrf.disable())
                 .formLogin(form -> form.disable()) // 폼 로그인 제거
                 .httpBasic(httpBasic -> httpBasic.disable()) // HTTP Basic 제거
+
                 .exceptionHandling(exception -> exception.authenticationEntryPoint(jwtAuthEntryPoint))
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
+                                .requestMatchers("/static/**").permitAll()  // 정적 자원 경로는 인증 없이 접근 가능
                         // OAuth2 관련
                         .requestMatchers("/api/oauth2/authorization/**").permitAll()
+                                .requestMatchers("/static/**").permitAll()
                                 .requestMatchers("/api/login/oauth2/code/**").permitAll()
                                 .requestMatchers("/api/auth/csrf").permitAll()
                         // 관리자 API - 로그인, 인증 체크, 로그아웃은 누구나 접근 가능
@@ -77,6 +80,8 @@ public class SecurityConfig {
                         .requestMatchers("/login").permitAll()
                         .requestMatchers("/admin").permitAll()
                         // 나머지 API 권한 설정
+
+
                         .anyRequest().authenticated()
                 )
                 .oauth2Login(oauth2 -> oauth2
@@ -101,24 +106,6 @@ public class SecurityConfig {
 
         return http.build();
     }
-
-    @Bean
-    public CookieCsrfTokenRepository csrfTokenRepository() {
-
-        String osName = System.getProperty("os.name").toLowerCase();
-        boolean isLinux = osName.contains("linux");
-        // CSRF 토큰을 쿠키로 저장하고, 만료 시간을 30초로 설정
-        CookieCsrfTokenRepository repository = CookieCsrfTokenRepository.withHttpOnlyFalse();
-        repository.setCookieCustomizer(cookie -> cookie
-                .maxAge(Duration.ofSeconds(3600))// 30초 만료 시간 설정
-                .httpOnly(false)
-                .secure(isLinux)
-                .sameSite(isLinux ? "None" : "Lax")
-                .path("/")
-        );
-        return repository;
-    }
-
 
 
     @Bean

@@ -164,6 +164,10 @@ public class FacilityService {
 
     @Transactional
     public FacilityAddResponseDto updateFacility(Integer id, FacilityRequestDto requestDto, List<MultipartFile> newImages, List<Integer> imageIdsToKeep) {
+        log.info("시설 ID: {}의 이미지 업데이트", id);
+        log.info("유지할 이미지 ID: {}", imageIdsToKeep);
+        log.info("새 이미지 개수: {}", newImages != null ? newImages.size() : 0);
+
         Facility facility = facilityDao.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("등록된 업체가 없습니다"));
 
@@ -187,10 +191,6 @@ public class FacilityService {
                 requestDto.getCloseTimes(),
                 requestDto.getOpenDays()
         );
-
-        log.info("이미지 업데이트 시작 - 시설 ID: {}", id);
-        log.info("새 이미지 개수: {}", newImages != null ? newImages.size() : 0);
-        log.info("유지할 이미지 ID: {}", imageIdsToKeep);
 
         List<File> updatedFiles;
 
@@ -256,8 +256,7 @@ public class FacilityService {
                     log.error("시설 ID {}의 요일 {} 시간 반환 오류: {}", facility.getId(), dayName, e.getMessage());
                     continue;
                 }
-            }
-            else {
+            } else {
                 log.info("시설 ID {}의 요일 {} 휴무일 처리: null 시간 설정", facility.getId(), dayName);
                 timetable = FacilityTimetable.builder()
                         .facility(facility)
@@ -335,7 +334,7 @@ public class FacilityService {
 
         if (images == null || images.isEmpty()) {
             log.info("시설 ID {}에 업로드된 이미지 없음", facility.getId());
-            return  savedFiles;
+            return savedFiles;
         }
 
         for (MultipartFile image : images) {
@@ -399,9 +398,9 @@ public class FacilityService {
                     // 삭제할 이미지
                     try {
                         log.info("이미지 삭제 처리 fileId: {}", fileId);
-                        storageService.delete(photo.getFile().getPath());
-                        fileDao.delete(photo.getFile());
                         facilityPhotoDao.delete(photo);
+                        fileDao.delete(photo.getFile());
+                        storageService.delete(photo.getFile().getPath());
                     } catch (StorageServiceException e) {
                         log.warn("이미지 삭제 중 오류 발생: {}", e.getMessage());
                     }
@@ -426,10 +425,7 @@ public class FacilityService {
                         }
 
                         // 시설-이미지 연결 생성
-                        FacilityPhoto newPhoto = FacilityPhoto.builder()
-                                .facility(facility)
-                                .file(savedFile)
-                                .build();
+                        FacilityPhoto newPhoto = FacilityPhoto.of(savedFile, facility);
 
                         // DB에 저장
                         facilityPhotoDao.save(newPhoto);
@@ -489,11 +485,12 @@ public class FacilityService {
         responseDto.setTimetables(timetableDtos);
 
         List<FacilityAddResponseDto.FacilityImageDto> imageDtos = files.stream()
-                        .map(file -> FacilityAddResponseDto.FacilityImageDto.builder()
-                                .id(file.getId())
-                                .url(storageService.generatePresignedUrl(file.getPath()))
-                                .build())
-                                .collect(Collectors.toList());
+                .peek(file -> log.info("파일 ID: {}, 파일 경로: {}", file.getId(), file.getPath())) // 파일 정보 확인
+                .map(file -> FacilityAddResponseDto.FacilityImageDto.builder()
+                        .id(file.getId())
+                        .url(storageService.generatePresignedUrl(file.getPath()))
+                        .build())
+                .collect(Collectors.toList());
 
         responseDto.setImages(imageDtos);
 

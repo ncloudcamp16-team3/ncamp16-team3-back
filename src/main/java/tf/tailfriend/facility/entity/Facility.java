@@ -38,7 +38,7 @@ public class Facility {
     @Column(name = "star_point", nullable = false)
     private Double starPoint = 0.0;
 
-    @Column(name= "review_count", nullable = false)
+    @Column(name = "review_count", nullable = false)
     private Integer reviewCount = 0;
 
     @Column(nullable = false)
@@ -96,6 +96,5 @@ public class Facility {
         this.comment = comment;
         this.latitude = latitude;
         this.longitude = longitude;
-
     }
 }

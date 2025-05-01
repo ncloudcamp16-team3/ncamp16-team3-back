@@ -18,8 +18,10 @@ import tf.tailfriend.chat.entity.ChatRoom;
 import tf.tailfriend.chat.repository.ChatRoomDao;
 import tf.tailfriend.notification.config.NotificationMessageProducer;
 import tf.tailfriend.notification.entity.UserFcm;
+import tf.tailfriend.notification.entity.dto.GetNotifyDto;
 import tf.tailfriend.notification.entity.dto.NotificationDto;
 import tf.tailfriend.notification.entity.dto.UserFcmDto;
+import tf.tailfriend.notification.repository.NotificationDao;
 import tf.tailfriend.notification.repository.UserFcmDao;
 import tf.tailfriend.notification.scheduler.NotificationScheduler;
 import tf.tailfriend.petsta.entity.PetstaComment;
@@ -34,6 +36,7 @@ import tf.tailfriend.schedule.repository.ScheduleDao;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 
 @Service
@@ -51,7 +54,7 @@ public class NotificationService {
     private final NotificationScheduler notificationScheduler;
     private final PetstaPostDao petstaPostDao;
     private final BoardDao boardDao;
-
+    private final NotificationDao notificationDao;
 
 
     @Value("${baseUrl}")
@@ -91,7 +94,7 @@ public class NotificationService {
                                         .orElseThrow(() -> new RuntimeException("펫스타 댓글을 찾을 수 없습니다"));
                                 title = "내 펫스타에 댓글이 달렸습니다.";
                                 body = petstaComment.getContent();
-                                image = imagePrefix + "/petsta.png";
+                                image = imagePrefix + "/petsta2.png";
                             }
                             case 3 -> {
                                 // 예약 알림
@@ -99,7 +102,7 @@ public class NotificationService {
                                         .orElseThrow(() -> new RuntimeException("예약 내역을 찾을 수 없습니다"));
                                 title = "오늘은 " + reserve.getFacility().getName() + " 예약이 있습니다.";
                                 body = "예약 내용을 확인해보세요.";
-                                image = imagePrefix + "/schedule.png";
+                                image = imagePrefix + "/reserve2.png";
                             }
                             case 4 -> {
                                 // 일정 알림
@@ -107,13 +110,13 @@ public class NotificationService {
                                         .orElseThrow(() -> new RuntimeException("일정을 찾을 수 없습니다"));
                                 title = "오늘은 " + schedule.getTitle() + " 일정이 있습니다.";
                                 body = "일정 시작: " + schedule.getStartDate();
-                                image = imagePrefix + "/reserve.png";
+                                image = imagePrefix + "/schedule2.png";
                             }
                             case 5 -> {
                                 // 채팅 알림
                                 title = "새로운 메세지가 왔습니다.";
                                 body = "채팅 내용을 확인하세요.";
-                                image = imagePrefix + "/chat.png";
+                                image = imagePrefix + "/chat2.png";
                             }
                             case 6 -> {
                                 // 공지 알림
@@ -121,12 +124,12 @@ public class NotificationService {
                                         .orElseThrow(() -> new RuntimeException("공지글을 찾을 수 없습니다"));
                                 title = "새로운 공지가 등록되었습니다.";
                                 body = announce.getTitle();
-                                image = imagePrefix + "/global.png";
+                                image = imagePrefix + "/global2.png";
                             }
                             default -> {
                                 title = "알림";
                                 body = "새로운 알림이 도착했습니다.";
-                                image = imagePrefix + "/default.png";
+                                image = imagePrefix + "/default2.png";
                             }
                         }
 
@@ -245,6 +248,13 @@ public class NotificationService {
                     "❌ 댓글 알림 전송 실패: commentId=" + comment.getId()
             );
         }
+    }
+
+
+    public List<GetNotifyDto> getNotificationsByUserId(Integer userId) {
+        return notificationDao.findByUserId(userId).stream()
+                .map(GetNotifyDto::new)
+                .collect(Collectors.toList());
     }
 
 

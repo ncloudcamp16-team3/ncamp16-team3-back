@@ -11,6 +11,6 @@ public interface NotificationDao extends JpaRepository<Notification, Integer> {
 
     boolean existsByMessageId(String messageId);
 
-
+    List<Notification> findByUserId(Integer userId);
 
 }

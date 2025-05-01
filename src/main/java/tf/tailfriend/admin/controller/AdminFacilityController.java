@@ -1,5 +1,8 @@
 package tf.tailfriend.admin.controller;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -9,12 +12,17 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import tf.tailfriend.facility.dto.FacilityAddResponseDto;
 import tf.tailfriend.facility.dto.FacilityRequestDto;
 import tf.tailfriend.facility.dto.FacilityResponseDto;
 import tf.tailfriend.facility.service.FacilityService;
 
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/admin")
@@ -56,13 +64,60 @@ public class AdminFacilityController {
 
     @PostMapping("/facility/add")
     public ResponseEntity<?> addFacility(
-            @RequestPart("data")FacilityRequestDto requestDto,
+            @RequestPart("data") FacilityRequestDto requestDto,
             @RequestPart(value = "images", required = false) List<MultipartFile> images
     ) {
         log.info("Facility added: {}", requestDto);
         facilityService.saveFacility(requestDto, images);
-        return ResponseEntity.status(HttpStatus.CREATED)
+        return ResponseEntity.status(HttpStatus.OK)
                 .body(Map.of("message", "업체가 성공적으로 등록되었습니다"));
+    }
+
+    @PatchMapping("/facility/{id}/update")
+    public ResponseEntity<?> updateFacility(
+            @PathVariable Integer id,
+            @RequestPart("data") FacilityRequestDto requestDto,
+            @RequestPart(value = "newImages", required = false) List<MultipartFile> newImages,
+            @RequestParam(value = "imageIdsToKeep", required = false) String imageIdsToKeepJson
+    ) {
+        log.info("Facility update request received for id: {}", id);
+        log.info("Request data: {}", requestDto);
+        log.info("New images count: {}", newImages != null ? newImages.size() : 0);
+        log.info("Image IDs to keep (raw): {}", imageIdsToKeepJson);
+
+        List<Integer> imageIdsToKeep = new ArrayList<>();
+
+        if (imageIdsToKeepJson != null && !imageIdsToKeepJson.isEmpty()) {
+            try {
+                ObjectMapper objectMapper = new ObjectMapper();
+                imageIdsToKeep = objectMapper.readValue(imageIdsToKeepJson, new TypeReference<List<Integer>>() {});
+
+                // null이나 0 같은 유효하지 않은 ID 필터링
+                imageIdsToKeep = imageIdsToKeep.stream()
+                        .filter(imageId -> imageId != null && imageId > 0)
+                        .collect(Collectors.toList());
+
+                log.info("Parsed image IDs to keep: {}", imageIdsToKeep);
+            } catch (Exception e) {
+                log.error("Failed to parse imageIdsToKeep JSON: {}", e.getMessage(), e);
+                return ResponseEntity.badRequest()
+                        .body(Map.of("message", "이미지 ID 목록 파싱 오류: " + e.getMessage()));
+            }
+        } else {
+            log.info("No imageIdsToKeep parameter provided, all existing images will be removed");
+        }
+
+        try {
+            // ✅ 서비스 메소드 호출 전에 로그 추가
+            log.info("Updating facility with id: {}, imageIdsToKeep: {}", id, imageIdsToKeep);
+            facilityService.updateFacility(id, requestDto, newImages, imageIdsToKeep);
+            return ResponseEntity.ok()
+                    .body(Map.of("message", "업체가 성공적으로 업데이트되었습니다"));
+        } catch (Exception e) {
+            log.error("Error updating facility: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("message", "업체 업데이트 중 오류 발생: " + e.getMessage()));
+        }
     }
 
     @DeleteMapping("/facility/{id}/delete")

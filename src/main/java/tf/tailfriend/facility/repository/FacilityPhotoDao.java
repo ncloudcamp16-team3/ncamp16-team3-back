@@ -9,8 +9,11 @@ import tf.tailfriend.facility.entity.dto.forReserve.ThumbnailForCardDto;
 import java.util.List;
 import java.util.Map;
 
+import java.util.List;
+
 public interface FacilityPhotoDao extends JpaRepository<FacilityPhoto, Integer> {
 
+    List<FacilityPhoto> findByFacilityId(Integer id);
 
     @Query("""
     SELECT new tf.tailfriend.facility.entity.dto.forReserve.ThumbnailForCardDto(fp.facility.id as facilityId, f.path as path)

@@ -5,16 +5,25 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import tf.tailfriend.board.entity.Board;
+import tf.tailfriend.board.entity.Comment;
 import tf.tailfriend.global.config.UserPrincipal;
 import tf.tailfriend.global.service.StorageServiceException;
+import tf.tailfriend.notification.scheduler.NotificationScheduler;
+import tf.tailfriend.notification.service.NotificationService;
+import tf.tailfriend.petsta.entity.PetstaComment;
+import tf.tailfriend.petsta.entity.PetstaPost;
 import tf.tailfriend.petsta.entity.dto.*;
+import tf.tailfriend.petsta.repository.PetstaPostDao;
 import tf.tailfriend.petsta.service.PetstaPostService;
 import tf.tailfriend.petsta.service.PetstaService;
 
 import java.io.IOException;
 import java.nio.file.AccessDeniedException;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @RestController
 @RequestMapping("/api/petsta/post")
@@ -23,6 +32,7 @@ public class PetstaPostController {
 
     private final PetstaPostService petstaPostService;
     private final PetstaService petstaService;
+    private final NotificationService notificationService;
 
     @PostMapping("/add/photo")
     public ResponseEntity<String> addPhoto(
@@ -129,6 +139,7 @@ public class PetstaPostController {
             @PathVariable Integer postId,
             @RequestBody PetstaCommentRequestDto requestDto
     ) {
+
         PetstaCommentResponseDto responseDto = petstaPostService.addComment(
                 postId,
                 userPrincipal.getUserId(),
@@ -136,6 +147,14 @@ public class PetstaPostController {
                 requestDto.getParentId(),
                 requestDto.getMention()
         );
+
+        try {
+            notificationService.sendPetstaCommentNotification(responseDto, postId);
+        } catch (Exception e) {
+            System.out.println("펫스타 댓글 알림 전송 실패: "+ e.getMessage());
+        }
+
+//        return ResponseEntity.ok("댓글이 성공적으로 작성되었습니다.");
         return ResponseEntity.ok(responseDto);
     }
 

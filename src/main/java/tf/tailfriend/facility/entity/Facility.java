@@ -78,19 +78,24 @@ public class Facility {
         timetables.add(timetable);
     }
 
-    // 두 지점 간의 거리를 계산하는 메서드 (예시: Haversine 공식을 이용한 거리 계산)
-    public void setDistance(Double userLatitude, Double userLongitude) {
-        double earthRadius = 6371; // 지구 반지름 (킬로미터 단위)
+    public void updateInformation(
+            FacilityType facilityType,
+            String name,
+            String tel,
+            String address,
+            String detailAddress,
+            String comment,
+            Double latitude,
+            Double longitude) {
 
-        double latDistance = Math.toRadians(userLatitude - this.latitude);
-        double lonDistance = Math.toRadians(userLongitude - this.longitude);
+        this.facilityType = facilityType;
+        this.name = name;
+        this.tel = tel;
+        this.address = address;
+        this.detailAddress = detailAddress;
+        this.comment = comment;
+        this.latitude = latitude;
+        this.longitude = longitude;
 
-        double a = Math.sin(latDistance / 2) * Math.sin(latDistance / 2)
-                + Math.cos(Math.toRadians(this.latitude)) * Math.cos(Math.toRadians(userLatitude))
-                * Math.sin(lonDistance / 2) * Math.sin(lonDistance / 2);
-
-        double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-
-        this.distance = earthRadius * c; // 거리 (킬로미터 단위)
     }
 }

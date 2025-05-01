@@ -17,6 +17,7 @@ public class NotificationDto {
     private Integer userId;
     private Integer notifyTypeId;
     private String content;
+    private String messageId;
     private String fcmToken;
 
 }

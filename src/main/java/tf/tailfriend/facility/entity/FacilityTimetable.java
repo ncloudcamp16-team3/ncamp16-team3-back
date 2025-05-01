@@ -12,7 +12,7 @@ import java.sql.Time;
 @Entity
 @Table(name = "facility_timetables")
 @Getter
-@Builder
+@Builder(toBuilder = true)
 @NoArgsConstructor
 @AllArgsConstructor
 public class FacilityTimetable {

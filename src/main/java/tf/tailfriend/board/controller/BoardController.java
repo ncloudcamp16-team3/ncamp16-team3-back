@@ -14,10 +14,13 @@ import tf.tailfriend.board.dto.BoardRequestDto;
 import tf.tailfriend.board.dto.BoardResponseDto;
 import tf.tailfriend.board.dto.CommentRequestDto;
 import tf.tailfriend.board.dto.SearchRequestDto;
+import tf.tailfriend.board.entity.Board;
+import tf.tailfriend.board.entity.Comment;
 import tf.tailfriend.board.exception.GetBoardStatusException;
 import tf.tailfriend.board.exception.GetBoardTypeException;
 import tf.tailfriend.board.exception.GetPostException;
 import tf.tailfriend.board.exception.SearchPostException;
+import tf.tailfriend.board.repository.BoardDao;
 import tf.tailfriend.board.service.BoardService;
 import tf.tailfriend.board.service.BoardTypeService;
 import tf.tailfriend.board.service.CommentService;
@@ -25,8 +28,18 @@ import tf.tailfriend.global.config.UserPrincipal;
 import tf.tailfriend.global.exception.CustomException;
 import tf.tailfriend.global.response.CustomResponse;
 import tf.tailfriend.global.service.StorageServiceException;
+import tf.tailfriend.notification.service.NotificationService;
+import tf.tailfriend.user.entity.User;
+import tf.tailfriend.notification.entity.UserFcm;
+import tf.tailfriend.notification.repository.UserFcmDao;
+import tf.tailfriend.notification.scheduler.NotificationScheduler;
 import tf.tailfriend.user.entity.User;
 import tf.tailfriend.user.exception.UnauthorizedException;
+import tf.tailfriend.user.service.UserService;
+
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 import java.util.List;
 
@@ -41,6 +54,9 @@ public class BoardController {
     private final BoardService boardService;
     private final BoardTypeService boardTypeService;
     private final CommentService commentService;
+    private final NotificationScheduler notificationScheduler;
+    private final BoardDao boardDao;
+    private final NotificationService notificationService;
 
     @PostMapping("")
     public ResponseEntity<?> saveBoard(@RequestPart("postData") BoardRequestDto boardRequestDto,
@@ -222,8 +238,53 @@ public class BoardController {
         log.info("\n댓글 요청 Dto {}", commentRequestDto);
 
         try {
-            commentService.addComment(commentRequestDto.getComment(),
+            // 댓글 객체로 받기
+            Comment comment=commentService.addComment(commentRequestDto.getComment(),
                     commentRequestDto.getBoardId(), commentRequestDto.getUserId(), commentRequestDto.getCommentId());
+
+            // 게시글 정보 조회
+            Board board = boardDao.getBoardById(commentRequestDto.getBoardId());
+            Integer postOwnerId = board.getUser().getId();
+            Integer commentWriterId = comment.getUser().getId();
+
+            // 부모 댓글 작성자 ID 조회 (대댓글일 경우)
+            Integer parentCommentWriterId = null;
+            if (comment.getParent() != null) {
+                parentCommentWriterId = comment.getParent().getUser().getId();
+            }
+            // 알림 대상 유저 식별
+            Set<Integer> targetUserIds = new HashSet<>();
+            if (!postOwnerId.equals(commentWriterId)) {
+                targetUserIds.add(postOwnerId);
+            }
+            if (parentCommentWriterId != null && !parentCommentWriterId.equals(commentWriterId)) {
+                targetUserIds.add(parentCommentWriterId);
+            }
+
+            System.out.println("✅ 알림 대상 유저 ID 목록: " + targetUserIds);
+
+            // 알림 전송
+            for (Integer userId : targetUserIds) {
+                notificationScheduler.sendNotificationAndSaveLog(
+                        userId,
+                        1, // 댓글 알림 타입
+                        String.valueOf(comment.getId()),
+                        comment.getCreatedAt(),
+                        "💬 댓글 알림 전송 완료: 게시글 제목={}, 댓글={}",
+                        comment.getBoard().getTitle(),
+                        comment.getContent(),
+                        "❌ 댓글 알림 전송 실패: commentId=" + comment.getId()
+                );
+            }
+
+            // 알림 전송 (예외는 무시)
+            try {
+                notificationService.sendBoardCommentNotification(comment);
+            } catch (Exception e) {
+                log.warn("게시판 댓글 알림 전송 실패: {}", e.getMessage());
+            }
+
+
             return ResponseEntity.status(HttpStatus.OK)
                     .body(new CustomResponse("댓글 저장에 성공하였습니다", null));
         } catch (Exception e) {

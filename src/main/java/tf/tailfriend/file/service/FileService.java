@@ -145,6 +145,12 @@ public class FileService {
         return thumbnailPath;
     }
 
+    @Transactional(readOnly = true)
+    public String getFullUrl(String path) {
+        final String BASE_URL = "https://kr.object.ncloudstorage.com/tailfriends-buck/";
+        return BASE_URL + path;
+    }
+
 
 
 }

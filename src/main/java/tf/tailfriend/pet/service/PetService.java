@@ -83,8 +83,10 @@ public class PetService {
                         .thumbnail(photo.isThumbnail())
                         .build())
                 .collect(Collectors.toList());
-
-        setPresignedUrl(photoDtos);
+        System.out.println("시작======================================================================================");
+        System.out.println(photoDtos);
+        setPublicUrls(photoDtos);
+        System.out.println(photoDtos);
 
         return PetDetailResponseDto.builder()
                 .ownerId(pet.getUser().getId())
@@ -158,6 +160,14 @@ public class PetService {
         }
     }
 
+    private void setPublicUrls(List<PetPhotoDto> photoDtos) {
+        for (PetPhotoDto dto : photoDtos) {
+            dto.setPath(fileService.getFullUrl(dto.getPath()));
+        }
+    }
+
+
+
     //수정
     @Transactional
     public void updatePet(Integer userId, Integer petId, PetRequestDto petRequestDto, List<MultipartFile> images) {
@@ -204,7 +214,7 @@ public class PetService {
                     File file = fileService.save(image.getOriginalFilename(), "pet", File.FileType.PHOTO);
 
                     try (InputStream is = image.getInputStream()) {
-                        storageService.upload(file.getPath(), is);
+                        storageService.openUpload(file.getPath(), is);
                     } catch (IOException | StorageServiceException e) {
                         throw new RuntimeException("파일 업로드 실패: " + e.getMessage(), e);
                     }
@@ -333,7 +343,7 @@ public class PetService {
                     File file = fileService.save(image.getOriginalFilename(), "pet", File.FileType.PHOTO);
 
                     try (InputStream is = image.getInputStream()) {
-                        storageService.upload(file.getPath(), is);
+                        storageService.openUpload(file.getPath(), is);
                     } catch (IOException | StorageServiceException e) {
                         throw new RuntimeException("파일 업로드 실패: " + e.getMessage(), e);
                     }

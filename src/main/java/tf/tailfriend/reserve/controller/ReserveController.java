@@ -1,13 +1,13 @@
 package tf.tailfriend.reserve.controller;
 
 import org.springframework.data.domain.Slice;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
 import tf.tailfriend.facility.entity.dto.forReserve.FacilityCardResponseDto;
+import tf.tailfriend.facility.entity.dto.forReserve.FacilityDetailResponseDto;
 import tf.tailfriend.facility.service.FacilityService;
-import tf.tailfriend.reserve.dto.RequestForFacility.FacilityList;
+import tf.tailfriend.reserve.dto.RequestForFacility.FacilityDetailRequestDto;
+import tf.tailfriend.reserve.dto.RequestForFacility.FacilityListRequestDto;
 import tf.tailfriend.reserve.service.ReserveService;
 import lombok.extern.slf4j.Slf4j;
 
@@ -33,12 +33,11 @@ public class ReserveController {
             @RequestParam("day") String day,
             @RequestParam(value = "page", defaultValue = "0") int page,
             @RequestParam(value = "size", defaultValue = "10") int size) {
-        log.info("latitude: {}, longitude: {}, category: {}, sortBy: {}, day: {}, page: {}, size: {}", latitude, longitude, category, sortBy, day, page, size);
         String formattedSortBy = switch (sortBy) {
             case "distance" -> "distance";
             default -> "starPoint";
         };
-        FacilityList requestDto = FacilityList.builder()
+        FacilityListRequestDto requestDto = FacilityListRequestDto.builder()
                 .day(day)
                 .userLatitude(latitude)
                 .userLongitude(longitude)
@@ -47,9 +46,22 @@ public class ReserveController {
                 .page(page)
                 .size(size)
                 .build();
-        log.info("requestDto: {}", requestDto);
 
         return facilityService.getFacilityCardsForReserve(requestDto);
     }
 
+    @GetMapping("facility/{facilityId}")
+    public ResponseEntity<FacilityDetailResponseDto> getFacility(
+            @PathVariable Integer facilityId,
+            @RequestParam(defaultValue = "0") Integer page,
+            @RequestParam(defaultValue = "3") Integer size) {
+
+        FacilityDetailRequestDto requestDto = FacilityDetailRequestDto.builder()
+                .id(facilityId)
+                .page(page)
+                .size(size)
+                .build();
+        FacilityDetailResponseDto facilityDetail = facilityService.getFacilityWithReviews(requestDto);
+        return ResponseEntity.ok(facilityDetail);
+    }
 }

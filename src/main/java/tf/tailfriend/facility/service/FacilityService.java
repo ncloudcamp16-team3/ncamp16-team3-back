@@ -9,11 +9,9 @@ import org.springframework.web.multipart.MultipartFile;
 import tf.tailfriend.facility.dto.FacilityAddResponseDto;
 import tf.tailfriend.facility.dto.FacilityRequestDto;
 import tf.tailfriend.facility.dto.FacilityResponseDto;
-import tf.tailfriend.facility.entity.Facility;
-import tf.tailfriend.facility.entity.FacilityPhoto;
-import tf.tailfriend.facility.entity.FacilityTimetable;
-import tf.tailfriend.facility.entity.FacilityType;
+import tf.tailfriend.facility.entity.*;
 import tf.tailfriend.facility.entity.dto.forReserve.FacilityCardResponseDto;
+import tf.tailfriend.facility.entity.dto.forReserve.FacilityDetailResponseDto;
 import tf.tailfriend.facility.entity.dto.forReserve.FacilityWithDistanceProjection;
 import tf.tailfriend.facility.entity.dto.forReserve.ThumbnailForCardDto;
 import tf.tailfriend.facility.repository.*;
@@ -21,7 +19,8 @@ import tf.tailfriend.file.entity.File;
 import tf.tailfriend.file.service.FileService;
 import tf.tailfriend.global.service.StorageService;
 import tf.tailfriend.global.service.StorageServiceException;
-import tf.tailfriend.reserve.dto.RequestForFacility.FacilityList;
+import tf.tailfriend.reserve.dto.RequestForFacility.FacilityDetailRequestDto;
+import tf.tailfriend.reserve.dto.RequestForFacility.FacilityListRequestDto;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -46,6 +45,7 @@ public class FacilityService {
     private final FacilityTypeDao facilityTypeDao;
     private final FacilityTimetableDao facilityTimetableDao;
     private final FacilityPhotoDao facilityPhotoDao;
+    private final ReviewDao reviewDao;
     private final StorageService storageService;
     private final FileService fileService;
 
@@ -346,7 +346,7 @@ public class FacilityService {
         return dto;
     }
 
-    public Slice<FacilityCardResponseDto> getFacilityCardsForReserve(FacilityList requestDto) {
+    public Slice<FacilityCardResponseDto> getFacilityCardsForReserve(FacilityListRequestDto requestDto) {
         String day = requestDto.getDay();
         FacilityTimetable.Day dayEnum = FacilityTimetable.Day.valueOf(day.toUpperCase());
         String category = requestDto.getCategory();
@@ -413,5 +413,41 @@ public class FacilityService {
                 .collect(Collectors.toList());
 
         return new SliceImpl<>(mappedList, list.getPageable(), list.hasNext());
+    }
+
+    /**
+     * Get detailed facility information by ID, including paginated reviews
+     */
+    @Transactional(readOnly = true)
+    public FacilityDetailResponseDto getFacilityWithReviews(FacilityDetailRequestDto requestDto) {
+        // Fetch the facility with all related entities except reviews
+        Integer id = requestDto.getId();
+        Integer page = requestDto.getPage();
+        Integer size = requestDto.getSize();
+        Facility facility = facilityDao.findByIdWithDetails(id)
+                .orElseThrow(() -> new IllegalArgumentException("Facility not found with id: " + id));
+
+        // Fetch paginated reviews separately
+        Slice<Review> reviewSlice = reviewDao.findReviewsByFacilityId(
+                id,
+                PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"))
+        );
+        Integer responsePage = reviewSlice.getNumber();
+        boolean responseLastPage = reviewSlice.isLast();
+
+        // Convert Review entities to DTOs
+        List<FacilityDetailResponseDto.ReviewDto> reviewDtos = reviewSlice.getContent().stream()
+                .map(review -> FacilityDetailResponseDto.ReviewDto.builder()
+                        .id(review.getId())
+                        .userId(review.getUser().getId())
+                        .nickName(review.getUser().getNickname())
+                        .comment(review.getComment())
+                        .starPoint(review.getStarPoint())
+                        .createdAt(review.getCreatedAt())
+                        .build())
+                .collect(Collectors.toList());
+
+        // Construct and return the DTO
+        return FacilityDetailResponseDto.from(facility, reviewDtos, responsePage, responseLastPage);
     }
 }

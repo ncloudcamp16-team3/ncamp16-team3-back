@@ -5,7 +5,7 @@ import lombok.Getter;
 
 @Getter
 @Builder
-public class FacilityList {
+public class FacilityListRequestDto {
 
     private String day;
 

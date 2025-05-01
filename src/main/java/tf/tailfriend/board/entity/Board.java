@@ -90,9 +90,9 @@ public class Board {
         commentCount++;
     }
 
-
     public Optional<Product> getProduct() {
         return Optional.ofNullable(product);
+    }
 
     public void decreaseCommentCount() {
         commentCount--;
@@ -104,7 +104,5 @@ public class Board {
 
     public void decreaseLikeCount() {
         likeCount--;
-
     }
 }
-

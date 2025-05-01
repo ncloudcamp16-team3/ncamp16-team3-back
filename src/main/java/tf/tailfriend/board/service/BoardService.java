@@ -302,7 +302,7 @@ public class BoardService {
             postImgs.add(savedFile);
 
             try (InputStream inputStream = photo.getInputStream()) {
-                storageService.upload(savedFile.getPath(), inputStream);
+                storageService.openUpload(savedFile.getPath(), inputStream);
             } catch (StorageServiceException | IOException e) {
                 throw new CustomException() {
                     @Override

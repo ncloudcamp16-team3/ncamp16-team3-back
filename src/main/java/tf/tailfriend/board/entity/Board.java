@@ -3,12 +3,15 @@ package tf.tailfriend.board.entity;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
+import tf.tailfriend.board.dto.BoardRequestDto;
 import tf.tailfriend.file.entity.File;
 import tf.tailfriend.user.entity.User;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Optional;
 
 @Entity
 @Table(name = "boards")
@@ -16,6 +19,7 @@ import java.util.List;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@ToString
 public class Board {
 
     @Id
@@ -40,9 +44,11 @@ public class Board {
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
+    @Builder.Default
     @Column(name = "like_count", nullable = false)
     private Integer likeCount = 0;
 
+    @Builder.Default
     @Column(name = "comment_count", nullable = false)
     private Integer commentCount = 0;
 
@@ -50,11 +56,11 @@ public class Board {
     @Builder.Default
     private List<BoardPhoto> photos = new ArrayList<>();
 
+    @OneToOne(mappedBy = "board", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private Product product;
+
     public void addPhoto(File file) {
-        BoardPhoto photo = BoardPhoto.builder()
-                .board(this)
-                .file(file)
-                .build();
+        BoardPhoto photo = BoardPhoto.of(this, file);
         photos.add(photo);
     }
 
@@ -62,9 +68,31 @@ public class Board {
         photos.removeIf(photo -> photo.getFile().equals(file));
     }
 
+    public File removePhotoByFileId(Integer fileId) {
+        Iterator<BoardPhoto> iterator = photos.iterator();
+        while (iterator.hasNext()) {
+            BoardPhoto boardPhoto = iterator.next();
+            if (boardPhoto.getFile() != null && boardPhoto.getFile().getId().equals(fileId)) {
+                File file = boardPhoto.getFile(); // 반환용
+                iterator.remove();
+                return file;
+            }
+        }
+        return null;
+    }
+
+    public void updateBoard(String title, String content) {
+        this.title = title;
+        this.content = content;
+    }
+
     public void increaseCommentCount() {
         commentCount++;
     }
+
+
+    public Optional<Product> getProduct() {
+        return Optional.ofNullable(product);
 
     public void decreaseCommentCount() {
         commentCount--;
@@ -76,5 +104,7 @@ public class Board {
 
     public void decreaseLikeCount() {
         likeCount--;
+
     }
 }
+

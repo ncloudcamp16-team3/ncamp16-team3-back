@@ -9,6 +9,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+import tf.tailfriend.board.dto.BoardRequestDto;
 import tf.tailfriend.board.dto.BoardResponseDto;
 import tf.tailfriend.board.dto.CommentRequestDto;
 import tf.tailfriend.board.dto.SearchRequestDto;
@@ -25,6 +27,8 @@ import tf.tailfriend.board.service.CommentService;
 import tf.tailfriend.global.config.UserPrincipal;
 import tf.tailfriend.global.exception.CustomException;
 import tf.tailfriend.global.response.CustomResponse;
+import tf.tailfriend.global.service.StorageServiceException;
+import tf.tailfriend.user.entity.User;
 import tf.tailfriend.notification.entity.UserFcm;
 import tf.tailfriend.notification.repository.UserFcmDao;
 import tf.tailfriend.notification.scheduler.NotificationScheduler;
@@ -36,8 +40,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import java.util.List;
+
 import static tf.tailfriend.board.message.SuccessMessage.*;
-import static tf.tailfriend.user.message.ErrorMessage.UNAUTHORIZED_ACCESS_ERROR;
 
 @RestController
 @RequestMapping("/api/board")
@@ -51,13 +56,64 @@ public class BoardController {
     private final NotificationScheduler notificationScheduler;
     private final BoardDao boardDao;
 
+    @PostMapping("")
+    public ResponseEntity<?> saveBoard(@RequestPart("postData") BoardRequestDto boardRequestDto,
+                                       @RequestPart(value = "photos", required = false) List<MultipartFile> photos,
+                                       @AuthenticationPrincipal UserPrincipal userPrincipal) throws StorageServiceException {
+        log.info("요청 boardRequestDto: {} \nphotos: {}", boardRequestDto, photos);
+
+        Integer postId = boardService.saveBoard(boardRequestDto, photos, userPrincipal.getUserId());
+
+        try {
+            return ResponseEntity.status(HttpStatus.OK)
+                    .body(new CustomResponse("게시물 저장에 성공하였습니다", postId));
+        } catch (Exception e) {
+            throw new CustomException() {
+                @Override
+                public HttpStatus getStatus() {
+                    return HttpStatus.BAD_REQUEST;
+                }
+
+                @Override
+                public String getMessage() {
+                    return "게시물 저장에 실패하였습니다";
+                }
+            };
+        }
+    }
+
+    @DeleteMapping("")
+    public ResponseEntity<?> deleteBoard(@RequestParam("postId") Integer postId,
+                                         @AuthenticationPrincipal UserPrincipal userPrincipal) throws StorageServiceException {
+        log.info("삭제요청 요청 commentId: {}", postId);
+
+        boardService.deleteBoard(postId, userPrincipal.getUserId());
+
+        try {
+            return ResponseEntity.status(HttpStatus.OK)
+                    .body(new CustomResponse("게시물 저장에 성공하였습니다", null));
+        } catch (Exception e) {
+            throw new CustomException() {
+                @Override
+                public HttpStatus getStatus() {
+                    return HttpStatus.BAD_REQUEST;
+                }
+
+                @Override
+                public String getMessage() {
+                    return "게시물 저장에 실패하였습니다";
+                }
+            };
+        }
+    }
+
+
     @GetMapping("/detail/{postId}")
     public ResponseEntity<?> getBoardDetail(@PathVariable Integer postId) {
         try {
             return ResponseEntity.status(HttpStatus.OK)
                     .body(new CustomResponse(GET_POST_SUCCESS.getMessage(), boardService.getBoardById(postId)));
         } catch (Exception e) {
-            log.info("\n\n\n\n\n 에러발생 : {}",e.getMessage());
             throw new GetPostException();
         }
     }

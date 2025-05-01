@@ -70,6 +70,10 @@ public class CommentService {
 
         comment.setDeleted();
 
+        Board board = comment.getBoard();
+        board.decreaseCommentCount();
+        boardDao.save(board);
+
         commentDao.save(comment);
     }
 }

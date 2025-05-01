@@ -11,6 +11,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Optional;
 
 @Entity
 @Table(name = "boards")
@@ -55,6 +56,9 @@ public class Board {
     @Builder.Default
     private List<BoardPhoto> photos = new ArrayList<>();
 
+    @OneToOne(mappedBy = "board", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private Product product;
+
     public void addPhoto(File file) {
         BoardPhoto photo = BoardPhoto.of(this, file);
         photos.add(photo);
@@ -86,6 +90,10 @@ public class Board {
         commentCount++;
     }
 
+
+    public Optional<Product> getProduct() {
+        return Optional.ofNullable(product);
+
     public void decreaseCommentCount() {
         commentCount--;
     }
@@ -96,5 +104,7 @@ public class Board {
 
     public void decreaseLikeCount() {
         likeCount--;
+
     }
 }
+

@@ -1,6 +1,8 @@
 package tf.tailfriend.petsta.repository;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import tf.tailfriend.petsta.entity.PetstaBookmark;
 
 import java.util.List;
@@ -12,4 +14,7 @@ public interface PetstaBookmarkDao extends JpaRepository<PetstaBookmark, Integer
     boolean existsByUserIdAndPetstaPostId(Integer loginUserId, Integer id);
 
     List<PetstaBookmark> findByUserId(Integer userId);
+
+    @Query("SELECT pb FROM PetstaBookmark pb WHERE pb.user.id = :userId AND pb.petstaPost.deleted = false")
+    List<PetstaBookmark> findByUserIdAndNotDeleted(@Param("userId") Integer userId);
 }

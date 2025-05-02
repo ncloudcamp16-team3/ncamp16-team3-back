@@ -23,6 +23,8 @@ import tf.tailfriend.user.entity.User;
 import tf.tailfriend.user.repository.UserDao;
 
 import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -65,11 +67,14 @@ public class NotificationScheduler {
         }
 
         for (Reserve reserve : upcomingReserves) {
+            String formattedCreatedAt = reserve.getEntryTime()
+                    .atZone(ZoneId.of("Asia/Seoul"))
+                    .format(DateTimeFormatter.ISO_OFFSET_DATE_TIME);
             sendNotificationAndSaveLog(
                     reserve.getUser().getId(),
                     3,
                     String.valueOf(reserve.getId()),
-                    reserve.getEntryTime(),
+                    formattedCreatedAt,
                     "📌 예약 알림 전송 완료: userId={}, 시설명={}",
                     reserve.getUser().getId(),
                     reserve.getFacility().getName(),
@@ -88,11 +93,14 @@ public class NotificationScheduler {
 
 
             for (Schedule schedule : upcomingSchedules) {
+                String formattedCreatedAt = schedule.getStartDate()
+                        .atZone(ZoneId.of("Asia/Seoul"))
+                        .format(DateTimeFormatter.ISO_OFFSET_DATE_TIME);
             sendNotificationAndSaveLog(
                     schedule.getUser().getId(),
                     4,
                     String.valueOf(schedule.getId()),
-                    schedule.getStartDate(),
+                    formattedCreatedAt,
                     "📅 일정 알림 전송 및 저장 완료: userId={}, 일정명={}",
                     schedule.getUser().getId(),
                     schedule.getTitle(),
@@ -101,12 +109,12 @@ public class NotificationScheduler {
         }
     }
 
-    private String generateMessageId(Integer userId, Integer notifyTypeId, String content, LocalDateTime scheduleStartDate) {
+    private String generateMessageId(Integer userId, Integer notifyTypeId, String content, String scheduleStartDate) {
         // 예시로 userId, notifyTypeId, content를 조합하여 messageId를 생성
-        return String.format("%d-%d-%d-%s", userId, notifyTypeId, content.hashCode(), scheduleStartDate.toString());
+        return String.format("%d-%d-%d-%s", userId, notifyTypeId, content.hashCode(), scheduleStartDate);
     }
 
-    public void sendNotificationAndSaveLog(Integer userId, Integer notifyTypeId, String content, LocalDateTime scheduleStartDate,
+    public void sendNotificationAndSaveLog(Integer userId, Integer notifyTypeId, String content, String scheduleStartDate,
                                             String successLogFormat, Object arg1, Object arg2, String errorLogMsg) {
 
         try {

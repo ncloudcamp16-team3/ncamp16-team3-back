@@ -36,6 +36,8 @@ import tf.tailfriend.reserve.repository.ReserveDao;
 import tf.tailfriend.schedule.entity.Schedule;
 import tf.tailfriend.schedule.repository.ScheduleDao;
 
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
@@ -168,11 +170,15 @@ public class NotificationService {
 
         for (UserFcm userFcm : userFcmtokens) {
             Integer userId = userFcm.getUserId();
+            String formattedCreatedAt = announce.getCreatedAt()
+                    .atZone(ZoneId.of("Asia/Seoul"))
+                    .format(DateTimeFormatter.ISO_OFFSET_DATE_TIME);
             notificationScheduler.sendNotificationAndSaveLog(
+
                     userId,
                     6,
                     String.valueOf(announce.getId()),
-                    announce.getCreatedAt(),
+                    formattedCreatedAt,
                     "📌 공지 알림 전송 완료: 제목={}, 내용={}",
                     announce.getTitle(),
                     announce.getContent(),
@@ -217,6 +223,7 @@ public class NotificationService {
 
         // 알림 전송
         for (Integer userId : targetUserIds) {
+
             notificationScheduler.sendNotificationAndSaveLog(
                     userId,
                     2, // 댓글 알림 타입
@@ -268,11 +275,14 @@ public class NotificationService {
 
         // 알림 전송
         for (Integer userId : targetUserIds) {
+            String formattedCreatedAt = comment.getCreatedAt()
+                    .atZone(ZoneId.of("Asia/Seoul"))
+                    .format(DateTimeFormatter.ISO_OFFSET_DATE_TIME);
             notificationScheduler.sendNotificationAndSaveLog(
                     userId,
                     1, // 게시판 댓글 알림 타입
                     String.valueOf(comment.getId()), // 댓글 id
-                    comment.getCreatedAt(),
+                    formattedCreatedAt,
                     "💬 댓글 알림 전송 완료: 게시글 제목={}, 댓글={}",
                     comment.getBoard().getTitle(),
                     comment.getContent(),
@@ -288,7 +298,7 @@ public class NotificationService {
 
         int typeId = notification.getNotificationType().getId();
         if (typeId == 1) {
-            Integer commentId = Integer.valueOf(notification.getContent()); //알람 ID
+            Integer commentId = Integer.valueOf(notification.getContent());
             content = commentDao.findById(commentId)
                     .map(comment -> comment.getBoard().getId().toString())
                     .orElse("UNKNOWN");
@@ -301,15 +311,21 @@ public class NotificationService {
             content = notification.getContent();
         }
 
+        // ✅ KST 시간 포맷팅
+        String formattedCreatedAt = notification.getCreatedAt()
+                .atZone(ZoneId.of("Asia/Seoul"))
+                .format(DateTimeFormatter.ISO_OFFSET_DATE_TIME);
+
         return GetNotifyDto.builder()
                 .id(notification.getId())
                 .userId(notification.getUser().getId())
                 .notificationTypeId(typeId)
                 .readStatus(notification.getReadStatus())
-                .createdAt(notification.getCreatedAt())
+                .createdAt(formattedCreatedAt) // ✅ 적용된 포맷
                 .content(content)
                 .build();
     }
+
 
 
     public List<GetNotifyDto> getNotificationsByUserId(Integer userId) {

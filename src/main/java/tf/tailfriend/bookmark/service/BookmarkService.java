@@ -30,7 +30,7 @@ public class BookmarkService {
     //사용자의 펫스타 북마크 목록을 조회
     @Transactional(readOnly = true)
     public List<PetstaBookmarkResponseDto> getPetstaBookmarks(Integer userId) {
-        List<PetstaBookmark> bookmarks = petstaBookmarkDao.findByUserId(userId);
+        List<PetstaBookmark> bookmarks = petstaBookmarkDao.findByUserIdAndNotDeleted(userId);
 
         return bookmarks.stream().map(bookmark -> {
             // 게시물 파일 URL 생성
@@ -44,6 +44,7 @@ public class BookmarkService {
             return PetstaBookmarkResponseDto.fromBookmark(bookmark, fileUrl, userPhotoUrl);
         }).collect(Collectors.toList());
     }
+
 
     // 사용자의 게시글 북마크 목록을 조회
     @Transactional(readOnly = true)

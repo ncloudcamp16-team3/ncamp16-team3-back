@@ -263,19 +263,6 @@ public class BoardController {
 
             System.out.println("✅ 알림 대상 유저 ID 목록: " + targetUserIds);
 
-            // 알림 전송
-            for (Integer userId : targetUserIds) {
-                notificationScheduler.sendNotificationAndSaveLog(
-                        userId,
-                        1, // 댓글 알림 타입
-                        String.valueOf(comment.getId()),
-                        comment.getCreatedAt(),
-                        "💬 댓글 알림 전송 완료: 게시글 제목={}, 댓글={}",
-                        comment.getBoard().getTitle(),
-                        comment.getContent(),
-                        "❌ 댓글 알림 전송 실패: commentId=" + comment.getId()
-                );
-            }
 
             // 알림 전송 (예외는 무시)
             try {

@@ -26,13 +26,4 @@ public class GetNotifyDto {
     private String title;
     private String body;
 
-    public GetNotifyDto(Notification notification) {
-        this.id = notification.getId();
-        this.userId = notification.getUser().getId();
-        this.notificationTypeId = notification.getNotificationType().getId();
-        this.content = notification.getContent();
-        this.readStatus = notification.getReadStatus();
-        this.createdAt = notification.getCreatedAt();
-
-    }
 }

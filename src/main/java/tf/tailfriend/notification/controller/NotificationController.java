@@ -16,12 +16,33 @@ import java.util.List;
 @RequestMapping("/api/notification")
 public class NotificationController {
 
-private final NotificationService notificationService;
+
+    private final NotificationService notificationService;
 
 
     @GetMapping("/user/{userId}")
     public ResponseEntity<List<GetNotifyDto>> getUserNotifications(@PathVariable Integer userId) {
         List<GetNotifyDto> notifyList = notificationService.getNotificationsByUserId(userId);
         return ResponseEntity.ok(notifyList);
+    }
+
+    // 프라이머리 키 기반 알림 삭제
+    @DeleteMapping("/{notificationId}")
+    public ResponseEntity<Void> deleteNotification(@PathVariable Integer notificationId) {
+        notificationService.deleteNotificationById(notificationId);
+        return ResponseEntity.noContent().build(); // 204 No Content
+    }
+
+    // 특정 유저의 모든 알림 삭제
+    @DeleteMapping("/user/{userId}")
+    public ResponseEntity<Void> deleteAllNotifications(@PathVariable Integer userId) {
+        notificationService.deleteAllNotificationsByUserId(userId);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PatchMapping("/{id}/read")
+    public ResponseEntity<Void> markAsRead(@PathVariable Integer id) {
+        notificationService.markNotificationAsRead(id);
+        return ResponseEntity.noContent().build(); // 204 No Content
     }
 }

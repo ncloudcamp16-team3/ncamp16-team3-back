@@ -124,8 +124,8 @@ logging:
     org.springframework.web: DEBUG
     org.springframework.http.converter.json: DEBUG
     tf.tailfriend.notification.scheduler.NotificationScheduler: DEBUG
-    org.hibernate.SQL: DEBUG
-    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+#    org.hibernate.SQL: DEBUG
+#    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
 
 URL: ${baseUrl}
 

@@ -9,6 +9,8 @@ import org.springframework.stereotype.Repository;
 import tf.tailfriend.board.entity.Board;
 import tf.tailfriend.board.entity.BoardType;
 
+import java.util.List;
+
 @Repository
 public interface BoardDao extends JpaRepository<Board, Integer> {
 
@@ -36,4 +38,8 @@ public interface BoardDao extends JpaRepository<Board, Integer> {
 
 
     Board getBoardById(Integer boardId);
+
+    List<Board> findByUserIdOrderByCreatedAtDesc(Integer userId);
+
+    Page<Board> findByUserIdOrderByCreatedAtDesc(Integer userId, Pageable pageable);
 }

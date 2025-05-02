@@ -107,11 +107,12 @@ spring:
             user-info-uri: https://www.googleapis.com/oauth2/v3/userinfo
             user-name-attribute: sub
 
-#  data:
-#    redis:
-#      host: ${REDIS_HOST}
-#      port: ${REDIS_PORT}
-#      password: ${DB_PASSWORD}
+  data:
+    redis:
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT}
+      password: ${DB_PASSWORD}
+
 jwt:
   secret: ${JWT_SECRET}
   token-validity: 86400
@@ -124,8 +125,8 @@ logging:
     org.springframework.web: DEBUG
     org.springframework.http.converter.json: DEBUG
     tf.tailfriend.notification.scheduler.NotificationScheduler: DEBUG
-    org.hibernate.SQL: DEBUG
-    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+#    org.hibernate.SQL: DEBUG
+#    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
 
 URL: ${baseUrl}
 

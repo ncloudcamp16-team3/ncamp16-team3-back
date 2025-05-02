@@ -16,7 +16,8 @@ import java.util.List;
 @RequestMapping("/api/notification")
 public class NotificationController {
 
-private final NotificationService notificationService;
+
+    private final NotificationService notificationService;
 
 
     @GetMapping("/user/{userId}")
@@ -37,5 +38,11 @@ private final NotificationService notificationService;
     public ResponseEntity<Void> deleteAllNotifications(@PathVariable Integer userId) {
         notificationService.deleteAllNotificationsByUserId(userId);
         return ResponseEntity.noContent().build();
+    }
+
+    @PatchMapping("/{id}/read")
+    public ResponseEntity<Void> markAsRead(@PathVariable Integer id) {
+        notificationService.markNotificationAsRead(id);
+        return ResponseEntity.noContent().build(); // 204 No Content
     }
 }

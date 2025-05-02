@@ -3,6 +3,7 @@ package tf.tailfriend.notification.service;
 import com.google.firebase.messaging.FirebaseMessaging;
 import com.google.firebase.messaging.Message;
 import com.google.firebase.messaging.Notification;
+import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -37,6 +38,7 @@ import tf.tailfriend.schedule.repository.ScheduleDao;
 
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -205,7 +207,8 @@ public class NotificationService {
             notificationScheduler.sendNotificationAndSaveLog(
                     userId,
                     2, // 댓글 알림 타입
-                    String.valueOf(dto.getId()),
+                    String.valueOf(postId),  // 게시글 id
+                    // String.valueOf(dto.getId()),  - 댓글 id
                     dto.getCreatedAt(),
                     "💬 펫스타 댓글 알림 전송 완료: 작성 유저 닉네임={}, 댓글내용={}",
                     dto.getUserName(),
@@ -217,7 +220,7 @@ public class NotificationService {
 
     public void sendBoardCommentNotification(Comment comment) {
         // 게시글 정보 조회
-        Board board = boardDao.getBoardById(comment.getBoard().getId());
+        Board board = boardDao.getBoardById(comment.getBoard().getId()); // 댓글의 보드id 받음
         Integer postOwnerId = board.getUser().getId();
         Integer commentWriterId = comment.getUser().getId();
 
@@ -243,7 +246,8 @@ public class NotificationService {
             notificationScheduler.sendNotificationAndSaveLog(
                     userId,
                     1, // 게시판 댓글 알림 타입
-                    String.valueOf(comment.getId()),
+//                    String.valueOf(board.getId()), // 게시글 id
+                    String.valueOf(comment.getId()), // 댓글 id
                     comment.getCreatedAt(),
                     "💬 댓글 알림 전송 완료: 게시글 제목={}, 댓글={}",
                     comment.getBoard().getTitle(),
@@ -254,11 +258,35 @@ public class NotificationService {
     }
 
 
-//    public List<GetNotifyDto> getNotificationsByUserId(Integer userId) {
-//        return notificationDao.findByUserId(userId).stream()
-//                .map(GetNotifyDto::new)
-//                .collect(Collectors.toList());
-//    }
+    public GetNotifyDto createNotifyDto(tf.tailfriend.notification.entity.Notification notification) {
+
+        String content;
+
+        int typeId = notification.getNotificationType().getId();
+        if (typeId == 1) {
+            Integer commentId = Integer.valueOf(notification.getContent()); //알람 ID
+            content = commentDao.findById(commentId)
+                    .map(comment -> comment.getBoard().getId().toString())
+                    .orElse("UNKNOWN");
+        } else if (typeId == 2) {
+            Integer petstaCommentId = Integer.valueOf(notification.getContent());
+            content = petstaCommentDao.findById(petstaCommentId)
+                    .map(c -> c.getPost().getId().toString())
+                    .orElse("UNKNOWN");
+        } else {
+            content = notification.getContent();
+        }
+
+        return GetNotifyDto.builder()
+                .id(notification.getId())
+                .userId(notification.getUser().getId())
+                .notificationTypeId(typeId)
+                .readStatus(notification.getReadStatus())
+                .createdAt(notification.getCreatedAt())
+                .content(content)
+                .build();
+    }
+
 
     public List<GetNotifyDto> getNotificationsByUserId(Integer userId) {
         List<tf.tailfriend.notification.entity.Notification> notifications = notificationDao.findByUserIdOrderByCreatedAtDesc(userId);
@@ -270,54 +298,73 @@ public class NotificationService {
 
 
     public GetNotifyDto getNotificationDetails(tf.tailfriend.notification.entity.Notification notification) {
-        GetNotifyDto dto = new GetNotifyDto(notification);
+
+        GetNotifyDto dto = createNotifyDto(notification);
+
+
+        System.out.println("=== [createNotifyDto() 결과] ===");
+        System.out.println("dto.id: " + dto.getId());
+        System.out.println("dto.userId: " + dto.getUserId());
+        System.out.println("dto.notificationTypeId: " + dto.getNotificationTypeId());
+        System.out.println("dto.content: " + dto.getContent()); // 게시글 ID 또는 댓글 ID가 들어 있을 수 있음
+        System.out.println("dto.readStatus: " + dto.getReadStatus());
+        System.out.println("dto.createdAt: " + dto.getCreatedAt());
+        System.out.println("dto.title: " + dto.getTitle());
+        System.out.println("dto.body: " + dto.getBody());
+        System.out.println("==================================");
+
+        System.out.println("dto.content: " + dto.getContent()); // 게시글 ID
+        System.out.println("notification.content: " + notification.getContent()); // 댓글 ID
+//
+//        tf.tailfriend.notification.entity.Notification notification2=notificationDao.findById(Integer.valueOf(notification.getContent()))
+//                .orElseThrow(() -> new RuntimeException("알람을 찾을 수 없습니다"));
 
         try {
-            switch (dto.getNotificationTypeId()) {
+            switch (notification.getNotificationType().getId()) {
                 case 1 -> {
                     try {
-                        Comment comment = commentDao.findById(Integer.valueOf(dto.getContent()))
+                        Comment comment = commentDao.findById(Integer.valueOf(notification.getContent())) // ← 여기서 원본 댓글 ID 사용
                                 .orElseThrow(() -> new RuntimeException("댓글을 찾을 수 없습니다"));
+                        System.out.println("조회할 댓글 아이디 :"+notification.getContent());
                         dto.setTitle("내 게시글에 댓글이 달렸습니다.");
                         dto.setBody(comment.getContent());
+                        System.out.println("comment.getContent()"+comment.getContent());
                     } catch (RuntimeException e) {
-                        // 댓글을 찾을 수 없으면 스킵하고 계속 진행
                         dto.setTitle("댓글을 찾을 수 없습니다.");
                         dto.setBody("관련 댓글을 확인할 수 없습니다.");
                     }
                 }
                 case 2 -> {
                     try {
-                        PetstaComment petstaComment = petstaCommentDao.findById(Integer.valueOf(dto.getContent()))
+                        PetstaComment petstaComment = petstaCommentDao.findById(Integer.valueOf(notification.getContent())) // ← 원본 댓글 ID 사용
                                 .orElseThrow(() -> new RuntimeException("펫스타 댓글을 찾을 수 없습니다"));
+                        System.out.println("조회할 댓글 아이디 :"+notification.getContent());
                         dto.setTitle("내 펫스타에 댓글이 달렸습니다.");
                         dto.setBody(petstaComment.getContent());
+                        System.out.println("comment.getContent()"+petstaComment.getContent());
                     } catch (RuntimeException e) {
-                        // 펫스타 댓글을 찾을 수 없으면 스킵하고 계속 진행
                         dto.setTitle("펫스타 댓글을 찾을 수 없습니다.");
                         dto.setBody("관련 펫스타 댓글을 확인할 수 없습니다.");
                     }
                 }
                 case 3 -> {
                     try {
-                        Reserve reserve = reserveDao.findById(Integer.valueOf(dto.getContent()))
+                        Reserve reserve = reserveDao.findById(Integer.valueOf(notification.getContent()))
                                 .orElseThrow(() -> new RuntimeException("예약 내역을 찾을 수 없습니다"));
                         dto.setTitle("오늘은 " + reserve.getFacility().getName() + " 예약이 있습니다.");
-                        dto.setBody("예약 내용을 확인해보세요.");
+                        dto.setBody("예약 시간: " + reserve.getEntryTime());
                     } catch (RuntimeException e) {
-                        // 예약 내역을 찾을 수 없으면 스킵하고 계속 진행
                         dto.setTitle("예약 내역을 찾을 수 없습니다.");
                         dto.setBody("관련 예약을 확인할 수 없습니다.");
                     }
                 }
                 case 4 -> {
                     try {
-                        Schedule schedule = scheduleDao.findById(Integer.valueOf(dto.getContent()))
+                        Schedule schedule = scheduleDao.findById(Integer.valueOf(notification.getContent()))
                                 .orElseThrow(() -> new RuntimeException("일정을 찾을 수 없습니다"));
                         dto.setTitle("오늘은 " + schedule.getTitle() + " 일정이 있습니다.");
                         dto.setBody("일정 시작: " + schedule.getStartDate());
                     } catch (RuntimeException e) {
-                        // 일정을 찾을 수 없으면 스킵하고 계속 진행
                         dto.setTitle("일정을 찾을 수 없습니다.");
                         dto.setBody("관련 일정을 확인할 수 없습니다.");
                     }
@@ -328,12 +375,11 @@ public class NotificationService {
                 }
                 case 6 -> {
                     try {
-                        Announce announce = announceDao.findById(Integer.valueOf(dto.getContent()))
+                        Announce announce = announceDao.findById(Integer.valueOf(notification.getContent()))
                                 .orElseThrow(() -> new RuntimeException("공지글을 찾을 수 없습니다"));
                         dto.setTitle("새로운 공지가 등록되었습니다.");
                         dto.setBody(announce.getTitle());
                     } catch (RuntimeException e) {
-                        // 공지글을 찾을 수 없으면 스킵하고 계속 진행
                         dto.setTitle("공지글을 찾을 수 없습니다.");
                         dto.setBody("관련 공지글을 확인할 수 없습니다.");
                     }
@@ -348,6 +394,7 @@ public class NotificationService {
             dto.setTitle("알림 ID가 올바르지 않습니다.");
             dto.setBody("내용을 확인할 수 없습니다.");
         }
+
         return dto;
     }
 
@@ -359,6 +406,14 @@ public class NotificationService {
     @Transactional
     public void deleteAllNotificationsByUserId(Integer userId) {
         notificationDao.deleteByUserId(userId);
+    }
+
+    @Transactional
+    public void markNotificationAsRead(Integer id) {
+        tf.tailfriend.notification.entity.Notification notification = notificationDao.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Notification not found"));
+
+        notification.markAsRead(); // 변경
     }
 
 

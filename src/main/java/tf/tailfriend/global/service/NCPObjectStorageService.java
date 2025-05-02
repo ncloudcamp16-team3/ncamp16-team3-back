@@ -66,6 +66,24 @@ public class NCPObjectStorageService implements StorageService {
     }
 
 
+
+    @Override
+    public void openUpload(String filePath, InputStream fileIn) throws StorageServiceException {
+        try {
+            ObjectMetadata metadata = new ObjectMetadata();
+            metadata.setContentType("application/octet-stream");
+
+            PutObjectRequest request = new PutObjectRequest(bucketName, filePath, fileIn, metadata)
+                    .withCannedAcl(CannedAccessControlList.PublicRead);
+
+            s3.putObject(request);
+        } catch (Exception e) {
+            throw new StorageServiceException(e);
+        }
+    }
+
+
+
     @Override
     public void delete(String filePath) throws StorageServiceException {
         try {

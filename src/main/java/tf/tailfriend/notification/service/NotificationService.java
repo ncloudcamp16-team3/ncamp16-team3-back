@@ -145,8 +145,8 @@ public class NotificationService {
                                 .setNotification(Notification.builder()
                                         .setTitle(title)
                                         .setBody(body)
-                                        .setImage(image)
                                         .build())
+                                .putData("icon", image) // 여기에 꼭 icon 추가
                                 .build();
 
                         FirebaseMessaging.getInstance().send(message);
@@ -325,19 +325,6 @@ public class NotificationService {
 
         GetNotifyDto dto = createNotifyDto(notification);
 
-        System.out.println("=== [createNotifyDto() 결과] ===");
-        System.out.println("dto.id: " + dto.getId());
-        System.out.println("dto.userId: " + dto.getUserId());
-        System.out.println("dto.notificationTypeId: " + dto.getNotificationTypeId());
-        System.out.println("dto.content: " + dto.getContent()); // 게시글 id
-        System.out.println("dto.readStatus: " + dto.getReadStatus());
-        System.out.println("dto.createdAt: " + dto.getCreatedAt());
-        System.out.println("dto.title: " + dto.getTitle());
-        System.out.println("dto.body: " + dto.getBody());
-        System.out.println("==================================");
-
-        System.out.println("notification.content: " + notification.getContent()); // 댓글 ID
-
         try {
             switch (notification.getNotificationType().getId()) {
                 case 1 -> {
@@ -347,7 +334,6 @@ public class NotificationService {
 
                         dto.setTitle("내 게시글에 댓글이 달렸습니다.");
                         dto.setBody(comment.getContent());
-                        System.out.println("comment.getContent()"+comment.getContent());
                     } catch (RuntimeException e) {
                         dto.setTitle("댓글을 찾을 수 없습니다.");
                         dto.setBody("관련 댓글을 확인할 수 없습니다.");
@@ -360,7 +346,6 @@ public class NotificationService {
                         System.out.println("조회할 댓글 아이디 :"+notification.getContent());
                         dto.setTitle("내 펫스타에 댓글이 달렸습니다.");
                         dto.setBody(petstaComment.getContent());
-                        System.out.println("comment.getContent()"+petstaComment.getContent());
                     } catch (RuntimeException e) {
                         dto.setTitle("펫스타 댓글을 찾을 수 없습니다.");
                         dto.setBody("관련 펫스타 댓글을 확인할 수 없습니다.");

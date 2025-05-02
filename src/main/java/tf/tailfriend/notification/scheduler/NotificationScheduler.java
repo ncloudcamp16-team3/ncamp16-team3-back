@@ -101,9 +101,9 @@ public class NotificationScheduler {
         }
     }
 
-    private String generateMessageId(Integer userId, Integer notifyTypeId, String content, LocalDateTime scheduleStartDate) {
+    private String generateMessageId(Integer userId, Integer notifyTypeId, LocalDateTime scheduleStartDate, String content) {
         // 예시로 userId, notifyTypeId, content를 조합하여 messageId를 생성
-        return String.format("%d-%d-%d-%s", userId, notifyTypeId, content.hashCode(), scheduleStartDate.toString());
+        return String.format("%d-%d-%s-+%s", userId, notifyTypeId, scheduleStartDate.toString(), content);
     }
 
     public void sendNotificationAndSaveLog(Integer userId, Integer notifyTypeId, String content, LocalDateTime scheduleStartDate,
@@ -117,9 +117,12 @@ public class NotificationScheduler {
                     .orElseThrow(() -> new IllegalStateException("FCM 토큰을 찾을 수 없습니다: userId=" + userId));
             log.debug("📱 FCM 토큰 조회 성공: fcmToken={}", userFcm.getFcmToken());
 
-            // 2. 메세지 ID 생성
-            String messageId = generateMessageId(userId, notifyTypeId, content, scheduleStartDate); // messageId 생성 로직
-
+            String messageId;
+            if (notifyTypeId == 5) {
+                messageId = generateMessageId(userId, notifyTypeId, scheduleStartDate, "o"+arg1+"+"+arg2);
+            } else {
+                messageId = generateMessageId(userId, notifyTypeId, scheduleStartDate, content);
+            }
 
             if (notificationDao.existsByMessageId(messageId)) {
                 log.info("이미 처리된 메시지 ID입니다. 전송을 건너뜁니다. 메시지 ID: {}", messageId);
@@ -135,9 +138,9 @@ public class NotificationScheduler {
                     .messageId(messageId);
             // messageId 포함
             if (notifyTypeId == 5) {
-                builder.senderId(null).message(null);
-            } else {
                 builder.senderId((String) arg1).message((String) arg2);
+            } else {
+                builder.senderId(null).message(null);
             }
 
             NotificationDto dto = builder.build();

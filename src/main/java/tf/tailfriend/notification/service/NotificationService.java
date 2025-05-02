@@ -36,6 +36,8 @@ import tf.tailfriend.reserve.entity.Reserve;
 import tf.tailfriend.reserve.repository.ReserveDao;
 import tf.tailfriend.schedule.entity.Schedule;
 import tf.tailfriend.schedule.repository.ScheduleDao;
+import tf.tailfriend.user.entity.User;
+import tf.tailfriend.user.repository.UserDao;
 
 import java.time.LocalDateTime;
 import java.util.HashSet;
@@ -63,6 +65,7 @@ public class NotificationService {
     private final NotificationDao notificationDao;
     private final CommentDao commentDao;
     private final PetstaCommentDao petstaCommentDao;
+    private final UserDao userDao;
 
 
     // 특정 사용자에게 직접 푸시 전송
@@ -74,8 +77,13 @@ public class NotificationService {
                     String body = "";
                     String image = "";
 
+                    System.out.println("[DEBUG] 알림 타입 ID: " + dto.getNotifyTypeId());
+                    System.out.println("[DEBUG] 컨텐츠: " + dto.getContent());
+                    System.out.println("[DEBUG] 보낸 사람 ID: " + dto.getSenderId());
+                    System.out.println("[DEBUG] 메시지: " + dto.getMessage());
+
                     try {
-                        int contentId = Integer.parseInt(dto.getContent());
+                        String contentId = dto.getContent();
                         System.out.println("컨텐츠아이디 디버깅 : " + contentId);
 
                         String imagePrefix ="https://kr.object.ncloudstorage.com/tailfriends-buck/uploads/notification";
@@ -83,55 +91,51 @@ public class NotificationService {
                         switch (dto.getNotifyTypeId()) {
                             case 1 -> {
                                 // 일반 댓글
-                                Comment comment = CommentDao.findById(contentId)
+                                Comment comment = CommentDao.findById(Integer.valueOf(contentId))
                                         .orElseThrow(() -> new RuntimeException("댓글을 찾을 수 없습니다"));
                                 title = "내 게시글에 댓글이 달렸습니다.";
                                 body = comment.getContent();
                                 image = imagePrefix + "/comment.png";
-                                System.out.println(image);
                             }
                             case 2 -> {
                                 // 펫스타 댓글
-                                PetstaComment petstaComment = PetstaCommentDao.findById(contentId)
+                                PetstaComment petstaComment = PetstaCommentDao.findById(Integer.valueOf(contentId))
                                         .orElseThrow(() -> new RuntimeException("펫스타 댓글을 찾을 수 없습니다"));
                                 title = "내 펫스타에 댓글이 달렸습니다.";
                                 body = petstaComment.getContent();
                                 image = imagePrefix + "/petsta.png";
-                                System.out.println(image);
                             }
                             case 3 -> {
                                 // 예약 알림
-                                Reserve reserve = reserveDao.findById(contentId)
+                                Reserve reserve = reserveDao.findById(Integer.valueOf(contentId))
                                         .orElseThrow(() -> new RuntimeException("예약 내역을 찾을 수 없습니다"));
                                 title = "오늘은 " + reserve.getFacility().getName() + " 예약이 있습니다.";
                                 body = "예약 시간: "+ reserve.getEntryTime();
                                 image = imagePrefix + "/reserve.png";
-                                System.out.println(image);
                             }
                             case 4 -> {
                                 // 일정 알림
-                                Schedule schedule = scheduleDao.findById(contentId)
+                                Schedule schedule = scheduleDao.findById(Integer.valueOf(contentId))
                                         .orElseThrow(() -> new RuntimeException("일정을 찾을 수 없습니다"));
                                 title = "오늘은 " + schedule.getTitle() + " 일정이 있습니다.";
                                 body = "일정 시작: " + schedule.getStartDate();
                                 image = imagePrefix + "/schedule.png";
-                                System.out.println(image);
                             }
                             case 5 -> {
+                                User user=  userDao.findById(Integer.valueOf(dto.getSenderId()))
+                                        .orElseThrow(() -> new RuntimeException("채팅 보낸 유저를 찾을 수 없습니다."));
                                 // 채팅 알림
-                                title = dto.getSenderId() + " 님으로부터 메시지가 도착했습니다.";
+                                title = user.getNickname() + " 님으로부터 메시지가 도착했습니다.";
                                 body = dto.getMessage();
                                 image = imagePrefix + "/chat.png";
-                                System.out.println(image);
                             }
                             case 6 -> {
                                 // 공지 알림
-                                Announce announce = announceDao.findById(contentId)
+                                Announce announce = announceDao.findById(Integer.valueOf(contentId))
                                         .orElseThrow(() -> new RuntimeException("공지글을 찾을 수 없습니다"));
                                 title = "새로운 공지가 등록되었습니다.";
                                 body = announce.getTitle();
                                 image = imagePrefix + "/global.png";
-                                System.out.println(image);
                             }
                             default -> {
                                 title = "알림";
@@ -283,18 +287,32 @@ public class NotificationService {
 
     public void handleChatNotification(ChatNotificationDto dto) {
 
+        System.out.println("[디버그] 채팅 알림 발송 시작");
+        System.out.println("  userId     = " + dto.getUserId());
+        System.out.println("  notifyType = 5");
+        System.out.println("  channelId  = " + dto.getChannelId());
+        System.out.println("  createdAt  = " + dto.getCreatedAt());
+        System.out.println("  senderId   = " + dto.getSenderId());
+        System.out.println("  message    = " + dto.getMessage());
+
+        try {
             notificationScheduler.sendNotificationAndSaveLog(
                     dto.getUserId(),
                     5,
-                    dto.getChannelId(), // 채팅방 id
+                    dto.getChannelId(),
                     dto.getCreatedAt(),
                     "💬 채팅 알림 전송 완료: 보낸사람 id={}, 메시지={}",
                     dto.getSenderId(),
                     dto.getMessage(),
                     "❌ 채팅 알림 전송 실패: channelId=" + dto.getChannelId()
             );
-
+            System.out.println("[디버그] 채팅 알림 발송 메서드 호출 성공");
+        } catch (Exception e) {
+            System.out.println("[디버그] 채팅 알림 발송 중 예외 발생");
+            e.printStackTrace();
+        }
     }
+
 
 
     public GetNotifyDto createNotifyDto(tf.tailfriend.notification.entity.Notification notification) {
@@ -389,8 +407,41 @@ public class NotificationService {
                     }
                 }
                 case 5 -> {
-                    dto.setTitle("");
-                    dto.setBody("");
+                    try {
+                        String messageId = notification.getMessageId();
+
+                        // "o" 다음 ~ 첫 "+" 전까지
+                        int oIndex = messageId.indexOf("o");
+                        int firstPlusIndex = messageId.indexOf("+", oIndex);
+                        String parsedBody1 = messageId.substring(oIndex + 1, firstPlusIndex);
+
+                        // 마지막 "+" 다음부터 끝까지
+                        int lastPlusIndex = messageId.lastIndexOf("+");
+                        String parsedBody2 = messageId.substring(lastPlusIndex + 1);
+
+                        User user=userDao.findById(Integer.valueOf(parsedBody1))
+                                .orElseThrow(()->new RuntimeException("채팅 유저를 찾을 수 없습니다."));
+
+                        dto.setTitle(user.getNickname() + " 님으로부터 메시지가 도착했습니다.");
+                        dto.setBody(parsedBody2);
+
+
+                    } catch (RuntimeException e) {
+
+                        String messageId = notification.getMessageId();
+
+                        // "o" 다음 ~ 첫 "+" 전까지
+                        int oIndex = messageId.indexOf("o");
+                        int firstPlusIndex = messageId.indexOf("+", oIndex);
+                        String parsedBody1 = messageId.substring(oIndex + 1, firstPlusIndex);
+
+                        String parsedBody2 = messageId.substring(messageId.indexOf("+") + 1);
+                        dto.setBody(parsedBody2);
+
+
+                        dto.setTitle("보낸 사람 정보를 확인할 수 없습니다.");
+                        dto.setBody("메시지 존재 여부: [" + parsedBody2+"]");
+                    }
                 }
                 case 6 -> {
                     try {

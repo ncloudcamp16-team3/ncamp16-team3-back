@@ -12,5 +12,5 @@ public interface PetstaCommentDao extends JpaRepository<PetstaComment, Integer> 
 
     List<PetstaComment> findByParentOrderByCreatedAtAsc(PetstaComment parentComment);
 
-    PetstaComment findByPostId(Integer integer);
+    List<PetstaComment> findRepliesByParentId(Integer parentId);
 }

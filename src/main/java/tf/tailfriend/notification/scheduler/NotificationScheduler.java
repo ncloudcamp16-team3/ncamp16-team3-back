@@ -109,7 +109,7 @@ public class NotificationScheduler {
         }
     }
 
-    private String generateMessageId(Integer userId, Integer notifyTypeId, String content, String scheduleStartDate , String content) {
+    private String generateMessageId(Integer userId, Integer notifyTypeId, String scheduleStartDate , String content) {
         // 예시로 userId, notifyTypeId, content를 조합하여 messageId를 생성
         return String.format("%d-%d-%d-%s", userId, notifyTypeId, content.hashCode(), scheduleStartDate, content);
     }

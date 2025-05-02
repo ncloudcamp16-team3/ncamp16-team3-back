@@ -292,11 +292,15 @@ public class NotificationService {
     public void handleChatNotification(ChatNotificationDto dto) {
 
         try {
+
+            String formattedCreatedAt = dto.getCreatedAt()
+                    .atZone(ZoneId.of("Asia/Seoul"))
+                    .format(DateTimeFormatter.ISO_OFFSET_DATE_TIME);
             notificationScheduler.sendNotificationAndSaveLog(
                     dto.getUserId(),
                     5,
                     dto.getChannelId(),
-                    dto.getCreatedAt(),
+                    formattedCreatedAt,
                     "💬 채팅 알림 전송 완료: 보낸사람 id={}, 메시지={}",
                     dto.getSenderId(),
                     dto.getMessage(),

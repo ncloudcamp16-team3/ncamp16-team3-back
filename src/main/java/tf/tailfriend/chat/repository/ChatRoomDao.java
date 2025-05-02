@@ -15,4 +15,6 @@ public interface ChatRoomDao extends JpaRepository<ChatRoom, Integer> {
 
 
     List<ChatRoom> findByUniqueIdIn(List<String> uniqueIds);
+
+    Optional<ChatRoom> findByUniqueId(String channelId);
 }

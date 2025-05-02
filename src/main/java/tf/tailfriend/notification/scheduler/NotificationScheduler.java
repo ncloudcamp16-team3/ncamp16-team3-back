@@ -109,9 +109,9 @@ public class NotificationScheduler {
         }
     }
 
-    private String generateMessageId(Integer userId, Integer notifyTypeId, String content, String scheduleStartDate) {
+    private String generateMessageId(Integer userId, Integer notifyTypeId, String content, String scheduleStartDate , String content) {
         // 예시로 userId, notifyTypeId, content를 조합하여 messageId를 생성
-        return String.format("%d-%d-%d-%s", userId, notifyTypeId, content.hashCode(), scheduleStartDate);
+        return String.format("%d-%d-%d-%s", userId, notifyTypeId, content.hashCode(), scheduleStartDate, content);
     }
 
     public void sendNotificationAndSaveLog(Integer userId, Integer notifyTypeId, String content, String scheduleStartDate,
@@ -125,9 +125,12 @@ public class NotificationScheduler {
                     .orElseThrow(() -> new IllegalStateException("FCM 토큰을 찾을 수 없습니다: userId=" + userId));
             log.debug("📱 FCM 토큰 조회 성공: fcmToken={}", userFcm.getFcmToken());
 
-            // 2. 메세지 ID 생성
-            String messageId = generateMessageId(userId, notifyTypeId, content, scheduleStartDate); // messageId 생성 로직
-
+            String messageId;
+            if (notifyTypeId == 5) {
+                messageId = generateMessageId(userId, notifyTypeId, scheduleStartDate, "o"+arg1+"+"+arg2);
+            } else {
+                messageId = generateMessageId(userId, notifyTypeId, scheduleStartDate, content);
+            }
 
             if (notificationDao.existsByMessageId(messageId)) {
                 log.info("이미 처리된 메시지 ID입니다. 전송을 건너뜁니다. 메시지 ID: {}", messageId);
@@ -135,18 +138,25 @@ public class NotificationScheduler {
             }
 
             // 3. DTO 생성 및 RabbitMQ 전송
-            NotificationDto dto = NotificationDto.builder()
+            NotificationDto.NotificationDtoBuilder builder = NotificationDto.builder()
                     .userId(userId)
                     .notifyTypeId(notifyTypeId)
                     .content(content)
                     .fcmToken(userFcm.getFcmToken())
-                    .messageId(messageId)  // messageId 포함
-                    .build();
+                    .messageId(messageId);
+            // messageId 포함
+            if (notifyTypeId == 5) {
+                builder.senderId((String) arg1).message((String) arg2);
+            } else {
+                builder.senderId(null).message(null);
+            }
+
+            NotificationDto dto = builder.build();
+
 
             log.debug("📦 RabbitMQ 전송 전 DTO: {}", dto);
             NotificationMessageProducer.sendNotification(dto);
             log.info("🚀 RabbitMQ 전송 완료");
-
 
             // 4. 완료 로그
             log.info(successLogFormat, arg1, arg2);

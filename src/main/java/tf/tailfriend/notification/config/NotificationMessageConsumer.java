@@ -39,6 +39,7 @@ public class NotificationMessageConsumer {
     @RabbitListener(queues = RabbitConfig.QUEUE_NAME)
     public void receiveMessage(NotificationDto message) {
 
+
         String messageId = message.getMessageId();
 
         if (notificationDao.existsByMessageId(messageId)) {
@@ -52,6 +53,7 @@ public class NotificationMessageConsumer {
 
             NotificationType notificationType = notificationTypeDao.findById(message.getNotifyTypeId())
                     .orElseThrow(() -> new IllegalArgumentException("알림 타입 없음"));
+
 
             Notification notification = Notification.builder()
                     .user(user)

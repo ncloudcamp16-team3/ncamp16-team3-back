@@ -1,11 +1,15 @@
 package tf.tailfriend.bookmark.service;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import tf.tailfriend.board.dto.BoardBookmarkResponseDto;
+import tf.tailfriend.board.dto.BoardResponseDto;
 import tf.tailfriend.board.entity.BoardBookmark;
 import tf.tailfriend.board.repository.BoardBookmarkDao;
+import tf.tailfriend.board.service.BoardService;
 import tf.tailfriend.global.service.StorageService;
 import tf.tailfriend.petsta.entity.PetstaBookmark;
 import tf.tailfriend.petsta.entity.dto.PetstaBookmarkResponseDto;
@@ -21,11 +25,12 @@ public class BookmarkService {
     private final PetstaBookmarkDao petstaBookmarkDao;
     private final BoardBookmarkDao boardBookmarkDao;
     private final StorageService storageService;
+    private final BoardService boardService;
 
     //사용자의 펫스타 북마크 목록을 조회
     @Transactional(readOnly = true)
     public List<PetstaBookmarkResponseDto> getPetstaBookmarks(Integer userId) {
-        List<PetstaBookmark> bookmarks = petstaBookmarkDao.findByUserId(userId);
+        List<PetstaBookmark> bookmarks = petstaBookmarkDao.findByUserIdAndNotDeleted(userId);
 
         return bookmarks.stream().map(bookmark -> {
             // 게시물 파일 URL 생성
@@ -39,6 +44,7 @@ public class BookmarkService {
             return PetstaBookmarkResponseDto.fromBookmark(bookmark, fileUrl, userPhotoUrl);
         }).collect(Collectors.toList());
     }
+
 
     // 사용자의 게시글 북마크 목록을 조회
     @Transactional(readOnly = true)
@@ -74,5 +80,17 @@ public class BookmarkService {
 
             return BoardBookmarkResponseDto.fromBookmark(bookmark, imageUrls);
         }).collect(Collectors.toList());
+    }
+
+    // 사용자가 작성한 게시글 목록을 조회
+    @Transactional(readOnly = true)
+    public List<BoardResponseDto> getUserPosts(Integer userId) {
+        return boardService.getUserBoards(userId);
+    }
+
+    // 사용자가 작성한 게시글 목록을 페이징 처리하여 조회
+    @Transactional(readOnly = true)
+    public Page<BoardResponseDto> getUserPostsPaged(Integer userId, Pageable pageable) {
+        return boardService.getUserBoardsPaged(userId, pageable);
     }
 }

@@ -443,6 +443,21 @@ public class BoardService {
         boardDao.delete(board);
     }
 
+    @Transactional(readOnly = true)
+    public List<BoardResponseDto> getUserBoards(Integer userId) {
+        List<Board> boards = boardDao.findByUserIdOrderByCreatedAtDesc(userId);
+
+        return boards.stream()
+                .map(this::convertToDto)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public Page<BoardResponseDto> getUserBoardsPaged(Integer userId, Pageable pageable) {
+        Page<Board> boards = boardDao.findByUserIdOrderByCreatedAtDesc(userId, pageable);
+        return convertToDtoPage(boards);
+    }
+
     // Board Entity를 BoardResponseDto로 변환하는 헬퍼 메서드
     private BoardResponseDto convertToDto(Board board) {
         // 기본 DTO 생성 (기존 fromEntity 메서드 활용)

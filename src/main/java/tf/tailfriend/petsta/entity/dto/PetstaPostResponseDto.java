@@ -6,6 +6,9 @@ import lombok.NoArgsConstructor;
 import tf.tailfriend.file.entity.File;
 import tf.tailfriend.petsta.entity.PetstaPost;
 
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -35,7 +38,9 @@ public class PetstaPostResponseDto {
         this.likes = post.getLikeCount();  // 좋아요 개수
         this.comments = post.getCommentCount();  // 댓글 개수
         this.content = post.getContent();  // 게시물 내용
-        this.createdAt = post.getCreatedAt().toString();  // 생성 일자
+        this.createdAt = post.getCreatedAt()
+                .atZone(ZoneId.of("Asia/Seoul"))
+                .format(DateTimeFormatter.ISO_OFFSET_DATE_TIME);
         this.initialLiked = initialLiked;
         this.initialBookmarked = initialBookmarked;
         this.initialFollowed = initialFollowed;

@@ -91,4 +91,15 @@ public class Pet {
             idx++;
         }
     }
+
+    public void removePhotoById(Integer fileId) {
+        photos.removeIf(photo -> photo.getFile().getId().equals(fileId));
+    }
+
+    public void updatePhotoThumbnail(Integer fileId, boolean isThumbnail) {
+        photos.stream()
+                .filter(photo -> photo.getFile().getId().equals(fileId))
+                .findFirst()
+                .ifPresent(photo -> photo.setThumbnail(isThumbnail));
+    }
 }

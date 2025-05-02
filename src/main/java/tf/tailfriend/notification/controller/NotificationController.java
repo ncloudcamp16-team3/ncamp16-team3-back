@@ -48,21 +48,9 @@ public class NotificationController {
         return ResponseEntity.noContent().build(); // 204 No Content
     }
 
-//    @PostMapping("/chat")
-//    public ResponseEntity<?> sendChatNotification(@RequestBody ChatNotificationDto dto) {
-//        notificationService.handleChatNotification(dto);
-//        return ResponseEntity.ok().build();
-//    }
 
     @PostMapping("/chat")
     public ResponseEntity<?> sendChatNotification(@RequestBody ChatNotificationDto dto) {
-        System.out.println("===== 채팅 알림 요청 수신 =====");
-        System.out.println("userId: " + dto.getUserId());
-        System.out.println("channelId: " + dto.getChannelId());
-        System.out.println("senderId: " + dto.getSenderId());
-        System.out.println("message: " + dto.getMessage());
-        System.out.println("type: " + dto.getType());
-        System.out.println("createdAt: " + dto.getCreatedAt());
 
         try {
             notificationService.handleChatNotification(dto);

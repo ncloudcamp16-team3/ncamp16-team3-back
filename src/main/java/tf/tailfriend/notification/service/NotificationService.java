@@ -77,14 +77,8 @@ public class NotificationService {
                     String body = "";
                     String image = "";
 
-                    System.out.println("[DEBUG] 알림 타입 ID: " + dto.getNotifyTypeId());
-                    System.out.println("[DEBUG] 컨텐츠: " + dto.getContent());
-                    System.out.println("[DEBUG] 보낸 사람 ID: " + dto.getSenderId());
-                    System.out.println("[DEBUG] 메시지: " + dto.getMessage());
-
                     try {
                         String contentId = dto.getContent();
-                        System.out.println("컨텐츠아이디 디버깅 : " + contentId);
 
                         String imagePrefix ="https://kr.object.ncloudstorage.com/tailfriends-buck/uploads/notification";
 
@@ -287,14 +281,6 @@ public class NotificationService {
 
     public void handleChatNotification(ChatNotificationDto dto) {
 
-        System.out.println("[디버그] 채팅 알림 발송 시작");
-        System.out.println("  userId     = " + dto.getUserId());
-        System.out.println("  notifyType = 5");
-        System.out.println("  channelId  = " + dto.getChannelId());
-        System.out.println("  createdAt  = " + dto.getCreatedAt());
-        System.out.println("  senderId   = " + dto.getSenderId());
-        System.out.println("  message    = " + dto.getMessage());
-
         try {
             notificationScheduler.sendNotificationAndSaveLog(
                     dto.getUserId(),
@@ -306,9 +292,7 @@ public class NotificationService {
                     dto.getMessage(),
                     "❌ 채팅 알림 전송 실패: channelId=" + dto.getChannelId()
             );
-            System.out.println("[디버그] 채팅 알림 발송 메서드 호출 성공");
         } catch (Exception e) {
-            System.out.println("[디버그] 채팅 알림 발송 중 예외 발생");
             e.printStackTrace();
         }
     }

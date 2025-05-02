@@ -46,16 +46,6 @@ public class ChatRoom {
                 .build();
     }
 
-    public Integer getOtherUserId(Integer userId) {
-        if (user1.getId().equals(userId)) {
-            return user2.getId();
-        } else if (user2.getId().equals(userId)) {
-            return user1.getId();
-        } else {
-            throw new IllegalArgumentException("해당 유저는 이 채팅방의 참여자가 아닙니다.");
-        }
-    }
-
     public void addMessage(User user, String content, ChatType chatType, String metadata) {
         Message message = createMessage(this, user, content, chatType, metadata);
         messages.add(message);

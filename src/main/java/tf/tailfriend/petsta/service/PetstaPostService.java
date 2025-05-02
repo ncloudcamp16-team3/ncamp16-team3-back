@@ -31,6 +31,8 @@ import java.io.InputStream;
 import java.nio.file.AccessDeniedException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -280,6 +282,11 @@ public class PetstaPostService {
 
         petstaPostDao.incrementCommentCount(postId);
 
+        String formattedCreatedAt = savedComment.getCreatedAt()
+                .atZone(ZoneId.of("Asia/Seoul"))
+                .format(DateTimeFormatter.ISO_OFFSET_DATE_TIME);
+
+
         // ✅ 최종 응답 DTO 생성 및 반환
         return new PetstaCommentResponseDto(
                 savedComment.getId(),
@@ -287,7 +294,7 @@ public class PetstaPostService {
                 user.getNickname(),
                 user.getId(),
                 storageService.generatePresignedUrl(user.getFile().getPath()),
-                savedComment.getCreatedAt(),
+                formattedCreatedAt,
                 parentId,
                 0,
                 true,
@@ -353,23 +360,28 @@ public class PetstaPostService {
                         );
                     }
 
+                    // ✅ createdAt을 KST 기준 문자열로 변환
+                    String formattedCreatedAt = comment.getCreatedAt()
+                            .atZone(ZoneId.of("Asia/Seoul"))
+                            .format(DateTimeFormatter.ISO_OFFSET_DATE_TIME);
+
                     return new PetstaCommentResponseDto(
                             comment.getId(),
                             comment.getContent(),
                             comment.getUser().getNickname(),
                             commentUserId,
                             storageService.generatePresignedUrl(comment.getUser().getFile().getPath()),
-                            comment.getCreatedAt(),
+                            formattedCreatedAt, // ✅ 포맷된 시간
                             null,
                             comment.getReplyCount(),
                             isVisited,
                             mentionDto,
-                            comment.isDeleted() // 🔥 포함
+                            comment.isDeleted()
                     );
                 })
                 .collect(Collectors.toList());
-
     }
+
 
 
     @Transactional
@@ -393,13 +405,17 @@ public class PetstaPostService {
                         );
                     }
 
+                    String formattedCreatedAt = reply.getCreatedAt()
+                            .atZone(ZoneId.of("Asia/Seoul"))
+                            .format(DateTimeFormatter.ISO_OFFSET_DATE_TIME);
+
                     return new PetstaCommentResponseDto(
                             reply.getId(),
                             reply.getContent(),
                             reply.getUser().getNickname(),
                             replyUserId,
                             storageService.generatePresignedUrl(reply.getUser().getFile().getPath()),
-                            reply.getCreatedAt(),
+                            formattedCreatedAt,
                             reply.getParent().getId(),
                             reply.getReplyCount(),
                             isVisited,

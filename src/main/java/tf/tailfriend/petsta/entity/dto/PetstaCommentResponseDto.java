@@ -13,7 +13,7 @@ public class PetstaCommentResponseDto {
     private String userName;
     private Integer userId;
     private String userPhoto;
-    private LocalDateTime createdAt;
+    private String createdAt;
     private Integer parentId;
     private Integer replyCount;
     private Boolean isVisited;

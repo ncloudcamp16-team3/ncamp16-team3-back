@@ -22,7 +22,7 @@ public class GetNotifyDto {
     private Integer notificationTypeId;
     private String content;
     private Boolean readStatus;
-    private LocalDateTime createdAt;
+    private String createdAt;
     private String title;
     private String body;
 

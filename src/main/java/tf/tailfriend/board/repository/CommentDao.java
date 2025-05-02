@@ -21,4 +21,6 @@ public interface CommentDao extends JpaRepository<Comment, Integer> {
 
     @Modifying
     void deleteAllByBoard(Board board);
+
+    List<Comment> findRepliesByParentId(Integer parentId);
 }

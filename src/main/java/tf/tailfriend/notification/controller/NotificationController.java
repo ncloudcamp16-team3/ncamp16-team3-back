@@ -2,9 +2,11 @@ package tf.tailfriend.notification.controller;
 
 import lombok.RequiredArgsConstructor;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 //import tf.tailfriend.notification.config.PushNotificationService;
+import tf.tailfriend.notification.entity.dto.ChatNotificationDto;
 import tf.tailfriend.notification.entity.dto.GetNotifyDto;
 import tf.tailfriend.notification.entity.dto.NotificationDto;
 import tf.tailfriend.notification.service.NotificationService;
@@ -44,5 +46,32 @@ public class NotificationController {
     public ResponseEntity<Void> markAsRead(@PathVariable Integer id) {
         notificationService.markNotificationAsRead(id);
         return ResponseEntity.noContent().build(); // 204 No Content
+    }
+
+//    @PostMapping("/chat")
+//    public ResponseEntity<?> sendChatNotification(@RequestBody ChatNotificationDto dto) {
+//        notificationService.handleChatNotification(dto);
+//        return ResponseEntity.ok().build();
+//    }
+
+    @PostMapping("/chat")
+    public ResponseEntity<?> sendChatNotification(@RequestBody ChatNotificationDto dto) {
+        System.out.println("===== 채팅 알림 요청 수신 =====");
+        System.out.println("userId: " + dto.getUserId());
+        System.out.println("channelId: " + dto.getChannelId());
+        System.out.println("senderId: " + dto.getSenderId());
+        System.out.println("message: " + dto.getMessage());
+        System.out.println("type: " + dto.getType());
+        System.out.println("createdAt: " + dto.getCreatedAt());
+
+        try {
+            notificationService.handleChatNotification(dto);
+            System.out.println("채팅 알림 처리 완료");
+            return ResponseEntity.ok().build();
+        } catch (Exception e) {
+            System.err.println("채팅 알림 처리 중 오류 발생: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("알림 처리 실패");
+        }
     }
 }

@@ -20,6 +20,7 @@ import tf.tailfriend.chat.entity.ChatRoom;
 import tf.tailfriend.chat.repository.ChatRoomDao;
 import tf.tailfriend.notification.config.NotificationMessageProducer;
 import tf.tailfriend.notification.entity.UserFcm;
+import tf.tailfriend.notification.entity.dto.ChatNotificationDto;
 import tf.tailfriend.notification.entity.dto.GetNotifyDto;
 import tf.tailfriend.notification.entity.dto.NotificationDto;
 import tf.tailfriend.notification.entity.dto.UserFcmDto;
@@ -36,6 +37,7 @@ import tf.tailfriend.reserve.repository.ReserveDao;
 import tf.tailfriend.schedule.entity.Schedule;
 import tf.tailfriend.schedule.repository.ScheduleDao;
 
+import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
@@ -78,8 +80,6 @@ public class NotificationService {
 
                         String imagePrefix ="https://kr.object.ncloudstorage.com/tailfriends-buck/uploads/notification";
 
-
-
                         switch (dto.getNotifyTypeId()) {
                             case 1 -> {
                                 // 일반 댓글
@@ -119,8 +119,8 @@ public class NotificationService {
                             }
                             case 5 -> {
                                 // 채팅 알림
-                                title = "새로운 메세지가 왔습니다.";
-                                body = "채팅 내용을 확인하세요.";
+                                title = dto.getSenderId() + " 님으로부터 메시지가 도착했습니다.";
+                                body = dto.getMessage();
                                 image = imagePrefix + "/chat.png";
                                 System.out.println(image);
                             }
@@ -281,6 +281,21 @@ public class NotificationService {
         }
     }
 
+    public void handleChatNotification(ChatNotificationDto dto) {
+
+            notificationScheduler.sendNotificationAndSaveLog(
+                    dto.getUserId(),
+                    5,
+                    dto.getChannelId(), // 채팅방 id
+                    dto.getCreatedAt(),
+                    "💬 채팅 알림 전송 완료: 보낸사람 id={}, 메시지={}",
+                    dto.getSenderId(),
+                    dto.getMessage(),
+                    "❌ 채팅 알림 전송 실패: channelId=" + dto.getChannelId()
+            );
+
+    }
+
 
     public GetNotifyDto createNotifyDto(tf.tailfriend.notification.entity.Notification notification) {
 
@@ -374,8 +389,8 @@ public class NotificationService {
                     }
                 }
                 case 5 -> {
-                    dto.setTitle("새로운 메세지가 왔습니다.");
-                    dto.setBody("채팅 내용을 확인하세요.");
+                    dto.setTitle("");
+                    dto.setBody("");
                 }
                 case 6 -> {
                     try {

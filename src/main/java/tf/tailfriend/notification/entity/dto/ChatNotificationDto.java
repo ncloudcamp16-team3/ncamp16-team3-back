@@ -5,23 +5,17 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-
-
+import java.time.LocalDateTime;
 
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class NotificationDto {
-
+public class ChatNotificationDto {
     private Integer userId;
-    private Integer notifyTypeId;
-    private String content;
-    private String messageId;
-    private String fcmToken;
-
-    // 채팅 알림 전용 필드
+    private String channelId;
     private String senderId;
     private String message;
-
+    private String type;
+    private LocalDateTime createdAt;
 }

@@ -127,18 +127,25 @@ public class NotificationScheduler {
             }
 
             // 3. DTO 생성 및 RabbitMQ 전송
-            NotificationDto dto = NotificationDto.builder()
+            NotificationDto.NotificationDtoBuilder builder = NotificationDto.builder()
                     .userId(userId)
                     .notifyTypeId(notifyTypeId)
                     .content(content)
                     .fcmToken(userFcm.getFcmToken())
-                    .messageId(messageId)  // messageId 포함
-                    .build();
+                    .messageId(messageId);
+            // messageId 포함
+            if (notifyTypeId == 5) {
+                builder.senderId(null).message(null);
+            } else {
+                builder.senderId((String) arg1).message((String) arg2);
+            }
+
+            NotificationDto dto = builder.build();
+
 
             log.debug("📦 RabbitMQ 전송 전 DTO: {}", dto);
             NotificationMessageProducer.sendNotification(dto);
             log.info("🚀 RabbitMQ 전송 완료");
-
 
             // 4. 완료 로그
             log.info(successLogFormat, arg1, arg2);

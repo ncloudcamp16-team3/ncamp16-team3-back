@@ -19,6 +19,7 @@ import tf.tailfriend.board.entity.*;
 import tf.tailfriend.board.exception.GetBoardTypeException;
 import tf.tailfriend.board.exception.GetPostException;
 import tf.tailfriend.board.repository.*;
+import tf.tailfriend.chat.repository.TradeMatchDao;
 import tf.tailfriend.file.entity.File;
 import tf.tailfriend.file.service.FileService;
 import tf.tailfriend.global.config.UserPrincipal;
@@ -52,6 +53,7 @@ public class BoardService {
     private final BoardBookmarkDao boardBookmarkDao;
     private final BoardLikeDao boardLikeDao;
     private final FileService fileService;
+    private final TradeMatchDao tradeMatchDao;
 
     @Transactional(readOnly = true)
     public Page<BoardResponseDto> getAllBoards(Pageable pageable) {
@@ -436,6 +438,8 @@ public class BoardService {
         Board board = boardDao.findById(boardId)
                 .orElseThrow(() -> new IllegalArgumentException("게시글 번호가 없습니다"));
 
+        tradeMatchDao.deleteAllByPostId(boardId);
+        commentDao.deleteAllByBoard(board);
         boardDao.delete(board);
     }
 

@@ -78,26 +78,21 @@ public class AdminFacilityController {
             @PathVariable Integer id,
             @RequestPart("data") FacilityRequestDto requestDto,
             @RequestPart(value = "newImages", required = false) List<MultipartFile> newImages,
-            @RequestParam(value = "imageIdsToKeep", required = false) String imageIdsToKeepJson
+            @RequestParam(value = "imageIdsToKeep", required = false) String filePathToKeppJson
     ) {
         log.info("Facility update request received for id: {}", id);
         log.info("Request data: {}", requestDto);
         log.info("New images count: {}", newImages != null ? newImages.size() : 0);
-        log.info("Image IDs to keep (raw): {}", imageIdsToKeepJson);
+        log.info("Image IDs to keep (raw): {}", filePathToKeppJson);
 
-        List<Integer> imageIdsToKeep = new ArrayList<>();
+        List<String> filePathToKeep = new ArrayList<>();
 
-        if (imageIdsToKeepJson != null && !imageIdsToKeepJson.isEmpty()) {
+        if (filePathToKeppJson != null && !filePathToKeppJson.isEmpty()) {
             try {
                 ObjectMapper objectMapper = new ObjectMapper();
-                imageIdsToKeep = objectMapper.readValue(imageIdsToKeepJson, new TypeReference<List<Integer>>() {});
+                filePathToKeep = objectMapper.readValue(filePathToKeppJson, new TypeReference<List<String>>() {});
 
-                // null이나 0 같은 유효하지 않은 ID 필터링
-                imageIdsToKeep = imageIdsToKeep.stream()
-                        .filter(imageId -> imageId != null && imageId > 0)
-                        .collect(Collectors.toList());
-
-                log.info("Parsed image IDs to keep: {}", imageIdsToKeep);
+                log.info("Parsed filePath to keep: {}", filePathToKeep);
             } catch (Exception e) {
                 log.error("Failed to parse imageIdsToKeep JSON: {}", e.getMessage(), e);
                 return ResponseEntity.badRequest()
@@ -109,8 +104,8 @@ public class AdminFacilityController {
 
         try {
             // ✅ 서비스 메소드 호출 전에 로그 추가
-            log.info("Updating facility with id: {}, imageIdsToKeep: {}", id, imageIdsToKeep);
-            facilityService.updateFacility(id, requestDto, newImages, imageIdsToKeep);
+            log.info("Updating facility with id: {}, imageIdsToKeep: {}", id, filePathToKeep);
+            facilityService.updateFacility(id, requestDto, newImages, filePathToKeep);
             return ResponseEntity.ok()
                     .body(Map.of("message", "업체가 성공적으로 업데이트되었습니다"));
         } catch (Exception e) {

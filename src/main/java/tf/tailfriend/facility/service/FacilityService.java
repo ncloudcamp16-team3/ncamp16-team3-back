@@ -163,7 +163,7 @@ public class FacilityService {
     }
 
     @Transactional
-    public FacilityAddResponseDto updateFacility(Integer id, FacilityRequestDto requestDto, List<MultipartFile> newImages, List<Integer> imageIdsToKeep) {
+    public FacilityAddResponseDto updateFacility(Integer id, FacilityRequestDto requestDto, List<MultipartFile> newImages, List<String> imageIdsToKeep) {
         log.info("시설 ID: {}의 이미지 업데이트", id);
         log.info("유지할 이미지 ID: {}", imageIdsToKeep);
         log.info("새 이미지 개수: {}", newImages != null ? newImages.size() : 0);
@@ -366,17 +366,17 @@ public class FacilityService {
         return savedFiles;
     }
 
-    private List<File> updateImages(Facility facility, List<MultipartFile> newImages, List<Integer> imageIdsToKeep) {
+    private List<File> updateImages(Facility facility, List<MultipartFile> newImages, List<String> fileNamesToKeep) {
         if (newImages == null) {
             newImages = Collections.emptyList();
         }
 
-        if (imageIdsToKeep == null) {
-            imageIdsToKeep = Collections.emptyList();
+        if (fileNamesToKeep == null) {
+            fileNamesToKeep = Collections.emptyList();
         }
 
         log.info("시설 ID: {}의 이미지 업데이트", facility.getId());
-        log.info("유지할 이미지 ID: {}", imageIdsToKeep);
+        log.info("유지할 파일명 목록: {}", fileNamesToKeep);
         log.info("새 이미지 개수: {}", newImages.size());
 
         List<File> updatedFiles = new ArrayList<>();
@@ -388,19 +388,22 @@ public class FacilityService {
         if (existingPhotos != null && !existingPhotos.isEmpty()) {
             // 삭제할 이미지와 유지할 이미지 분리
             for (FacilityPhoto photo : existingPhotos) {
-                Integer fileId = photo.getFile().getId();
+                File file = photo.getFile();
+                String path = file.getPath();
 
-                if (imageIdsToKeep.contains(fileId)) {
+                String fileName = extractFileName(path);
+
+                if (fileNamesToKeep.contains(fileName)) {
                     // 유지할 이미지
                     updatedFiles.add(photo.getFile());
-                    log.info("이미지 유지: fileId: {}", fileId);
+                    log.info("이미지 유지: fileName: {}, fileId: {}", fileName, file.getId());
                 } else {
                     // 삭제할 이미지
                     try {
-                        log.info("이미지 삭제 처리 fileId: {}", fileId);
+                        log.info("이미지 삭제 처리 fileId: {}, fileName: {}", file.getId(), fileName);
                         facilityPhotoDao.delete(photo);
-                        fileDao.delete(photo.getFile());
-                        storageService.delete(photo.getFile().getPath());
+                        fileDao.delete(file);
+                        storageService.delete(path);
                     } catch (StorageServiceException e) {
                         log.warn("이미지 삭제 중 오류 발생: {}", e.getMessage());
                     }
@@ -442,6 +445,16 @@ public class FacilityService {
 
         log.info("이미지 업데이트 완료 - 최종 이미지 개수: {}", updatedFiles.size());
         return updatedFiles;
+    }
+
+    // 파일명 추출 헬퍼 메서드
+    private String extractFileName(String path) {
+        // uploads/facility/filename.jpg 형태에서 filename.jpg만 추출
+        int lastSlashIndex = path.lastIndexOf('/');
+        if (lastSlashIndex >= 0 && lastSlashIndex < path.length() - 1) {
+            return path.substring(lastSlashIndex + 1);
+        }
+        return path; // 슬래시가 없으면 전체 경로 반환
     }
 
     private void validateImage(MultipartFile image) {

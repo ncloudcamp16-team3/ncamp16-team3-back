@@ -145,6 +145,7 @@ public class NotificationService {
                                 .setNotification(Notification.builder()
                                         .setTitle(title)
                                         .setBody(body)
+                                        .setImage(image)
                                         .build())
                                 .putData("icon", image) // 여기에 꼭 icon 추가
                                 .build();
@@ -412,39 +413,11 @@ public class NotificationService {
                 }
                 case 5 -> {
                     try {
-                        String messageId = notification.getMessageId();
-
-                        // "o" 다음 ~ 첫 "+" 전까지
-                        int oIndex = messageId.indexOf("o");
-                        int firstPlusIndex = messageId.indexOf("+", oIndex);
-                        String parsedBody1 = messageId.substring(oIndex + 1, firstPlusIndex);
-
-                        // 마지막 "+" 다음부터 끝까지
-                        int lastPlusIndex = messageId.lastIndexOf("+");
-                        String parsedBody2 = messageId.substring(lastPlusIndex + 1);
-
-                        User user=userDao.findById(Integer.valueOf(parsedBody1))
-                                .orElseThrow(()->new RuntimeException("채팅 유저를 찾을 수 없습니다."));
-
-                        dto.setTitle(user.getNickname() + " 님으로부터 메시지가 도착했습니다.");
-                        dto.setBody(parsedBody2);
-
-
+                        dto.setTitle("");
+                        dto.setBody("");
                     } catch (RuntimeException e) {
-
-                        String messageId = notification.getMessageId();
-
-                        // "o" 다음 ~ 첫 "+" 전까지
-                        int oIndex = messageId.indexOf("o");
-                        int firstPlusIndex = messageId.indexOf("+", oIndex);
-                        String parsedBody1 = messageId.substring(oIndex + 1, firstPlusIndex);
-
-                        String parsedBody2 = messageId.substring(messageId.indexOf("+") + 1);
-                        dto.setBody(parsedBody2);
-
-
                         dto.setTitle("보낸 사람 정보를 확인할 수 없습니다.");
-                        dto.setBody("메시지 존재 여부: [" + parsedBody2+"]");
+                        dto.setBody("메세지를 확인할 수 없습니다.");
                     }
                 }
                 case 6 -> {

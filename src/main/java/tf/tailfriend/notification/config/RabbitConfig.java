@@ -15,9 +15,9 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class RabbitConfig {
 
-    public static final String QUEUE_NAME = "tailfriend.notification.queue";
-    public static final String EXCHANGE_NAME = "tailfriend.notification.exchange";
-    public static final String ROUTING_KEY = "tailfriend.notification.routing";
+    public static final String QUEUE_NAME = "tailfriend.notification.queue3";
+    public static final String EXCHANGE_NAME = "tailfriend.notification.exchange3";
+    public static final String ROUTING_KEY = "tailfriend.notification.routing3";
 
     @Bean
     public Queue queue() {

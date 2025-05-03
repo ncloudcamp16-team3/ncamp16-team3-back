@@ -54,6 +54,27 @@ public class NotificationMessageConsumer {
             NotificationType notificationType = notificationTypeDao.findById(message.getNotifyTypeId())
                     .orElseThrow(() -> new IllegalArgumentException("알림 타입 없음"));
 
+            // 2. notifyTypeId == 5일 경우 content 중복 확인
+            if (message.getNotifyTypeId() != null && message.getNotifyTypeId()==5) {
+                System.out.println("중복 체크 시작 - userId: " + user.getId() +
+                        ", notifyTypeId: 5" +
+                        ", content: " + message.getContent());
+
+                Notification existingNotification =
+                        notificationDao.findFirstByUserAndNotificationTypeIdAndContent(user, 5, message.getContent());
+
+                if (existingNotification != null) {
+                    System.out.println("기존 알림이 존재합니다. readStatus를 true로 업데이트합니다.");
+                    // 빌더를 사용하여 readStatus 값을 false로 설정
+                    Notification updated = existingNotification.toBuilder()
+                            .readStatus(false)
+                            .build();
+                    notificationDao.save(updated);
+                    notificationService.sendNotificationToUser(message);
+                    return;
+                }
+            }
+
 
             Notification notification = Notification.builder()
                     .user(user)

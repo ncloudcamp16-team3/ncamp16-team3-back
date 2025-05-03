@@ -10,7 +10,7 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "notifications")
 @Getter
-@Builder
+@Builder(toBuilder = true)
 @NoArgsConstructor
 @AllArgsConstructor
 public class Notification {
@@ -35,6 +35,7 @@ public class Notification {
     private String content;
 
     @Column(name = "read_status", nullable = false)
+    @Builder.Default
     private Boolean readStatus = false;
 
     @CreationTimestamp
@@ -44,4 +45,5 @@ public class Notification {
     public void markAsRead() {
         this.readStatus = true;
     }
+
 }

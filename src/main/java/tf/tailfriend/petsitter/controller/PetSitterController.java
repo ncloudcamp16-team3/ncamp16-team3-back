@@ -130,8 +130,11 @@ public class PetSitterController {
     }
 
     // 조건에 맞는 승인된 펫시터 목록을 조회하는 API
+
+    // 조건에 맞는 승인된 펫시터 목록을 조회하는 API
     @GetMapping("/approved")
     public ResponseEntity<?> getApprovedPetSitters(
+            @AuthenticationPrincipal UserPrincipal userPrincipal,
             @RequestParam(required = false) String age,
             @RequestParam(required = false) Boolean petOwnership,
             @RequestParam(required = false) Boolean sitterExp,
@@ -147,9 +150,12 @@ public class PetSitterController {
                 pageable = PageRequest.of(pageable.getPageNumber(), 50, pageable.getSort());
             }
 
-            // 승인된 펫시터 중 조건에 맞는 목록 조회
+            // 현재 사용자 ID 가져오기
+            Integer currentUserId = userPrincipal != null ? userPrincipal.getUserId() : null;
+
+            // 승인된 펫시터 중 조건에 맞는 목록 조회 (현재 사용자 제외)
             Page<PetSitterResponseDto> results = petSitterService.findApprovedPetSittersWithCriteria(
-                    age, petOwnership, sitterExp, houseType, pageable);
+                    age, petOwnership, sitterExp, houseType, pageable, currentUserId);
 
             log.info("승인된 펫시터 목록 조회 완료: totalElements={}", results.getTotalElements());
 

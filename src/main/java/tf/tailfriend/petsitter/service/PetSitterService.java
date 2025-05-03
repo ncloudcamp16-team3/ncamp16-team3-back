@@ -353,26 +353,17 @@ public class PetSitterService {
         return new PageImpl<>(petSitterDtos, pageable, petSitters.getTotalElements());
     }
 
-    /**
-     * 승인된 펫시터 중 검색 조건에 맞는 펫시터 목록을 조회하는 메소드
-     *
-     * @param age          연령대 (20대, 30대, 40대, 50대이상)
-     * @param petOwnership 반려동물 소유 여부
-     * @param sitterExp    펫시터 경험 여부
-     * @param houseType    주거 형태
-     * @param pageable     페이징 정보
-     * @return 조건에 맞는 펫시터 목록 (페이징)
-     */
+    //승인된 펫시터 중 검색 조건에 맞는 펫시터 목록을 조회하는 메소드
     @Transactional(readOnly = true)
     public Page<PetSitterResponseDto> findApprovedPetSittersWithCriteria(
-            String age, Boolean petOwnership, Boolean sitterExp, String houseType, Pageable pageable) {
+            String age, Boolean petOwnership, Boolean sitterExp, String houseType, Pageable pageable, Integer currentUserId) {
 
-        logger.info("승인된 펫시터 검색 시작: age={}, petOwnership={}, sitterExp={}, houseType={}",
-                age, petOwnership, sitterExp, houseType);
+        logger.info("승인된 펫시터 검색 시작: age={}, petOwnership={}, sitterExp={}, houseType={}, currentUserId={}",
+                age, petOwnership, sitterExp, houseType, currentUserId);
 
-        //기본 쿼리
-        String baseQuery = "SELECT ps FROM PetSitter ps WHERE ps.status = :status";
-        String countQuery = "SELECT COUNT(ps) FROM PetSitter ps WHERE ps.status = :status";
+        //기본 쿼리 - 자신은 제외
+        String baseQuery = "SELECT ps FROM PetSitter ps WHERE ps.status = :status AND ps.id != :currentUserId";
+        String countQuery = "SELECT COUNT(ps) FROM PetSitter ps WHERE ps.status = :status AND ps.id != :currentUserId";
 
         // 조건에 따라 동적으로 쿼리 구성
         StringBuilder queryBuilder = new StringBuilder(baseQuery);
@@ -381,6 +372,7 @@ public class PetSitterService {
         // 파라미터 맵
         Map<String, Object> params = new HashMap<>();
         params.put("status", PetSitter.PetSitterStatus.APPROVE);
+        params.put("currentUserId", currentUserId);
 
         // 연령대 조건
         if (age != null && !age.isEmpty()) {

@@ -1,11 +1,14 @@
 package tf.tailfriend.petsta.repository;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import tf.tailfriend.petsta.entity.PetstaComment;
 import tf.tailfriend.petsta.entity.PetstaPost;
 
 import java.util.List;
-import java.util.Optional;
+
 
 public interface PetstaCommentDao extends JpaRepository<PetstaComment, Integer> {
     List<PetstaComment> findByPostAndParentIsNullOrderByCreatedAtDesc(PetstaPost post);
@@ -13,4 +16,8 @@ public interface PetstaCommentDao extends JpaRepository<PetstaComment, Integer> 
     List<PetstaComment> findByParentOrderByCreatedAtAsc(PetstaComment parentComment);
 
     List<PetstaComment> findRepliesByParentId(Integer parentId);
+
+    @Modifying
+    @Query("DELETE FROM PetstaComment pc WHERE pc.user.id = :userId")
+    void deleteByUserId(@Param("userId") Integer userId);
 }

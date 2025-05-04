@@ -41,4 +41,9 @@ public interface PetstaPostDao extends JpaRepository<PetstaPost, Integer> {
     Optional<PetstaPost> findByIdAndDeletedFalse(Integer postId);
 
     PetstaPost getPetstaPostById(Integer postId);
+
+    @Modifying
+    @Query("DELETE FROM PetstaPost pp WHERE pp.user.id = :userId")
+    void deleteByUserId(@Param("userId") Integer userId);
 }
+

@@ -64,7 +64,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/oauth2/authorization/**").permitAll()
                                 .requestMatchers("/static/**").permitAll()
                                 .requestMatchers("/api/login/oauth2/code/**").permitAll()
-                                .requestMatchers("/api/auth/csrf").permitAll()
+
                         // 관리자 API - 로그인, 인증 체크, 로그아웃은 누구나 접근 가능
                         .requestMatchers("/api/admin/login", "/api/admin/auth/validate", "/api/admin/logout").permitAll()
                         .requestMatchers("/api/admin/register").permitAll()

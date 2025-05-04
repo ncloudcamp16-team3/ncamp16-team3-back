@@ -44,7 +44,7 @@ spring:
       hibernate:
         jdbc:
           batch_size: 50
-        format_sql: true
+        format_sql: false
         dialect: org.hibernate.dialect.MySQLDialect
         order_inserts: true
         order_updates: true
@@ -124,8 +124,8 @@ logging:
     org.springframework.web: DEBUG
     org.springframework.http.converter.json: DEBUG
     tf.tailfriend.notification.scheduler.NotificationScheduler: DEBUG
-#    org.hibernate.SQL: DEBUG
-#    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
 
 URL: ${baseUrl}
 

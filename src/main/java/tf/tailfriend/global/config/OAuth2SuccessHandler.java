@@ -47,17 +47,7 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
         String token = jwtTokenProvider.createToken(userId, snsAccountId, snsTypeId, isNewUser);
 
 
-        String osName = System.getProperty("os.name").toLowerCase();
-        boolean isLinux = osName.contains("linux");
-
-        ResponseCookie accessTokenCookie = ResponseCookie.from("accessToken", token)
-                .httpOnly(true)
-                .secure(isLinux)
-                .path("/")
-                .maxAge(Duration.ofHours(1))
-                .sameSite(isLinux ? "None" : "Lax")
-                .build();
-            response.addHeader("Set-Cookie", accessTokenCookie.toString());
+        CookieUtils.addCookie(response, "accessToken", token, 60 * 60 * 24); // 1일짜리
 
 
         String redirectUrl = mainUrl+"/oauth2/success";

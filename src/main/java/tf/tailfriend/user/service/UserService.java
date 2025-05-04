@@ -16,6 +16,7 @@ import tf.tailfriend.chat.repository.TradeMatchDao;
 import tf.tailfriend.file.entity.File;
 import tf.tailfriend.file.repository.FileDao;
 import tf.tailfriend.global.service.StorageService;
+import tf.tailfriend.notification.repository.NotificationDao;
 import tf.tailfriend.pet.entity.Pet;
 import tf.tailfriend.pet.entity.PetPhoto;
 import tf.tailfriend.pet.repository.PetPhotoDao;
@@ -66,6 +67,7 @@ public class UserService {
     private final ScheduleDao scheduleDao;
     private final ReserveDao reserveDao; // 추가
     private final PaymentDao paymentDao;
+    private final NotificationDao notificationDao;
 
 
 
@@ -180,11 +182,24 @@ public class UserService {
         // 6. PetSta 좋아요 삭제
         petstaLikeDao.deleteByUserId(userId);
 
-        // 7. PetSta 댓글 삭제
-        petstaCommentDao.deleteByUserId(userId);
+
+        // 1. 내가 작성한 게시글 ID들 조회
+        List<Integer> postIds = petstaPostDao.findIdsByUserId(userId);
+
+        // 2. 각 게시글에 달린 댓글 먼저 삭제
+        for (Integer postId : postIds) {
+            petstaCommentDao.deleteRepliesByPostId(postId);
+
+            // 2. 그다음 부모 댓글들(= parent == null) 삭제
+            petstaCommentDao.deleteParentsByPostId(postId);
+            petstaCommentDao.deleteByPostId(postId);
+        }
 
         // 8. PetSta 포스트 삭제
         petstaPostDao.deleteByUserId(userId);
+
+        // 9. 일정 삭제
+        notificationDao.deleteByUserId(userId);
 
         // 9. 사용자의 채팅방 및 메시지 처리
         List<ChatRoom> userChatRooms = chatRoomDao.findAllByUser1OrUser2(user, user);
@@ -204,6 +219,7 @@ public class UserService {
             boardDao.delete(board);
         }
 
+        notificationDao.deleteByUserId(userId);
         // 11. 게시판 북마크 삭제
         boardBookmarkDao.deleteByUserId(userId);
 
@@ -222,6 +238,9 @@ public class UserService {
             // 반려동물 삭제
             petDao.delete(pet);
         });
+
+        // 일정 삭제
+        notificationDao.deleteByUserId(userId);
 
         // 15. 회원 삭제
         userDao.delete(user);

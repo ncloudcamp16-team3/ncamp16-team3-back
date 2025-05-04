@@ -17,7 +17,21 @@ public interface PetstaCommentDao extends JpaRepository<PetstaComment, Integer> 
 
     List<PetstaComment> findRepliesByParentId(Integer parentId);
 
+
+    // 댓글 삭제
     @Modifying
-    @Query("DELETE FROM PetstaComment pc WHERE pc.user.id = :userId")
-    void deleteByUserId(@Param("userId") Integer userId);
+    @Query("DELETE FROM PetstaComment pc WHERE pc.post.id = :postId")
+    void deleteByPostId(@Param("postId") Integer postId);
+
+    @Modifying
+    @Query("DELETE FROM PetstaComment c WHERE c.post.id = :postId AND c.parent IS NOT NULL")
+    void deleteRepliesByPostId(@Param("postId") Integer postId);
+
+    // 부모 댓글 삭제
+    @Modifying
+    @Query("DELETE FROM PetstaComment c WHERE c.post.id = :postId AND c.parent IS NULL")
+    void deleteParentsByPostId(@Param("postId") Integer postId);
+
+
 }
+

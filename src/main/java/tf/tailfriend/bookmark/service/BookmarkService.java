@@ -87,11 +87,6 @@ public class BookmarkService {
         }).collect(Collectors.toList());
     }
 
-    // 사용자가 작성한 게시글 목록을 조회
-    @Transactional(readOnly = true)
-    public List<BoardResponseDto> getUserPosts(Integer userId) {
-        return boardService.getUserBoards(userId);
-    }
 
     // 사용자가 작성한 게시글 목록을 페이징 처리하여 조회
     @Transactional(readOnly = true)

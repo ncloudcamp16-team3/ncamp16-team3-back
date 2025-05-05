@@ -28,6 +28,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
 
+
+
 @Service
 @RequiredArgsConstructor
 public class AuthService {
@@ -133,5 +135,10 @@ public class AuthService {
 
         return user;
     }
+
+    public boolean isNicknameExists(String nickname) {
+        return userDao.existsByNickname(nickname);
+    }
+
 
 }

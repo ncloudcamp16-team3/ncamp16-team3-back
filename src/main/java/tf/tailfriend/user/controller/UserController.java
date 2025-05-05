@@ -23,10 +23,11 @@ import tf.tailfriend.user.service.UserService;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-import static tf.tailfriend.user.message.SuccessMessage.USER_INFO_SAVE_SUCCESS;
+import static tf.tailfriend.user.message.SuccessMessage.*;
 
 @RestController
 @RequestMapping("/api/user")
@@ -249,4 +250,6 @@ public class UserController {
         return ResponseEntity.status(HttpStatus.OK)
                 .body(new CustomResponse(USER_INFO_SAVE_SUCCESS.getMessage(), null));
     }
+
+
 }

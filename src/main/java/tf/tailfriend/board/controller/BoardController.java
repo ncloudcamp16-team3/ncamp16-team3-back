@@ -316,7 +316,7 @@ public class BoardController {
         try {
             Comment comment = commentService.updateComment(commentRequestDto.getComment(), commentRequestDto.getCommentId());
             return ResponseEntity.status(HttpStatus.OK)
-                    .body(new CustomResponse("댓글 수정에 성공하였습니다", boardService.getBoardById(commentRequestDto.getBoardId()).getComments()));
+                    .body(new CustomResponse("댓글 수정에 성공하였습니다", boardService.getBoardById(comment.getBoard().getId()).getComments()));
         } catch (Exception e) {
             log.error(e.getMessage());
             throw new CustomException() {

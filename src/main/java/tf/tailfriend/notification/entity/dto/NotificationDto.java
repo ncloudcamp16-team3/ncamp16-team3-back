@@ -5,14 +5,15 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-
+import java.io.Serializable;
 
 
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class NotificationDto {
+public class NotificationDto implements Serializable {
+    private static final long serialVersionUID = 1L;  // UID 추가 (버전 관리)
 
     private Integer userId;
     private Integer notifyTypeId;
@@ -25,6 +26,6 @@ public class NotificationDto {
     private String message;
 
     // 추가된 필드
-    private Boolean isMobile;
-    private Boolean isDev;
+    private boolean mobile;
+    private boolean dev;
 }

@@ -150,6 +150,8 @@ public class NotificationScheduler {
                 return;  // 중복 메시지라면 전송하지 않음
             }
 
+            System.out.println("메세지 id : " + messageId);
+
             // 3. DTO 생성 및 RabbitMQ 전송
             NotificationDto.NotificationDtoBuilder builder = NotificationDto.builder()
                     .userId(userId)

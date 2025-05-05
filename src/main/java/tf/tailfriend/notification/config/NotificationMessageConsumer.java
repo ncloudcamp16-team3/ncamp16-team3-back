@@ -39,6 +39,25 @@ public class NotificationMessageConsumer {
     @RabbitListener(queues = RabbitConfig.QUEUE_NAME)
     public void receiveMessage(NotificationDto message) {
 
+        // === 1차 필터링: 환경에 따라 메시지 무시 ===
+        boolean isDevMessage = Boolean.TRUE.equals(message.getIsDev());
+        boolean isMobileMessage = Boolean.TRUE.equals(message.getIsMobile());
+
+        // 현재 애플리케이션이 운영 환경인지 여부 (ex: application.yml 설정 이용)
+        boolean isProduction = !isDevMode(); // 아래 메서드 참고
+
+        if (isProduction && isDevMessage) {
+            log.info("운영 환경에서 개발용 메시지를 무시합니다. userId: {}, messageId: {}", message.getUserId(), message.getMessageId());
+            return;
+        }
+
+        // 웹 전용 서버라고 가정했을 때
+        boolean isWebOnly = false; // 필요하면 설정값으로 변경
+
+        if (isWebOnly && isMobileMessage) {
+            log.info("웹 환경에서 모바일 메시지를 무시합니다. userId: {}, messageId: {}", message.getUserId(), message.getMessageId());
+            return;
+        }
 
         String messageId = message.getMessageId();
 
@@ -92,4 +111,12 @@ public class NotificationMessageConsumer {
             log.error("[RabbitMQ] Error while processing message", e);
         }
     }
+
+    // 애플리케이션이 dev 모드인지 확인하는 메서드 (예: profile 기반)
+    private boolean isDevMode() {
+        String osName = System.getProperty("os.name").toLowerCase();
+        // 리눅스가 아니면 개발 환경으로 간주 (Mac, Windows 등)
+        return !osName.contains("linux");
+    }
+
 }

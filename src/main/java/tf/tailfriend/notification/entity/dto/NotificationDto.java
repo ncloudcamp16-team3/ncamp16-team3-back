@@ -24,4 +24,7 @@ public class NotificationDto {
     private String senderId;
     private String message;
 
+    // 추가된 필드
+    private Boolean isMobile;
+    private Boolean isDev;
 }

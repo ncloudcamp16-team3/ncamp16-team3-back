@@ -17,24 +17,15 @@ public class UserFcmController {
 
     private final UserFcmService userFcmService;
 
-    @GetMapping("/exists")
-    public ResponseEntity<?> checkFcmToken(@RequestParam Integer userId) {
-        return userFcmService.findByUserId(userId)
-                .map(userFcm -> {
-                    String fcmToken = userFcm.getFcmToken();
-                    if (fcmToken != null && !fcmToken.isEmpty()) {
-                        return ResponseEntity.ok(fcmToken);
-                    } else {
-                        return ResponseEntity.noContent().build();
-                    }
-                })
-                .orElse(ResponseEntity.noContent().build());
-    }
 
 
     @PostMapping("/fcm")
     public ResponseEntity<?> saveOrUpdateFcmToken(@RequestBody UserFcmDto dto) {
         userFcmService.saveOrUpdate(dto);
+        System.out.println(dto.getFcmToken());
+        System.out.println(dto.getUserId());
+        System.out.println(dto.isDev());
+        System.out.println(dto.isMobile());
         return ResponseEntity.ok().build();
     }
 }

@@ -21,6 +21,10 @@ public class DlxQueueConsumerConfig {
 
     private final RabbitTemplate rabbitTemplate;
 
+    private boolean isLinux() {
+        return System.getProperty("os.name").toLowerCase().contains("linux");
+    }
+
     public DlxQueueConsumerConfig(RabbitTemplate rabbitTemplate) {
         this.rabbitTemplate = rabbitTemplate;
     }
@@ -30,15 +34,18 @@ public class DlxQueueConsumerConfig {
         try {
             System.out.println("DLX 큐에서 받은 메시지: " + notificationDto);
 
+            // 리눅스 환경과 개발 환경에 따라 다른 교환기와 라우팅 키 사용
+            String exchange = isLinux() ? "notification.retry.exchange" : "notification.retry.exchange.dev";
+            String routingKey = isLinux() ? "notification.retry.routing" : "notification.retry.routing.dev";
+
             // 재시도 큐로 메시지 전송
-            rabbitTemplate.convertAndSend("notification.retry.exchange", "notification.retry.routing", notificationDto);
+            rabbitTemplate.convertAndSend(exchange, routingKey, notificationDto);
             System.out.println("재시도 큐로 메시지를 전송했습니다.");
         } catch (Exception e) {
             e.printStackTrace();
             // 예외 처리 로직 (예: 로그 기록)
         }
     }
-
 
     @Bean
     public SimpleMessageListenerContainer simpleMessageListenerContainer() {

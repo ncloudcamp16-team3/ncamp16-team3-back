@@ -43,13 +43,23 @@ public class RabbitDynamicListenerConfig {
         amqpAdmin.declareBinding(dlxBinding);
 
         // === 2. Retry Queue 설정 (재시도 후 메인 큐로 복귀) ===
-        TopicExchange retryExchange = new TopicExchange("notification.retry.exchange");
-        Queue retryQueue = QueueBuilder.durable("notification.retry.queue")
-                .withArgument("x-dead-letter-exchange", exchangeName)
-                .withArgument("x-dead-letter-routing-key", routingKey)
-                .withArgument("x-message-ttl", 5000) // 5초 후 복귀
+        TopicExchange retryExchange = isLinux()
+                ? new TopicExchange("notification.retry.exchange")
+                : new TopicExchange("notification.retry.exchange.dev");
+        Queue retryQueue = isLinux()
+                ? QueueBuilder.durable("notification.retry.queue")
+                .withArgument("x-dead-letter-exchange", exchangeName)  // DLX로 교환
+                .withArgument("x-dead-letter-routing-key", routingKey)  // DLX 라우팅 키
+                .withArgument("x-message-ttl", 5000)  // 메시지가 5초 후 TTL expired
+                .build()
+                : QueueBuilder.durable("notification.retry.queue.dev")
+                .withArgument("x-dead-letter-exchange", exchangeName)  // DLX로 교환
+                .withArgument("x-dead-letter-routing-key", routingKey)  // DLX 라우팅 키
+                .withArgument("x-message-ttl", 5000)  // 메시지가 5초 후 TTL expired
                 .build();
-        Binding retryBinding = BindingBuilder.bind(retryQueue).to(retryExchange).with("notification.retry.routing");
+        Binding retryBinding = isLinux()
+                ? BindingBuilder.bind(retryQueue).to(retryExchange).with("notification.retry.routing")
+        : BindingBuilder.bind(retryQueue).to(retryExchange).with("notification.retry.routing.dev");
 
         amqpAdmin.declareExchange(retryExchange);
         amqpAdmin.declareQueue(retryQueue);

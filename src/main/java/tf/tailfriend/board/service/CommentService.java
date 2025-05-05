@@ -88,13 +88,13 @@ public class CommentService {
     }
 
     @Transactional
-    public Comment updateComment(String content, Integer commentId) {
+    public void updateComment(String content, Integer commentId) {
         Comment comment = commentDao.findById(commentId)
                 .orElseThrow(() -> new IllegalArgumentException("comment not found"));
 
         comment.updateContent(content);
 
-        return commentDao.save(comment);
+        commentDao.save(comment);
     }
 
     @Transactional

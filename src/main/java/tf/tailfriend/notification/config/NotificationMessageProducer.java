@@ -24,6 +24,10 @@ public class NotificationMessageProducer {
     private final ObjectMapper objectMapper;
     private final UserFcmDao userFcmDao;
 
+    private boolean isLinux() {
+        return System.getProperty("os.name").toLowerCase().contains("linux");
+    }
+
     public void sendNotification(NotificationDto message) {
         try {
             // ✅ 사용자 ID로 모든 FCM 토큰 조회

@@ -1,8 +1,6 @@
 package tf.tailfriend.notification.service;
 
-import com.google.firebase.messaging.FirebaseMessaging;
-import com.google.firebase.messaging.Message;
-import com.google.firebase.messaging.Notification;
+import com.google.firebase.messaging.*;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -42,10 +40,7 @@ import tf.tailfriend.user.repository.UserDao;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.LocalDateTime;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 
@@ -70,9 +65,9 @@ public class NotificationService {
     private final UserDao userDao;
 
 
-    // 특정 사용자에게 직접 푸시 전송
+// 특정 사용자에게 직접 푸시 전송
     public void sendNotificationToUser(NotificationDto dto) {
-        List<UserFcm> userFcmList =  userFcmDao.findAllByUserId(dto.getUserId());
+        List<UserFcm> userFcmList = userFcmDao.findAllByUserId(dto.getUserId());
 
         if (userFcmList.isEmpty()) {
             System.out.println("❌ FCM 토큰이 없는 사용자입니다: userId = " + dto.getUserId());
@@ -139,25 +134,44 @@ public class NotificationService {
             for (UserFcm userFcm : userFcmList) {
                 String fcmToken = userFcm.getFcmToken();
 
+                Map<String, String> headers = new HashMap<>();
+                headers.put("TTL", "3600"); // 1시간 TTL 설정
+
                 Message message = Message.builder()
                         .setToken(fcmToken)
                         .setNotification(Notification.builder()
-                                .setTitle(title)
-                                .setBody(body)
-                                .setImage(image)
+//                                .setTitle(title)
+//                                .setBody(body)
+//                                .setImage(image)
                                 .build())
+                        .putData("title", title)
+                        .putData("body", body)
+                        .putData("image", image)
                         .putData("icon", image)
+                        .setWebpushConfig(WebpushConfig.builder()
+                                .putAllHeaders(headers)
+                                .build())
                         .build();
 
-                FirebaseMessaging.getInstance().send(message);
-                System.out.println("✅ 푸시 전송 성공: userId = " + dto.getUserId() + ", token = " + fcmToken);
-            }
 
+                try {
+                    FirebaseMessaging.getInstance().send(message);
+                    System.out.println("✅ 푸시 전송 성공: userId = " + dto.getUserId() + ", token = " + fcmToken);
+                } catch (FirebaseMessagingException e) {
+                    if ("UNREGISTERED".equals(e.getMessagingErrorCode().name())) {
+                        System.err.println("❌ 유효하지 않은 FCM 토큰. 삭제 처리: " + fcmToken);
+                        userFcmDao.delete(userFcm); // 토큰 삭제
+                    } else {
+                        System.err.println("❌ 푸시 전송 실패 (Firebase): " + e.getMessage());
+                    }
+                }
+            }
         } catch (Exception e) {
-            System.err.println("❌ 푸시 전송 실패: " + e.getMessage());
+            System.err.println("❌ 알림 처리 중 예외 발생: " + e.getMessage());
             e.printStackTrace();
         }
     }
+
 
     public void sendAnnounceNotificationToAllUsers(Announce announce) {
         List<UserFcm> userFcmtokens = userFcmDao.findAll();

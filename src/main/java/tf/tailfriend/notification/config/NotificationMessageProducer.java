@@ -13,6 +13,8 @@ import tf.tailfriend.notification.service.UserFcmService;
 
 import java.util.List;
 
+import static ch.qos.logback.core.testUtil.EnvUtilForTests.isLinux;
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -41,6 +43,7 @@ public class NotificationMessageProducer {
                         .message(message.getMessage())
                         .senderId(message.getSenderId())
                         .fcmToken(userFcm.getFcmToken())
+                        .messageId(message.getMessageId())
                         .build();
 
                 // 디버깅: 보낼 메시지를 JSON 문자열로 출력
@@ -48,11 +51,22 @@ public class NotificationMessageProducer {
                 log.info("[RabbitMQ] Sending notification message: {}", jsonMessage);
 
                 // 메시지 큐에 전송
-                rabbitTemplate.convertAndSend(
-                        RabbitConfig.EXCHANGE_NAME,
-                        RabbitConfig.ROUTING_KEY,
-                        clonedMessage
-                );
+                // 환경에 따른 큐 선택
+                if (isLinux()) {
+                    // 리눅스 환경일 때
+                    rabbitTemplate.convertAndSend(
+                            RabbitConfig.EXCHANGE_NAME,
+                            RabbitConfig.ROUTING_KEY,
+                            clonedMessage
+                    );
+                } else {
+                    // 다른 환경일 때 (예: 개발 환경)
+                    rabbitTemplate.convertAndSend(
+                            RabbitConfig.EXCHANGE_NAME_DEV,
+                            RabbitConfig.ROUTING_KEY_DEV,
+                            clonedMessage
+                    );
+                }
             }
 
             log.info("[RabbitMQ] Notification messages sent successfully.");

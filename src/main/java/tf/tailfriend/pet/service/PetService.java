@@ -1,5 +1,6 @@
 package tf.tailfriend.pet.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -41,8 +42,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-
 @Service
 @RequiredArgsConstructor
 public class PetService {
@@ -63,7 +62,10 @@ public class PetService {
         Pet pet = petDao.findById(petId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 반려동물입니다: " + petId));
 
-        return makePetDetailResponseDto(pet);
+        PetDetailResponseDto petResponse = makePetDetailResponseDto(pet);
+        setPresignedUrl(petResponse.getPhotos());
+
+        return petResponse;
     }
 
 

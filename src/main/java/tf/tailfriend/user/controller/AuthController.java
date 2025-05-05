@@ -19,6 +19,7 @@ import tf.tailfriend.global.config.UserPrincipal;
 import tf.tailfriend.user.entity.User;
 import tf.tailfriend.user.entity.dto.RegisterUserDto;
 import tf.tailfriend.user.entity.dto.UserInfoDto;
+import tf.tailfriend.user.repository.UserDao;
 import tf.tailfriend.user.service.AuthService;
 
 import java.time.Duration;
@@ -103,6 +104,15 @@ public class AuthController {
 
         return ResponseEntity.ok(response);
     }
+
+    @GetMapping("/check-nickname")
+    public ResponseEntity<Map<String, Boolean>> checkNickname(@RequestParam String nickname) {
+        boolean exists = authService.isNicknameExists(nickname);
+        Map<String, Boolean> response = new HashMap<>();
+        response.put("exists", exists);
+        return ResponseEntity.ok(response);
+    }
+
 
 }
 

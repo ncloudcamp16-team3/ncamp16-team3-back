@@ -134,4 +134,9 @@ public class AuthService {
         return user;
     }
 
+    public boolean isNicknameExists(String nickname) {
+        return userDao.existsByNickname(nickname);
+    }
+
+
 }

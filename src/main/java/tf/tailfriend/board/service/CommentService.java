@@ -3,12 +3,17 @@ package tf.tailfriend.board.service;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import tf.tailfriend.board.dto.CommentResponseDto;
 import tf.tailfriend.board.entity.Board;
 import tf.tailfriend.board.entity.Comment;
 import tf.tailfriend.board.repository.BoardDao;
 import tf.tailfriend.board.repository.CommentDao;
+import tf.tailfriend.global.service.StorageService;
 import tf.tailfriend.user.entity.User;
 import tf.tailfriend.user.repository.UserDao;
+
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -17,6 +22,29 @@ public class CommentService {
     private final BoardDao boardDao;
     private final CommentDao commentDao;
     private final UserDao userDao;
+    private final StorageService storageService;
+
+    @Transactional
+    public List<CommentResponseDto> getComments(Integer boardId) {
+        List<Comment> comments = commentDao.findByBoardIdAndParentIdIsNull(boardId);
+
+        List<CommentResponseDto> commentDtos = comments.stream()
+                .map(CommentResponseDto::fromEntity)
+                .collect(Collectors.toList());
+
+        setCommentImgPreSignUrl(commentDtos);
+
+        return commentDtos;
+    }
+
+    private void setCommentImgPreSignUrl(List<CommentResponseDto> commentDtos) {
+        for (CommentResponseDto commentDto : commentDtos) {
+            commentDto.setAuthorProfileImg(storageService.generatePresignedUrl(commentDto.getAuthorProfileImg()));
+            for (CommentResponseDto child : commentDto.getChildren()) {
+                child.setAuthorProfileImg(storageService.generatePresignedUrl(child.getAuthorProfileImg()));
+            }
+        }
+    }
 
     @Transactional
     public Comment addComment(String content, Integer boardId, Integer userId, Integer refCommentId) {
@@ -60,17 +88,17 @@ public class CommentService {
     }
 
     @Transactional
-    public void updateComment(String content, Integer commentId) {
+    public Comment updateComment(String content, Integer commentId) {
         Comment comment = commentDao.findById(commentId)
                 .orElseThrow(() -> new IllegalArgumentException("comment not found"));
 
         comment.updateContent(content);
 
-        commentDao.save(comment);
+        return commentDao.save(comment);
     }
 
     @Transactional
-    public void deleteComment(Integer commentId) {
+    public Comment deleteComment(Integer commentId) {
         Comment comment = commentDao.findById(commentId)
                 .orElseThrow(() -> new IllegalArgumentException("comment not found"));
 
@@ -80,6 +108,6 @@ public class CommentService {
         board.decreaseCommentCount();
         boardDao.save(board);
 
-        commentDao.save(comment);
+        return commentDao.save(comment);
     }
 }

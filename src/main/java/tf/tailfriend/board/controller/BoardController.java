@@ -225,6 +225,29 @@ public class BoardController {
         }
     }
 
+    @GetMapping("/comment")
+    public ResponseEntity<?> getComments(@RequestParam("boardId") Integer boardId) {
+        log.info("\n댓글리스트 요청 보드ID {}", boardId);
+
+        try {
+            return ResponseEntity.status(HttpStatus.OK)
+                    .body(new CustomResponse("댓글 수정에 성공하였습니다", commentService.getComments(boardId)));
+        } catch (Exception e) {
+            log.error(e.getMessage());
+            throw new CustomException() {
+                @Override
+                public HttpStatus getStatus() {
+                    return HttpStatus.BAD_REQUEST;
+                }
+
+                @Override
+                public String getMessage() {
+                    return "댓글 수정에 실패하였습니다";
+                }
+            };
+        }
+    }
+
     @PostMapping("/comment")
     public ResponseEntity<?> addComment(@RequestBody CommentRequestDto commentRequestDto) {
         log.info("\n댓글 요청 Dto {}", commentRequestDto);
@@ -244,6 +267,7 @@ public class BoardController {
             if (comment.getParent() != null) {
                 parentCommentWriterId = comment.getParent().getUser().getId();
             }
+
             // 알림 대상 유저 식별
             Set<Integer> targetUserIds = new HashSet<>();
             if (!postOwnerId.equals(commentWriterId)) {
@@ -255,14 +279,12 @@ public class BoardController {
 
             System.out.println("✅ 알림 대상 유저 ID 목록: " + targetUserIds);
 
-
             // 알림 전송 (예외는 무시)
             try {
                 notificationService.sendBoardCommentNotification(comment);
             } catch (Exception e) {
                 log.warn("게시판 댓글 알림 전송 실패: {}", e.getMessage());
             }
-
 
             return ResponseEntity.status(HttpStatus.OK)
                     .body(new CustomResponse("댓글 저장에 성공하였습니다", null));
@@ -292,9 +314,9 @@ public class BoardController {
         }
 
         try {
-            commentService.updateComment(commentRequestDto.getComment(), commentRequestDto.getCommentId());
+            Comment comment = commentService.updateComment(commentRequestDto.getComment(), commentRequestDto.getCommentId());
             return ResponseEntity.status(HttpStatus.OK)
-                    .body(new CustomResponse("댓글 수정에 성공하였습니다", null));
+                    .body(new CustomResponse("댓글 수정에 성공하였습니다", boardService.getBoardById(commentRequestDto.getBoardId()).getComments()));
         } catch (Exception e) {
             log.error(e.getMessage());
             throw new CustomException() {
@@ -322,9 +344,9 @@ public class BoardController {
         }
 
         try {
-            commentService.deleteComment(commentId);
+            Comment comment = commentService.deleteComment(commentId);
             return ResponseEntity.status(HttpStatus.OK)
-                    .body(new CustomResponse("댓글 삭제에 성공하였습니다", null));
+                    .body(new CustomResponse("댓글 삭제에 성공하였습니다", boardService.getBoardById(comment.getBoard().getId()).getComments()));
         } catch (Exception e) {
             log.error(e.getMessage());
             throw new CustomException() {

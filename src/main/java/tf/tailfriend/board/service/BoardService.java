@@ -112,7 +112,6 @@ public class BoardService {
                 .map(storageService::generatePresignedUrl)
                 .collect(Collectors.toList());
 
-
         for (BoardResponseDto.PhotoDto photoDto : boardResponseDto.getPhotos()) {
             photoDto.setPath(storageService.generatePresignedUrl(photoDto.getPath()));
         }

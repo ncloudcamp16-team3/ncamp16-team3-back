@@ -120,10 +120,23 @@ public class NotificationScheduler {
         try {
             log.debug("🔍 알림 전송 로직 시작: userId={}, notifyTypeId={}, content={}", userId, notifyTypeId, content);
 
-            // 1. FCM 토큰 조회
-            UserFcm userFcm = userFcmDao.findByUserId(userId)
-                    .orElseThrow(() -> new IllegalStateException("FCM 토큰을 찾을 수 없습니다: userId=" + userId));
-            log.debug("📱 FCM 토큰 조회 성공: fcmToken={}", userFcm.getFcmToken());
+            // 1. FCM 토큰 조회 (모바일용, 웹용 각각)
+            List<UserFcm> userFcmList = userFcmDao.findUserFcmByUserId(userId);
+            if (userFcmList.isEmpty()) {
+                throw new IllegalStateException("FCM 토큰을 찾을 수 없습니다: userId=" + userId);
+            }
+
+            // 모바일과 웹에 대한 토큰 구분
+            String mobileFcmToken = null;
+            String webFcmToken = null;
+
+            for (UserFcm userFcm : userFcmList) {
+                if (userFcm.isMobile()) {
+                    mobileFcmToken = userFcm.getFcmToken();
+                } else {
+                    webFcmToken = userFcm.getFcmToken();
+                }
+            }
 
             String messageId;
             if (notifyTypeId == 5) {
@@ -137,12 +150,13 @@ public class NotificationScheduler {
                 return;  // 중복 메시지라면 전송하지 않음
             }
 
+            System.out.println("메세지 id : " + messageId);
+
             // 3. DTO 생성 및 RabbitMQ 전송
             NotificationDto.NotificationDtoBuilder builder = NotificationDto.builder()
                     .userId(userId)
                     .notifyTypeId(notifyTypeId)
                     .content(content)
-                    .fcmToken(userFcm.getFcmToken())
                     .messageId(messageId);
             // messageId 포함
             if (notifyTypeId == 5) {
@@ -151,11 +165,22 @@ public class NotificationScheduler {
                 builder.senderId(null).message(null);
             }
 
-            NotificationDto dto = builder.build();
 
+            // 모바일과 웹에 대한 알림 전송
+            if (mobileFcmToken != null) {
+                builder.fcmToken(mobileFcmToken);  // 모바일 알림
+                NotificationDto mobileDto = builder.build();
+                log.debug("📦 모바일 RabbitMQ 전송 전 DTO: {}", mobileDto);
+                NotificationMessageProducer.sendNotification(mobileDto);
+            }
 
-            log.debug("📦 RabbitMQ 전송 전 DTO: {}", dto);
-            NotificationMessageProducer.sendNotification(dto);
+            if (webFcmToken != null) {
+                builder.fcmToken(webFcmToken);  // 웹 알림
+                NotificationDto webDto = builder.build();
+                log.debug("📦 웹 RabbitMQ 전송 전 DTO: {}", webDto);
+                NotificationMessageProducer.sendNotification(webDto);
+            }
+
             log.info("🚀 RabbitMQ 전송 완료");
 
             // 4. 완료 로그

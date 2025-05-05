@@ -1,6 +1,9 @@
 package tf.tailfriend.board.repository;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import tf.tailfriend.board.entity.Board;
 import tf.tailfriend.board.entity.BoardBookmark;
 
@@ -12,12 +15,6 @@ public interface BoardBookmarkDao extends JpaRepository<BoardBookmark, BoardBook
     // 사용자 ID로 게시글 북마크 목록을 조회
     List<BoardBookmark> findByUserId(Integer userId);
 
-    //사용자 ID와 게시글 ID로 게시글 북마크를 조회
-    Optional<BoardBookmark> findByUserIdAndBoardId(Integer userId, Integer boardId);
-
-    // 사용자 ID와 게시글 ID로 게시글 북마크 존재 여부
-    boolean existsByUserIdAndBoardId(Integer userId, Integer boardId);
-
     List<BoardBookmark> findByUserIdAndBoardBoardTypeId(Integer userId, Integer boardTypeId);
 
     Optional<BoardBookmark> findByIdUserIdAndIdBoardPostId(Integer userId, Integer boardPostId);
@@ -25,5 +22,10 @@ public interface BoardBookmarkDao extends JpaRepository<BoardBookmark, BoardBook
     void deleteAllByBoard(Board board);
 
     List<BoardBookmark> findAllByBoard(Board board);
+
+    @Modifying
+    @Query("DELETE FROM BoardBookmark bb WHERE bb.user.id = :userId")
+    void deleteByUserId(@Param("userId") Integer userId);
+
 }
 

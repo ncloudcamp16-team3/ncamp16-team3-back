@@ -12,6 +12,7 @@ import tf.tailfriend.board.repository.BoardBookmarkDao;
 import tf.tailfriend.board.service.BoardService;
 import tf.tailfriend.global.service.StorageService;
 import tf.tailfriend.petsta.entity.PetstaBookmark;
+import tf.tailfriend.petsta.entity.PetstaPost;
 import tf.tailfriend.petsta.entity.dto.PetstaBookmarkResponseDto;
 import tf.tailfriend.petsta.repository.PetstaBookmarkDao;
 
@@ -33,13 +34,17 @@ public class BookmarkService {
         List<PetstaBookmark> bookmarks = petstaBookmarkDao.findByUserIdAndNotDeleted(userId);
 
         return bookmarks.stream().map(bookmark -> {
-            // 게시물 파일 URL 생성
-            String fileUrl = storageService.generatePresignedUrl(
-                    bookmark.getPetstaPost().getFile().getPath());
+            PetstaPost post = bookmark.getPetstaPost();
+
+            // 게시물 파일 URL 생성 (동영상인 경우 썸네일 사용)
+            String filePath = post.getThumbnailFile() != null
+                    ? post.getThumbnailFile().getPath()
+                    : post.getFile().getPath();
+            String fileUrl = storageService.generatePresignedUrl(filePath);
 
             // 유저 프로필 URL 생성
             String userPhotoUrl = storageService.generatePresignedUrl(
-                    bookmark.getPetstaPost().getUser().getFile().getPath());
+                    post.getUser().getFile().getPath());
 
             return PetstaBookmarkResponseDto.fromBookmark(bookmark, fileUrl, userPhotoUrl);
         }).collect(Collectors.toList());
@@ -82,11 +87,6 @@ public class BookmarkService {
         }).collect(Collectors.toList());
     }
 
-    // 사용자가 작성한 게시글 목록을 조회
-    @Transactional(readOnly = true)
-    public List<BoardResponseDto> getUserPosts(Integer userId) {
-        return boardService.getUserBoards(userId);
-    }
 
     // 사용자가 작성한 게시글 목록을 페이징 처리하여 조회
     @Transactional(readOnly = true)

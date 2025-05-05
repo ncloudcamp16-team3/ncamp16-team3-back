@@ -167,7 +167,7 @@ public class PetService {
 
     private void setPublicUrls(List<PetPhotoDto> photoDtos) {
         for (PetPhotoDto dto : photoDtos) {
-            dto.setPath(fileService.getFullUrl(dto.getPath()));
+            dto.setPath(storageService.generatePresignedUrl(dto.getPath()));
         }
     }
 

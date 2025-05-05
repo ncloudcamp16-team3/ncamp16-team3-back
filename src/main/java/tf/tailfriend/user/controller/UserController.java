@@ -27,7 +27,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-import static tf.tailfriend.user.message.SuccessMessage.USER_INFO_SAVE_SUCCESS;
+import static tf.tailfriend.user.message.SuccessMessage.*;
 
 @RestController
 @RequestMapping("/api/user")

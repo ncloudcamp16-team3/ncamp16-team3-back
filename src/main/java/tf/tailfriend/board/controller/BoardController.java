@@ -28,20 +28,13 @@ import tf.tailfriend.global.config.UserPrincipal;
 import tf.tailfriend.global.exception.CustomException;
 import tf.tailfriend.global.response.CustomResponse;
 import tf.tailfriend.global.service.StorageServiceException;
-import tf.tailfriend.notification.service.NotificationService;
-import tf.tailfriend.user.entity.User;
-import tf.tailfriend.notification.entity.UserFcm;
-import tf.tailfriend.notification.repository.UserFcmDao;
 import tf.tailfriend.notification.scheduler.NotificationScheduler;
-import tf.tailfriend.user.entity.User;
+import tf.tailfriend.notification.service.NotificationService;
 import tf.tailfriend.user.exception.UnauthorizedException;
-import tf.tailfriend.user.service.UserService;
 
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-
-import java.util.List;
 
 import static tf.tailfriend.board.message.SuccessMessage.*;
 
@@ -64,12 +57,12 @@ public class BoardController {
                                        @AuthenticationPrincipal UserPrincipal userPrincipal) throws StorageServiceException {
         log.info("요청 boardRequestDto: {} \nphotos: {}", boardRequestDto, photos);
 
-        Integer postId = boardService.saveBoard(boardRequestDto, photos, userPrincipal.getUserId());
-
         try {
+            Integer postId = boardService.saveBoard(boardRequestDto, photos, userPrincipal.getUserId());
             return ResponseEntity.status(HttpStatus.OK)
                     .body(new CustomResponse("게시물 저장에 성공하였습니다", postId));
         } catch (Exception e) {
+            log.error(e.getMessage(), e);
             throw new CustomException() {
                 @Override
                 public HttpStatus getStatus() {
@@ -78,7 +71,7 @@ public class BoardController {
 
                 @Override
                 public String getMessage() {
-                    return "게시물 저장에 실패하였습니다";
+                    return e.getMessage();
                 }
             };
         }
@@ -89,11 +82,10 @@ public class BoardController {
                                          @AuthenticationPrincipal UserPrincipal userPrincipal) throws StorageServiceException {
         log.info("삭제요청 요청 commentId: {}", postId);
 
-        boardService.deleteBoard(postId, userPrincipal.getUserId());
-
         try {
+            boardService.deleteBoard(postId, userPrincipal.getUserId());
             return ResponseEntity.status(HttpStatus.OK)
-                    .body(new CustomResponse("게시물 저장에 성공하였습니다", null));
+                    .body(new CustomResponse("게시물 삭제에 성공하였습니다", null));
         } catch (Exception e) {
             throw new CustomException() {
                 @Override
@@ -103,7 +95,7 @@ public class BoardController {
 
                 @Override
                 public String getMessage() {
-                    return "게시물 저장에 실패하였습니다";
+                    return "게시물 삭제에 실패하였습니다";
                 }
             };
         }
@@ -185,7 +177,7 @@ public class BoardController {
 
     @GetMapping("/like/add")
     public ResponseEntity<?> likeAdd(@RequestParam("userId") Integer userId,
-                                         @RequestParam("boardId") Integer boardId) {
+                                     @RequestParam("boardId") Integer boardId) {
         log.info("\n좋아요 요청\n userId: {}, boardId: {}", userId, boardId);
 
         try {
@@ -210,7 +202,7 @@ public class BoardController {
 
     @DeleteMapping("/like/delete")
     public ResponseEntity<?> likeDelete(@RequestParam("userId") Integer userId,
-                                            @RequestParam("boardId") Integer boardId) {
+                                        @RequestParam("boardId") Integer boardId) {
         log.info("\n좋아요 취소 요청\n userId: {}, boardId: {}", userId, boardId);
 
         try {
@@ -284,7 +276,7 @@ public class BoardController {
 
                 @Override
                 public String getMessage() {
-                    return "댓글 저장에 실패하였습니다";
+                    return e.getMessage();
                 }
             };
         }

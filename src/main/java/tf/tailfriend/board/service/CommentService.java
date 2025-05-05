@@ -20,11 +20,16 @@ public class CommentService {
 
     @Transactional
     public Comment addComment(String content, Integer boardId, Integer userId, Integer refCommentId) {
+        if(content == null || content.trim().isEmpty()) {
+            throw new IllegalArgumentException("댓글이 공백일 수 없습니다");
+        }
         Board board = boardDao.findById(boardId)
                 .orElseThrow(() -> new IllegalArgumentException("Board not found"));
 
         User user = userDao.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+
 
         Comment.CommentBuilder builder = Comment.builder()
                 .user(user)
@@ -36,7 +41,8 @@ public class CommentService {
                     .orElseThrow(() -> new IllegalArgumentException("comment not found"));
 
             if (refComment.getParent() == null) {
-                builder.parent(refComment); // 직접 답글
+                builder.parent(refComment)
+                        .refComment(refComment); // 직접 답글
             } else {
                 builder.parent(refComment.getParent())
                         .refComment(refComment); // 대댓글

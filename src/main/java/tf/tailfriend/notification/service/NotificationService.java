@@ -66,114 +66,126 @@ public class NotificationService {
 
 
 // 특정 사용자에게 직접 푸시 전송
-    public void sendNotificationToUser(NotificationDto dto) {
-        List<UserFcm> userFcmList = userFcmDao.findAllByUserId(dto.getUserId());
+public void sendNotificationToUser(NotificationDto dto) {
 
-        if (userFcmList.isEmpty()) {
-            System.out.println("❌ FCM 토큰이 없는 사용자입니다: userId = " + dto.getUserId());
-            return;
-        }
+    boolean isLinux = System.getProperty("os.name").toLowerCase().contains("linux");
+    boolean isDev = !isLinux; // 리눅스가 아니면 개발 환경
 
-        String title = "";
-        String body = "";
-        String image = "";
-        String contentId = dto.getContent();
-        String imagePrefix = "https://kr.object.ncloudstorage.com/tailfriends-buck/uploads/notification";
+    List<UserFcm> userFcmList = userFcmDao.findAllByUserId(dto.getUserId());
 
-        try {
-            switch (dto.getNotifyTypeId()) {
-                case 1 -> {
-                    Comment comment = CommentDao.findById(Integer.valueOf(contentId))
-                            .orElseThrow(() -> new RuntimeException("댓글을 찾을 수 없습니다"));
-                    title = "내 게시글에 댓글이 달렸습니다.";
-                    body = comment.getContent();
-                    image = imagePrefix + "/comment.png";
-                }
-                case 2 -> {
-                    PetstaComment petstaComment = PetstaCommentDao.findById(Integer.valueOf(contentId))
-                            .orElseThrow(() -> new RuntimeException("펫스타 댓글을 찾을 수 없습니다"));
-                    title = "내 펫스타에 댓글이 달렸습니다.";
-                    body = petstaComment.getContent();
-                    image = imagePrefix + "/petsta.png";
-                }
-                case 3 -> {
-                    Reserve reserve = reserveDao.findById(Integer.valueOf(contentId))
-                            .orElseThrow(() -> new RuntimeException("예약 내역을 찾을 수 없습니다"));
-                    title = "오늘은 " + reserve.getFacility().getName() + " 예약이 있습니다.";
-                    body = "예약 시간: " + reserve.getEntryTime();
-                    image = imagePrefix + "/reserve.png";
-                }
-                case 4 -> {
-                    Schedule schedule = scheduleDao.findById(Integer.valueOf(contentId))
-                            .orElseThrow(() -> new RuntimeException("일정을 찾을 수 없습니다"));
-                    title = "오늘은 " + schedule.getTitle() + " 일정이 있습니다.";
-                    body = "일정 시작: " + schedule.getStartDate();
-                    image = imagePrefix + "/schedule.png";
-                }
-                case 5 -> {
-                    User user = userDao.findById(Integer.valueOf(dto.getSenderId()))
-                            .orElseThrow(() -> new RuntimeException("채팅 보낸 유저를 찾을 수 없습니다."));
-                    title = user.getNickname() + " 님으로부터 메시지가 도착했습니다.";
-                    body = dto.getMessage();
-                    image = imagePrefix + "/chat.png";
-                }
-                case 6 -> {
-                    Announce announce = announceDao.findById(Integer.valueOf(contentId))
-                            .orElseThrow(() -> new RuntimeException("공지글을 찾을 수 없습니다"));
-                    title = "새로운 공지가 등록되었습니다.";
-                    body = announce.getTitle();
-                    image = imagePrefix + "/global.png";
-                }
-                default -> {
-                    title = "알림";
-                    body = "새로운 알림이 도착했습니다.";
-                    image = imagePrefix + "/default.png";
-                }
-            }
-
-            for (UserFcm userFcm : userFcmList) {
-                String fcmToken = userFcm.getFcmToken();
-
-                Map<String, String> headers = new HashMap<>();
-                headers.put("TTL", "3600"); // 1시간 TTL 설정
-
-                Message message = Message.builder()
-                        .setToken(fcmToken)
-                        .setNotification(Notification.builder()
-//                                .setTitle(title)
-//                                .setBody(body)
-//                                .setImage(image)
-                                .build())
-                        .putData("title", title)
-                        .putData("body", body)
-                        .putData("image", image)
-                        .putData("icon", image)
-                        .setWebpushConfig(WebpushConfig.builder()
-                                .putAllHeaders(headers)
-                                .build())
-                        .build();
-
-
-                try {
-                    FirebaseMessaging.getInstance().send(message);
-                    System.out.println("✅ 푸시 전송 성공: userId = " + dto.getUserId() + ", token = " + fcmToken);
-                } catch (FirebaseMessagingException e) {
-                    if ("UNREGISTERED".equals(e.getMessagingErrorCode().name())) {
-                        System.err.println("❌ 유효하지 않은 FCM 토큰. 삭제 처리: " + fcmToken);
-                        userFcmDao.delete(userFcm); // 토큰 삭제
-                    } else {
-                        System.err.println("❌ 푸시 전송 실패 (Firebase): " + e.getMessage());
-                    }
-                }
-            }
-        } catch (Exception e) {
-            System.err.println("❌ 알림 처리 중 예외 발생: " + e.getMessage());
-            e.printStackTrace();
-        }
+    if (userFcmList.isEmpty()) {
+        System.out.println("❌ FCM 토큰이 없는 사용자입니다: userId = " + dto.getUserId());
+        return;
     }
+
+    String title = "";
+    String body = "";
+    String image = "";
+    String contentId = dto.getContent();
+    String imagePrefix = "https://kr.object.ncloudstorage.com/tailfriends-buck/uploads/notification";
+
+    try {
+        switch (dto.getNotifyTypeId()) {
+            case 1 -> {
+                Comment comment = CommentDao.findById(Integer.valueOf(contentId))
+                        .orElseThrow(() -> new RuntimeException("댓글을 찾을 수 없습니다"));
+                title = "내 게시글에 댓글이 달렸습니다.";
+                body = comment.getContent();
+                image = imagePrefix + "/comment.png";
+            }
+            case 2 -> {
+                PetstaComment petstaComment = PetstaCommentDao.findById(Integer.valueOf(contentId))
+                        .orElseThrow(() -> new RuntimeException("펫스타 댓글을 찾을 수 없습니다"));
+                title = "내 펫스타에 댓글이 달렸습니다.";
+                body = petstaComment.getContent();
+                image = imagePrefix + "/petsta.png";
+            }
+            case 3 -> {
+                Reserve reserve = reserveDao.findById(Integer.valueOf(contentId))
+                        .orElseThrow(() -> new RuntimeException("예약 내역을 찾을 수 없습니다"));
+                title = "오늘은 " + reserve.getFacility().getName() + " 예약이 있습니다.";
+                body = "예약 시간: " + reserve.getEntryTime();
+                image = imagePrefix + "/reserve.png";
+            }
+            case 4 -> {
+                Schedule schedule = scheduleDao.findById(Integer.valueOf(contentId))
+                        .orElseThrow(() -> new RuntimeException("일정을 찾을 수 없습니다"));
+                title = "오늘은 " + schedule.getTitle() + " 일정이 있습니다.";
+                body = "일정 시작: " + schedule.getStartDate();
+                image = imagePrefix + "/schedule.png";
+            }
+            case 5 -> {
+                User user = userDao.findById(Integer.valueOf(dto.getSenderId()))
+                        .orElseThrow(() -> new RuntimeException("채팅 보낸 유저를 찾을 수 없습니다."));
+                title = user.getNickname() + " 님으로부터 메시지가 도착했습니다.";
+                body = dto.getMessage();
+                image = imagePrefix + "/chat.png";
+            }
+            case 6 -> {
+                Announce announce = announceDao.findById(Integer.valueOf(contentId))
+                        .orElseThrow(() -> new RuntimeException("공지글을 찾을 수 없습니다"));
+                title = "새로운 공지가 등록되었습니다.";
+                body = announce.getTitle();
+                image = imagePrefix + "/global.png";
+            }
+            default -> {
+                title = "알림";
+                body = "새로운 알림이 도착했습니다.";
+                image = imagePrefix + "/default.png";
+            }
+        }
+
+        for (UserFcm userFcm : userFcmList) {
+            // 현재 환경과 토큰의 isDev 일치 여부 확인
+            if (userFcm.isDev() != isDev) {
+                System.out.println("🚫 환경 불일치로 푸시 제외: token=" + userFcm.getFcmToken());
+                continue;
+            }
+
+            String fcmToken = userFcm.getFcmToken();
+
+            Map<String, String> headers = new HashMap<>();
+            headers.put("TTL", "3600");
+
+            Message message = Message.builder()
+                    .setToken(fcmToken)
+                    .setNotification(Notification.builder()
+                            // .setTitle(title)
+                            // .setBody(body)
+                            // .setImage(image)
+                            .build())
+                    .putData("title", title)
+                    .putData("body", body)
+                    .putData("image", image)
+                    .putData("icon", image)
+                    .setWebpushConfig(WebpushConfig.builder()
+                            .putAllHeaders(headers)
+                            .build())
+                    .build();
+
+            try {
+                FirebaseMessaging.getInstance().send(message);
+                System.out.println("✅ 푸시 전송 성공: userId = " + dto.getUserId() + ", token = " + fcmToken);
+            } catch (FirebaseMessagingException e) {
+                if ("UNREGISTERED".equals(e.getMessagingErrorCode().name())) {
+                    System.err.println("❌ 유효하지 않은 FCM 토큰. 삭제 처리: " + fcmToken);
+                    userFcmDao.delete(userFcm);
+                } else {
+                    System.err.println("❌ 푸시 전송 실패 (Firebase): " + e.getMessage());
+                }
+            }
+        }
+    } catch (Exception e) {
+        System.err.println("❌ 알림 처리 중 예외 발생: " + e.getMessage());
+        e.printStackTrace();
+    }
+}
 
 
     public void sendAnnounceNotificationToAllUsers(Announce announce) {
+        boolean isLinux = System.getProperty("os.name").toLowerCase().contains("linux");
+        boolean isDev = !isLinux; // 리눅스가 아니면 개발 환경
+
         List<UserFcm> userFcmtokens = userFcmDao.findAll();
 
         for (UserFcm userFcm : userFcmtokens) {
@@ -190,12 +202,17 @@ public class NotificationService {
                     "📌 공지 알림 전송 완료: 제목={}, 내용={}",
                     announce.getTitle(),
                     announce.getContent(),
-                    "❌ 공지 알림 전송 실패: announceId=" + announce.getId()
+                    "❌ 공지 알림 전송 실패: announceId=" + announce.getId(),
+                    isDev
             );
         }
     }
 
     public void sendPetstaCommentNotification(PetstaCommentResponseDto dto, Integer postId) {
+
+        boolean isLinux = System.getProperty("os.name").toLowerCase().contains("linux");
+        boolean isDev = !isLinux; // 리눅스가 아니면 개발 환경
+
         // 게시글 정보 조회
         PetstaPost petstaPost = petstaPostDao.getPetstaPostById(postId);
         Integer postOwnerId = petstaPost.getUser().getId();
@@ -240,12 +257,16 @@ public class NotificationService {
                     "💬 펫스타 댓글 알림 전송 완료: 작성 유저 닉네임={}, 댓글내용={}",
                     dto.getUserName(),
                     dto.getContent(),
-                    "❌ 펫스타 댓글 알림 전송 실패: commentId=" + dto.getId()
+                    "❌ 펫스타 댓글 알림 전송 실패: commentId=" + dto.getId(),
+                    isDev
             );
         }
     }
 
     public void sendBoardCommentNotification(Comment comment) {
+        boolean isLinux = System.getProperty("os.name").toLowerCase().contains("linux");
+        boolean isDev = !isLinux; // 리눅스가 아니면 개발 환경
+
         // 게시글 정보 조회
         Board board = boardDao.getBoardById(comment.getBoard().getId()); // 댓글의 보드id 받음
         Integer postOwnerId = board.getUser().getId();
@@ -295,11 +316,14 @@ public class NotificationService {
                     comment.getBoard().getTitle(),
                     comment.getContent(),
                     "❌ 댓글 알림 전송 실패: commentId=" + comment.getId()
+                    ,isDev
             );
         }
     }
 
     public void handleChatNotification(ChatNotificationDto dto) {
+        boolean isLinux = System.getProperty("os.name").toLowerCase().contains("linux");
+        boolean isDev = !isLinux; // 리눅스가 아니면 개발 환경
 
         try {
 
@@ -314,7 +338,8 @@ public class NotificationService {
                     "💬 채팅 알림 전송 완료: 보낸사람 id={}, 메시지={}",
                     dto.getSenderId(),
                     dto.getMessage(),
-                    "❌ 채팅 알림 전송 실패: channelId=" + dto.getChannelId()
+                    "❌ 채팅 알림 전송 실패: channelId=" + dto.getChannelId(),
+                    isDev
             );
         } catch (Exception e) {
             e.printStackTrace();

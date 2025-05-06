@@ -9,8 +9,10 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.util.UriComponentsBuilder;
 import tf.tailfriend.facility.entity.dto.forReserve.FacilityCardResponseDto;
+import tf.tailfriend.facility.entity.dto.forReserve.FacilityReviewResponseDto;
 import tf.tailfriend.facility.service.FacilityService;
 import tf.tailfriend.global.config.UserPrincipal;
 import tf.tailfriend.global.service.RedisService;
@@ -69,20 +71,25 @@ public class ReserveController {
         return facilityService.getFacilityCardsForReserve(requestDto);
     }
 
-    @PutMapping("/facility/{id}/review")
+    @PostMapping("/facility/{id}/review")
     public ResponseEntity<String> insertReview(
-            @PathVariable("id") Integer id,
+            @PathVariable("id") String id,
             @RequestParam("comment") String comment,
             @RequestParam("starPoint") Integer starPoint,
-            @RequestParam("image") File image) {
-        log.info("id: {}, comment: {}, starPoint: {}", id, comment, starPoint);
+            @RequestPart("image") MultipartFile file,
+            @AuthenticationPrincipal UserPrincipal userPrincipal) {
+        log.info("id: {}, comment: {}, starPoint: {}, file {}", id, comment, starPoint, file);
+        Integer parsedId = Integer.parseInt(id);
+//        Integer parsedStarPoint = Integer.parseInt(starPoint);
         ReviewInsertRequestDto requestDto = ReviewInsertRequestDto.builder()
-                .id(id)
+                .userId(userPrincipal.getUserId())
+                .facilityId(parsedId)
                 .comment(comment)
                 .starPoint(starPoint)
                 .build();
         try {
-            facilityService.insertReview(requestDto, image);
+            facilityService.insertReview(requestDto, file);
+            log.info("리뷰 등록 완료");
             return ResponseEntity.ok("리뷰가 성공적으로 등록되었습니다.");
         } catch (EntityNotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
@@ -133,6 +140,11 @@ public class ReserveController {
         return reserveService.getReserveListByUser(userPrincipal.getUserId());
     }
 
-
+    @GetMapping("/facility/{id}/review")
+    public FacilityReviewResponseDto getFacilityForReview(@PathVariable("id") String id) {
+        log.info("id: {}", id);
+        Integer parsedId = Integer.parseInt(id);
+        return facilityService.getFacilityForReview(parsedId);
+    }
 
 }

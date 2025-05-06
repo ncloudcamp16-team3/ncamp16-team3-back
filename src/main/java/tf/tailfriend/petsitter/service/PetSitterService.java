@@ -182,7 +182,7 @@ public class PetSitterService {
         return dto;
     }
 
-    // 사용자의 펫시터 신청을 처리하는 메소드
+
     @Transactional(isolation = Isolation.READ_UNCOMMITTED)
     public PetSitterResponseDto applyForPetSitter(PetSitterRequestDto requestDto, MultipartFile imageFile) throws IOException {
         logger.info("펫시터 신청 시작: userId={}", requestDto.getUserId());
@@ -214,13 +214,21 @@ public class PetSitterService {
                 petType = petTypeDao.findById(requestDto.getPetTypeId()).orElse(null);
             }
 
-            //사용자 ID로 펫시터 존재 여부 확인
+            // 사용자 ID로 펫시터 존재 여부 확인
             boolean exists = petSitterDao.existsById(requestDto.getUserId());
 
             Integer petTypeId = petType != null ? petType.getId() : null;
             Integer fileId = imageFileEntity.getId();
 
-            //EntityManager 사용
+            // 다중 선택된 반려동물 타입 정보
+            String petTypesFormatted = requestDto.getPetTypesFormatted();
+            List<Integer> petTypeIds = requestDto.getPetTypeIds();
+
+            // 로깅
+            logger.info("펫시터 신청 정보: petTypesFormatted={}, petTypeIds={}",
+                    petTypesFormatted, petTypeIds != null ? petTypeIds.toString() : "null");
+
+            // EntityManager 사용
             if (exists) {
                 String updateQuery =
                         "UPDATE pet_sitters SET " +
@@ -232,9 +240,10 @@ public class PetSitterService {
                                 "sitter_exp = ?6, " +
                                 "file_id = ?7, " +
                                 "pet_type_id = ?8, " +
+                                "pet_types_formatted = ?9, " +
                                 "status = 'NONE', " +
                                 "apply_at = NULL " +
-                                "WHERE id = ?9";
+                                "WHERE id = ?10";
 
                 // 쿼리 파라미터 설정
                 Query query = entityManager.createNativeQuery(updateQuery);
@@ -246,7 +255,8 @@ public class PetSitterService {
                 query.setParameter(6, requestDto.getSitterExp());
                 query.setParameter(7, fileId);
                 query.setParameter(8, petTypeId);
-                query.setParameter(9, requestDto.getUserId());
+                query.setParameter(9, petTypesFormatted);
+                query.setParameter(10, requestDto.getUserId());
 
                 // 쿼리 실행
                 int updated = query.executeUpdate();
@@ -254,10 +264,10 @@ public class PetSitterService {
             } else {
                 // 새 데이터 삽입 쿼리
                 String insertQuery =
-                        "INSERT INTO pet_sitters (id, age, house_type, comment, grown, pet_count, sitter_exp, file_id, pet_type_id, status, created_at) " +
-                                "VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, 'NONE', NOW())";
+                        "INSERT INTO pet_sitters (id, age, house_type, comment, grown, pet_count, sitter_exp, file_id, pet_type_id, pet_types_formatted, status, created_at) " +
+                                "VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, 'NONE', NOW())";
 
-                // 쿼리 파라미터 설정
+
                 Query query = entityManager.createNativeQuery(insertQuery);
                 query.setParameter(1, requestDto.getUserId());
                 query.setParameter(2, requestDto.getAge());
@@ -268,6 +278,7 @@ public class PetSitterService {
                 query.setParameter(7, requestDto.getSitterExp());
                 query.setParameter(8, fileId);
                 query.setParameter(9, petTypeId);
+                query.setParameter(10, petTypesFormatted);
 
                 // 쿼리 실행
                 int inserted = query.executeUpdate();
@@ -281,6 +292,16 @@ public class PetSitterService {
                     .orElseThrow(() -> new IllegalStateException("저장된 펫시터 정보를 조회할 수 없습니다"));
 
             PetSitterResponseDto responseDto = PetSitterResponseDto.fromEntity(updatedPetSitter);
+
+
+            responseDto.setPetTypesFormatted(petTypesFormatted);
+
+            if (petTypeIds != null && !petTypeIds.isEmpty()) {
+                List<String> petTypeNames = petTypeIds.stream()
+                        .map(id -> petTypeDao.findById(id).map(PetType::getName).orElse("알 수 없음"))
+                        .collect(Collectors.toList());
+                responseDto.setPetTypes(petTypeNames);
+            }
 
             // 이미지 URL 설정
             String imageUrl = storageService.generatePresignedUrl(imageFileEntity.getPath());

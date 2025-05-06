@@ -7,10 +7,4 @@ import lombok.Getter;
 @Builder
 public class FacilityDetailRequestDto {
     private Integer id;
-
-    @Builder.Default
-    private Integer page = 0;
-
-    @Builder.Default
-    private Integer size = 3;
 }

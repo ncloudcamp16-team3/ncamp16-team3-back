@@ -7,8 +7,6 @@ import lombok.Getter;
 @Builder
 public class FacilityListRequestDto {
 
-    private String day;
-
     private double userLatitude;
 
     private double userLongitude;

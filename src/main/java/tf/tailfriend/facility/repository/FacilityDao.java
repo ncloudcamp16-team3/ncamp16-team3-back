@@ -69,5 +69,5 @@ public interface FacilityDao extends JpaRepository<Facility, Integer> {
             "LEFT JOIN FETCH fp.file " +
             "LEFT JOIN FETCH f.timetables " +
             "WHERE f.id = :facilityId")
-    Optional<Facility> findByIdWithDetails(@Param("facilityId") Integer facilityId);
+    Facility findByIdWithDetails(@Param("facilityId") Integer facilityId);
 }

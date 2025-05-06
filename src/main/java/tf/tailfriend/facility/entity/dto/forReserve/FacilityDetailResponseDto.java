@@ -20,6 +20,7 @@ import java.util.stream.Collectors;
 public class FacilityDetailResponseDto {
     // Basic facility info
     private Integer id;
+    private String category;
     private String name;
     private String tel;
     private String comment;
@@ -29,15 +30,14 @@ public class FacilityDetailResponseDto {
     private String detailAddress;
     private Double latitude;
     private Double longitude;
+    private String openTimeRange;
     private LocalDateTime createdAt;
-    private Integer page;
-    private boolean last;
+    private String thumbnail;
 
     // Related entity info
     private FacilityTypeDto facilityType;
     private List<FacilityPhotoDto> photos;
     private List<FacilityTimetableDto> timetables;
-    private List<ReviewDto> reviews;
 
     // DTOs for related entities
     @Getter
@@ -66,25 +66,10 @@ public class FacilityDetailResponseDto {
     public static class FacilityTimetableDto {
         private Integer id;
         private FacilityTimetable.Day day;
-        private Time openTime;
-        private Time closeTime;
+        private String openTime;
+        private String closeTime;
     }
-
-    @Getter
-    @Builder
-    @NoArgsConstructor
-    @AllArgsConstructor
-    public static class ReviewDto {
-        private Integer id;
-        private Integer userId;
-        private String nickName;  // Assuming you want to include this
-        private String comment;
-        private Integer starPoint;
-        private LocalDateTime createdAt;
-    }
-
-    // Conversion from Entity
-    public static FacilityDetailResponseDto from(Facility facility, List<ReviewDto> reviews, Integer responsePage, boolean responseLastPage) {
+    public static FacilityDetailResponseDto from(Facility facility) {
         return FacilityDetailResponseDto.builder()
                 .id(facility.getId())
                 .name(facility.getName())
@@ -97,8 +82,6 @@ public class FacilityDetailResponseDto {
                 .latitude(facility.getLatitude())
                 .longitude(facility.getLongitude())
                 .createdAt(facility.getCreatedAt())
-                .page(responsePage)
-                .last(responseLastPage)
                 .facilityType(FacilityTypeDto.builder()
                         .id(facility.getFacilityType().getId())
                         .name(facility.getFacilityType().getName())
@@ -114,11 +97,10 @@ public class FacilityDetailResponseDto {
                         .map(timetable -> FacilityTimetableDto.builder()
                                 .id(timetable.getId())
                                 .day(timetable.getDay())
-                                .openTime(timetable.getOpenTime())
-                                .closeTime(timetable.getCloseTime())
+                                .openTime(timetable.getOpenTime().toString())
+                                .closeTime(timetable.getCloseTime().toString())
                                 .build())
                         .collect(Collectors.toList()))
-                .reviews(reviews)
                 .build();
     }
 }

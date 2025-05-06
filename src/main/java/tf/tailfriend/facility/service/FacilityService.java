@@ -54,7 +54,6 @@ public class FacilityService {
     private final StorageService storageService;
     private final FileService fileService;
     private final FileDao fileDao;
-    private final ReviewDao reviewDao;
     private final ReviewPhotoDao reviewPhotoDao;
 
     @Transactional(readOnly = true)

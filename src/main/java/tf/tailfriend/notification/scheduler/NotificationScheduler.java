@@ -129,18 +129,6 @@ public class NotificationScheduler {
             if (userFcmList.isEmpty()) {
                 throw new IllegalStateException("FCM 토큰을 찾을 수 없습니다: userId=" + userId);
             }
-//
-//            // 모바일과 웹에 대한 토큰 구분
-//            String mobileFcmToken = null;
-//            String webFcmToken = null;
-//
-//            for (UserFcm userFcm : userFcmList) {
-//                if (userFcm.isMobile()) {
-//                    mobileFcmToken = userFcm.getFcmToken();
-//                } else {
-//                    webFcmToken = userFcm.getFcmToken();
-//                }
-//            }
 
             String messageId;
             if (notifyTypeId == 5) {

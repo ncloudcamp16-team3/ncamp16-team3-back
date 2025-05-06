@@ -13,7 +13,7 @@ public interface FacilityWithDistanceProjection {
     @Value("#{target.name}")
     String getName();
 
-    @Value("#{target.starPoint}")
+    @Value("#{target.totalStarPoint}")
     Double getStarPoint();
 
     @Value("#{target.reviewCount}")

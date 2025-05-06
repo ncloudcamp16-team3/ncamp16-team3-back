@@ -3,6 +3,7 @@ package tf.tailfriend.facility.repository;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.stereotype.Repository;
 import tf.tailfriend.facility.entity.Facility;
 import tf.tailfriend.facility.entity.Review;
 
@@ -23,4 +24,7 @@ public interface ReviewDao extends JpaRepository<Review, Integer> {
     // 별점별 개수를 계산하는 쿼리 메서드
     @Query("SELECT r.starPoint, COUNT(r) FROM Review r WHERE r.facility.id = :facilityId GROUP BY r.starPoint")
     List<Object[]> countReviewsByStarPoint(@Param("facilityId") Integer facilityId);
+
+    @Query("SELECT COALESCE(AVG(r.starPoint), 0.0) FROM Review r WHERE r.facility.id = :facilityId")
+    Double calculateAverageStarPointByFacilityId(@Param("facilityId") Integer facilityId);
 }

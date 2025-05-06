@@ -242,7 +242,9 @@ public class FacilityService {
 
         List<ReviewResponseDto> reviewDtos = getReviewDtos(facilityId);
 
-        return new FacilityDetailDto(facilityDto, reviewDtos);
+        List<Object[]> reviewRatio = reviewDao.countReviewsByStarPoint(facilityId);
+
+        return new FacilityDetailDto(facilityDto, reviewDtos, reviewRatio);
     }
 
     private List<ReviewResponseDto> getReviewDtos(Integer facilityId) {

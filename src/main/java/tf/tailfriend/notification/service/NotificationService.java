@@ -82,21 +82,22 @@ public void sendNotificationToUser(NotificationDto dto) {
     String body = "";
     String image = "";
     String contentId = dto.getContent();
-    String imagePrefix = "https://kr.object.ncloudstorage.com/tailfriends-buck/uploads/notification";
+//    String imagePrefix = "https://kr.object.ncloudstorage.com/tailfriends-buck/uploads/notification";
+    String imagePrefix = "https://kr.object.ncloudstorage.com/bitcamp-72";
 
     try {
         switch (dto.getNotifyTypeId()) {
             case 1 -> {
                 Comment comment = CommentDao.findById(Integer.valueOf(contentId))
                         .orElseThrow(() -> new RuntimeException("댓글을 찾을 수 없습니다"));
-                title = "내 게시글에 댓글이 달렸습니다.";
+                title = "게시글에 댓글이 달렸습니다.";
                 body = comment.getContent();
                 image = imagePrefix + "/comment.png";
             }
             case 2 -> {
                 PetstaComment petstaComment = PetstaCommentDao.findById(Integer.valueOf(contentId))
                         .orElseThrow(() -> new RuntimeException("펫스타 댓글을 찾을 수 없습니다"));
-                title = "내 펫스타에 댓글이 달렸습니다.";
+                title = "펫스타에 댓글이 달렸습니다.";
                 body = petstaComment.getContent();
                 image = imagePrefix + "/petsta.png";
             }
@@ -154,13 +155,13 @@ public void sendNotificationToUser(NotificationDto dto) {
                              .setBody(body)
                              .setImage(image)
                             .build())
-                    .putData("title", title)
-                    .putData("body", body)
-                    .putData("image", image)
+//                    .putData("title", title)
+//                    .putData("body", body)
+//                    .putData("image", image)
                     .putData("icon", image)
-                    .setWebpushConfig(WebpushConfig.builder()
-                            .putAllHeaders(headers)
-                            .build())
+//                    .setWebpushConfig(WebpushConfig.builder()
+//                            .putAllHeaders(headers)
+//                            .build())
                     .build();
 
             try {
@@ -404,7 +405,7 @@ public void sendNotificationToUser(NotificationDto dto) {
                         Comment comment = commentDao.findById(Integer.valueOf(notification.getContent())) // ← 여기서 원본 댓글 ID 사용
                                 .orElseThrow(() -> new RuntimeException("댓글을 찾을 수 없습니다"));
 
-                        dto.setTitle("내 게시글에 댓글이 달렸습니다.");
+                        dto.setTitle("게시글에 댓글이 달렸습니다.");
                         dto.setBody(comment.getContent());
                     } catch (RuntimeException e) {
                         dto.setTitle("댓글을 찾을 수 없습니다.");
@@ -416,7 +417,7 @@ public void sendNotificationToUser(NotificationDto dto) {
                         PetstaComment petstaComment = petstaCommentDao.findById(Integer.valueOf(notification.getContent())) // ← 원본 댓글 ID 사용
                                 .orElseThrow(() -> new RuntimeException("펫스타 댓글을 찾을 수 없습니다"));
                         System.out.println("조회할 댓글 아이디 :"+notification.getContent());
-                        dto.setTitle("내 펫스타에 댓글이 달렸습니다.");
+                        dto.setTitle("펫스타에 댓글이 달렸습니다.");
                         dto.setBody(petstaComment.getContent());
                     } catch (RuntimeException e) {
                         dto.setTitle("펫스타 댓글을 찾을 수 없습니다.");

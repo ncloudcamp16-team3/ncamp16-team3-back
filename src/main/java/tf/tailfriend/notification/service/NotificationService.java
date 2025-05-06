@@ -142,11 +142,7 @@ public void sendNotificationToUser(NotificationDto dto) {
                 System.out.println("🚫 환경 불일치로 푸시 제외: token=" + userFcm.getFcmToken());
                 continue;
             }
-
             String fcmToken = userFcm.getFcmToken();
-
-            Map<String, String> headers = new HashMap<>();
-            headers.put("TTL", "3600");
 
             Message message = Message.builder()
                     .setToken(fcmToken)
@@ -155,6 +151,8 @@ public void sendNotificationToUser(NotificationDto dto) {
                              .setBody(body)
                              .setImage(image)
                              .build())
+                    .putData("title", title)
+                    .putData("body", body)
                     .putData("icon", image)
                     .build();
 

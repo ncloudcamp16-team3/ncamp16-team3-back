@@ -36,7 +36,7 @@ public class Facility {
     private String comment;
 
     @Column(name = "total_star_point", nullable = false)
-    private Integer starPoint = 0;
+    private Integer totalStarPoint = 0;
 
     @Column(name = "review_count", nullable = false)
     private Integer reviewCount = 0;

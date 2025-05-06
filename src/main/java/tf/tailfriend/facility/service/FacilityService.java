@@ -16,7 +16,10 @@ import tf.tailfriend.facility.entity.FacilityType;
 import tf.tailfriend.facility.entity.dto.forReserve.FacilityCardResponseDto;
 import tf.tailfriend.facility.entity.dto.forReserve.FacilityWithDistanceProjection;
 import tf.tailfriend.facility.entity.dto.forReserve.ThumbnailForCardDto;
-import tf.tailfriend.facility.repository.*;
+import tf.tailfriend.facility.repository.FacilityDao;
+import tf.tailfriend.facility.repository.FacilityPhotoDao;
+import tf.tailfriend.facility.repository.FacilityTimetableDao;
+import tf.tailfriend.facility.repository.FacilityTypeDao;
 import tf.tailfriend.file.entity.File;
 import tf.tailfriend.file.repository.FileDao;
 import tf.tailfriend.file.service.FileService;
@@ -28,9 +31,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.sql.Time;
 import java.time.LocalDateTime;
-import java.util.*;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
+import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -143,7 +146,7 @@ public class FacilityService {
                 .latitude(requestDto.getLatitude())
                 .longitude(requestDto.getLongitude())
                 .reviewCount(0)
-                .starPoint(0.0)
+                .totalStarPoint(0)
                 .createdAt(LocalDateTime.now())
                 .build();
 
@@ -465,6 +468,10 @@ public class FacilityService {
     }
 
     private FacilityAddResponseDto convertToResponseDto(Facility facility, List<File> files) {
+        Double starPoint = facility.getReviewCount() == 0
+                ? 0.0
+                : (double) facility.getTotalStarPoint() / facility.getReviewCount();
+
         FacilityAddResponseDto responseDto = FacilityAddResponseDto.builder()
                 .id(facility.getId())
                 .name(facility.getName())
@@ -475,7 +482,7 @@ public class FacilityService {
                 .comment(facility.getComment())
                 .latitude(facility.getLatitude())
                 .longitude(facility.getLongitude())
-                .starPoint(facility.getStarPoint())
+                .starPoint(starPoint)
                 .reviewCount(facility.getReviewCount())
                 .createdAt(facility.getCreatedAt())
                 .build();

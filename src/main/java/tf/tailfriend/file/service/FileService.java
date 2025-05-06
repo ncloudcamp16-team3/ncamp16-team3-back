@@ -61,9 +61,11 @@ public class FileService {
                 "-ss", trimStart,
                 "-i", originalPath.toAbsolutePath().toString(),
                 "-to", trimEnd,
-                "-c", "copy",
+                "-c:v", "libx264",
+                "-crf", "23",
                 trimmedPath.toAbsolutePath().toString()
         };
+
 
         ProcessBuilder builder = new ProcessBuilder(command);
         builder.redirectErrorStream(true); // 표준 에러도 같이 읽음

@@ -373,17 +373,24 @@ public class PetSitterService {
         return new PageImpl<>(petSitterDtos, pageable, petSitters.getTotalElements());
     }
 
-    //승인된 펫시터 중 검색 조건에 맞는 펫시터 목록을 조회하는 메소드
+
     @Transactional(readOnly = true)
     public Page<PetSitterResponseDto> findApprovedPetSittersWithCriteria(
-            String age, Boolean petOwnership, Boolean sitterExp, String houseType, Pageable pageable, Integer currentUserId) {
+            String age, Boolean petOwnership, Boolean sitterExp, String houseType,
+            Pageable pageable, Integer currentUserId) {
 
         logger.info("승인된 펫시터 검색 시작: age={}, petOwnership={}, sitterExp={}, houseType={}, currentUserId={}",
                 age, petOwnership, sitterExp, houseType, currentUserId);
 
-        //기본 쿼리 - 자신은 제외
-        String baseQuery = "SELECT ps FROM PetSitter ps WHERE ps.status = :status AND ps.id != :currentUserId";
-        String countQuery = "SELECT COUNT(ps) FROM PetSitter ps WHERE ps.status = :status AND ps.id != :currentUserId";
+        // 기본 쿼리 - 현재 로그인한 사용자만 제외
+        String baseQuery = "SELECT ps FROM PetSitter ps WHERE ps.status = :status";
+        String countQuery = "SELECT COUNT(ps) FROM PetSitter ps WHERE ps.status = :status";
+
+        // 현재 로그인한 사용자 제외 (본인은 검색 결과에서 제외)
+        if (currentUserId != null) {
+            baseQuery += " AND ps.id != :currentUserId";
+            countQuery += " AND ps.id != :currentUserId";
+        }
 
         // 조건에 따라 동적으로 쿼리 구성
         StringBuilder queryBuilder = new StringBuilder(baseQuery);
@@ -392,7 +399,14 @@ public class PetSitterService {
         // 파라미터 맵
         Map<String, Object> params = new HashMap<>();
         params.put("status", PetSitter.PetSitterStatus.APPROVE);
-        params.put("currentUserId", currentUserId);
+
+        if (currentUserId != null) {
+            params.put("currentUserId", currentUserId);
+        }
+
+        if (currentUserId != null) {
+            params.put("currentUserId", currentUserId);
+        }
 
         // 연령대 조건
         if (age != null && !age.isEmpty()) {
@@ -431,6 +445,7 @@ public class PetSitterService {
             query.setParameter(entry.getKey(), entry.getValue());
             countQueryResult.setParameter(entry.getKey(), entry.getValue());
         }
+
         // 페이징 적용
         query.setFirstResult((int) pageable.getOffset());
         query.setMaxResults(pageable.getPageSize());
@@ -454,7 +469,104 @@ public class PetSitterService {
                 })
                 .collect(Collectors.toList());
 
-        logger.info("승인된 펫시터 검색 완료: 결과 수={}", dtoList.size());
+        logger.info("펫시터 검색 완료: 결과 수={}", dtoList.size());
+
+        return new PageImpl<>(dtoList, pageable, total);
+    }
+
+    /**
+     * 전체 펫시터 목록 - 현재 로그인한 사용자를 제외한 모든 펫시터 표시
+     */
+    @Transactional(readOnly = true)
+    public Page<PetSitterResponseDto> findAllApprovedPetSitters(
+            String age, Boolean petOwnership, Boolean sitterExp, String houseType,
+            Pageable pageable, Integer currentUserId) {
+
+        logger.info("전체 펫시터 목록 검색 시작: age={}, petOwnership={}, sitterExp={}, houseType={}, currentUserId={}",
+                age, petOwnership, sitterExp, houseType, currentUserId);
+
+        // 기본 쿼리 - 모든 펫시터 표시하되 현재 로그인한 사용자 제외
+        StringBuilder baseQueryBuilder = new StringBuilder("SELECT ps FROM PetSitter ps WHERE ps.status = :status");
+        StringBuilder countQueryBuilder = new StringBuilder("SELECT COUNT(ps) FROM PetSitter ps WHERE ps.status = :status");
+
+        // 파라미터 맵
+        Map<String, Object> params = new HashMap<>();
+        params.put("status", PetSitter.PetSitterStatus.APPROVE);
+
+        // 현재 로그인한 사용자 제외 (null이 아닌 경우에만)
+        if (currentUserId != null) {
+            baseQueryBuilder.append(" AND ps.id != :currentUserId");
+            countQueryBuilder.append(" AND ps.id != :currentUserId");
+            params.put("currentUserId", currentUserId);
+        }
+
+        // 연령대 조건
+        if (age != null && !age.isEmpty()) {
+            baseQueryBuilder.append(" AND ps.age = :age");
+            countQueryBuilder.append(" AND ps.age = :age");
+            params.put("age", age);
+        }
+
+        // 반려동물 소유 여부 조건
+        if (petOwnership != null) {
+            baseQueryBuilder.append(" AND ps.grown = :grown");
+            countQueryBuilder.append(" AND ps.grown = :grown");
+            params.put("grown", petOwnership);
+        }
+
+        // 펫시터 경험 여부 조건
+        if (sitterExp != null) {
+            baseQueryBuilder.append(" AND ps.sitterExp = :sitterExp");
+            countQueryBuilder.append(" AND ps.sitterExp = :sitterExp");
+            params.put("sitterExp", sitterExp);
+        }
+
+        // 주거 형태 조건
+        if (houseType != null && !houseType.isEmpty()) {
+            baseQueryBuilder.append(" AND ps.houseType = :houseType");
+            countQueryBuilder.append(" AND ps.houseType = :houseType");
+            params.put("houseType", houseType);
+        }
+
+        String baseQuery = baseQueryBuilder.toString();
+        String countQuery = countQueryBuilder.toString();
+
+        logger.info("생성된 쿼리: {}", baseQuery);
+
+        // 쿼리 실행
+        TypedQuery<PetSitter> query = entityManager.createQuery(baseQuery, PetSitter.class);
+        TypedQuery<Long> countQueryResult = entityManager.createQuery(countQuery, Long.class);
+
+        // 파라미터 설정
+        for (Map.Entry<String, Object> entry : params.entrySet()) {
+            query.setParameter(entry.getKey(), entry.getValue());
+            countQueryResult.setParameter(entry.getKey(), entry.getValue());
+        }
+
+        // 페이징 적용
+        query.setFirstResult((int) pageable.getOffset());
+        query.setMaxResults(pageable.getPageSize());
+
+        // 결과 조회
+        List<PetSitter> petSitters = query.getResultList();
+        Long total = countQueryResult.getSingleResult();
+
+        // DTO 변환
+        List<PetSitterResponseDto> dtoList = petSitters.stream()
+                .map(petSitter -> {
+                    PetSitterResponseDto dto = PetSitterResponseDto.fromEntity(petSitter);
+
+                    // 이미지 URL 설정
+                    if (petSitter.getFile() != null) {
+                        String imageUrl = storageService.generatePresignedUrl(petSitter.getFile().getPath());
+                        dto.setImagePath(imageUrl);
+                    }
+
+                    return dto;
+                })
+                .collect(Collectors.toList());
+
+        logger.info("전체 펫시터 목록 검색 완료: 결과 수={}", dtoList.size());
 
         return new PageImpl<>(dtoList, pageable, total);
     }

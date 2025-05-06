@@ -173,10 +173,15 @@ public class PetSitterController {
         }
     }
 
-    // 펫시터 목록을 조회하는 API (상태별 필터링 가능)
+    // 펫시터 목록을 조회하는 API
     @GetMapping("/list")
     public ResponseEntity<?> getPetSitterList(
+            @AuthenticationPrincipal UserPrincipal userPrincipal,
             @RequestParam(required = false) String status,
+            @RequestParam(required = false) String age,
+            @RequestParam(required = false) Boolean petOwnership,
+            @RequestParam(required = false) Boolean sitterExp,
+            @RequestParam(required = false) String houseType,
             Pageable pageable) {
 
         try {
@@ -187,9 +192,15 @@ public class PetSitterController {
                 pageable = PageRequest.of(pageable.getPageNumber(), 50, pageable.getSort());
             }
 
+            // 현재 사용자 ID 가져오기
+            Integer currentUserId = userPrincipal != null ? userPrincipal.getUserId() : null;
+
             Page<PetSitterResponseDto> results;
+
+            // "APPROVE" 상태인 경우에만 현재 사용자 제외 로직 적용
             if ("APPROVE".equals(status)) {
-                results = petSitterService.findApprovePetSitter(pageable);
+                results = petSitterService.findAllApprovedPetSitters(
+                        age, petOwnership, sitterExp, houseType, pageable, currentUserId);
             } else if ("NONE".equals(status)) {
                 results = petSitterService.findNonePetSitter(pageable);
             } else {

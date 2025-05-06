@@ -8,10 +8,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
-import tf.tailfriend.facility.dto.FacilityAddResponseDto;
-import tf.tailfriend.facility.dto.FacilityRequestDto;
-import tf.tailfriend.facility.dto.FacilityResponseDto;
-import tf.tailfriend.facility.dto.ReviewResponseDto;
+import tf.tailfriend.facility.dto.*;
 import tf.tailfriend.facility.entity.*;
 import tf.tailfriend.facility.entity.dto.forReserve.FacilityCardResponseDto;
 import tf.tailfriend.facility.entity.dto.forReserve.FacilityWithDistanceProjection;
@@ -237,29 +234,25 @@ public class FacilityService {
     }
 
     @Transactional(readOnly = true)
-    public Map<String, Object> getFacilityDetailWithReviews(Integer facilityId) {
-        // 1. 시설 정보 조회
+    public FacilityDetailDto getFacilityDetailWithReviews(Integer facilityId) {
         Facility facility = facilityDao.findById(facilityId)
                 .orElseThrow(() -> new IllegalArgumentException("시설을 찾을 수 없습니다: " + facilityId));
 
-        // 2. 시설 기본 정보를 DTO로 변환
         FacilityResponseDto facilityDto = convertToDto(facility);
 
-        // 3. 시설 사진 목록 조회 (FacilityPhoto 엔티티 활용)
-        List<FacilityPhoto> facilityPhotos = facilityPhotoDao.findByFacilityId(facilityId);
-        List<String> photoUrls = facilityPhotos.stream()
-                .map(photo -> storageService.generatePresignedUrl(photo.getFile().getPath()))
-                .collect(Collectors.toList());
+        List<ReviewResponseDto> reviewDtos = getReviewDtos(facilityId);
 
-        // 사진 URL 목록 설정
-        facilityDto.setImagePaths(photoUrls);
+        return new FacilityDetailDto(facilityDto, reviewDtos);
+    }
 
-        // 4. 시설 리뷰 목록 조회
+    private List<ReviewResponseDto> getReviewDtos(Integer facilityId) {
+        // 1. 시설 ID로 리뷰 목록 조회
         List<Review> reviews = reviewDao.findByFacilityIdOrderByCreatedAtDesc(facilityId);
 
-        // 5. 리뷰 DTO 목록 생성
+        // 2. 리뷰 DTO 목록 생성
         List<ReviewResponseDto> reviewDtos = new ArrayList<>();
 
+        // 3. 각 리뷰를 DTO로 변환하여 목록에 추가
         for (Review review : reviews) {
             User user = review.getUser();
 
@@ -274,13 +267,13 @@ public class FacilityService {
                     .build();
 
             // 사용자 프로필 이미지 URL 설정
-            if (user.getFile().getId() != null) {
+            if (user.getFile() != null && user.getFile().getId() != null) {
                 reviewDto.setUserProfileImage(
                         storageService.generatePresignedUrl(user.getFile().getPath())
                 );
             }
 
-            // 리뷰 이미지 URL 목록 설정 (ReviewPhoto가 있다고 가정, 없다면 만들어야 함)
+            // 리뷰 이미지 URL 목록 설정
             List<ReviewPhoto> reviewPhotos = reviewPhotoDao.findByReviewId(review.getId());
             if (reviewPhotos != null && !reviewPhotos.isEmpty()) {
                 List<String> reviewImageUrls = reviewPhotos.stream()
@@ -294,37 +287,7 @@ public class FacilityService {
             reviewDtos.add(reviewDto);
         }
 
-        // 6. 별점 통계 계산
-        Map<Integer, Long> ratingDistribution = new HashMap<>();
-        // 모든 별점(1~5)에 대해 기본값 0으로 초기화
-        for (int i = 1; i <= 5; i++) {
-            ratingDistribution.put(i, 0L);
-        }
-
-        // 각 별점에 대한 개수 계산
-        for (Review review : reviews) {
-            Integer starPoint = review.getStarPoint();
-            ratingDistribution.put(starPoint, ratingDistribution.getOrDefault(starPoint, 0L) + 1);
-        }
-
-        // 7. 평균 별점 계산
-        double avgRating = 0.0;
-        if (!reviews.isEmpty()) {
-            avgRating = reviews.stream()
-                    .mapToInt(Review::getStarPoint)
-                    .average()
-                    .orElse(0.0);
-        }
-
-        // 결과 Map 생성
-        Map<String, Object> result = new HashMap<>();
-        result.put("facility", facilityDto);
-        result.put("reviews", reviewDtos);
-        result.put("ratingDistribution", ratingDistribution);
-        result.put("reviewCount", reviews.size());
-        result.put("avgRating", Math.round(avgRating * 10) / 10.0); // 소수점 첫째자리까지
-
-        return result;
+        return reviewDtos;
     }
 
     private void saveWeeklyTimetables(Facility facility, Map<String, String> openTimes, Map<String, String> closeTimes, Map<String, Boolean> openDays) {

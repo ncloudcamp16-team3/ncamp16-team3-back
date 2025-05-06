@@ -1,5 +1,6 @@
 package tf.tailfriend.schedule.controller;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
@@ -27,49 +28,39 @@ public class ScheduleController {
 
 
     @PostMapping
-    public ResponseEntity<?> addSchedule(@RequestBody SchedulePostDTO dto) {
+    public ResponseEntity<?> addSchedule(@Valid @RequestBody SchedulePostDTO dto) {
         try {
-            // 서비스 레이어에서 일정 추가 처리
             scheduleService.postSchedule(dto);
-
-            // 일정 추가 성공 시
             return new ResponseEntity<>("일정이 성공적으로 등록되었습니다.", HttpStatus.CREATED);
+        } catch (IllegalArgumentException e) {
+            return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST); // 클라이언트 잘못
         } catch (Exception e) {
-            // 예외 처리: 서버 오류 등
-            System.out.println(e); //
+            System.out.println(e);
             return new ResponseEntity<>("일정 등록에 실패했습니다. 다시 시도해주세요.", HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
     @PutMapping
-    public ResponseEntity<?> modifySchedule(@RequestBody SchedulePutDTO dto) {
+    public ResponseEntity<?> modifySchedule(@Valid @RequestBody SchedulePutDTO dto) {
         try {
-            // 서비스 레이어에서 일정 추가 처리
             scheduleService.putSchedule(dto);
-
-            // 일정 추가 성공 시
             return new ResponseEntity<>("일정이 성공적으로 수정되었습니다.", HttpStatus.OK);
+        }  catch (IllegalArgumentException e) {
+                return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST); // 클라이언트 잘못
         } catch (Exception e) {
-            // 예외 처리: 서버 오류 등
             System.out.println(e); //
-            return new ResponseEntity<>("일정 등록에 실패했습니다. 다시 시도해주세요.", HttpStatus.INTERNAL_SERVER_ERROR);
+            return new ResponseEntity<>("일정 수정에 실패했습니다. 다시 시도해주세요.", HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<?> removeSchedule(@PathVariable Integer id) {
         try {
-            // 서비스 레이어에서 일정 추가 처리
             scheduleService.deleteSchedule(id);
-
-            // 일정 추가 성공 시
             return new ResponseEntity<>("일정이 성공적으로 삭제되었습니다.", HttpStatus.OK);
         } catch (Exception e) {
-            // 예외 처리: 서버 오류 등
             System.out.println(e); //
             return new ResponseEntity<>("일정 삭제에 실패했습니다. 다시 시도해주세요.", HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
-
-
 }

@@ -5,7 +5,9 @@ import lombok.Getter;
 
 @Getter
 @Builder
-public class FacilityListRequestDto {
+public class FacilityList {
+
+    private String day;
 
     private double userLatitude;
 

@@ -1,5 +1,6 @@
 package tf.tailfriend.reserve.service;
 
+import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -8,6 +9,7 @@ import tf.tailfriend.facility.repository.FacilityDao;
 import tf.tailfriend.global.service.DateTimeFormatProvider;
 import tf.tailfriend.global.service.RedisService;
 import tf.tailfriend.global.service.StorageService;
+import tf.tailfriend.reserve.dto.ReserveDetailResponseDto;
 import tf.tailfriend.reserve.dto.ReserveListResponseDto;
 import tf.tailfriend.reserve.dto.ReserveRequestDto;
 import tf.tailfriend.reserve.entity.Reserve;
@@ -89,5 +91,32 @@ public class ReserveService {
                 })
                 .collect(Collectors.toList());
     }
+
+    @Transactional
+    public ReserveDetailResponseDto getReserveDetail(Integer reserveId) {
+        Reserve reserve = reserveDao.findById(reserveId)
+                .orElseThrow(() -> new EntityNotFoundException("예약 정보를 찾을 수 없습니다."));
+
+        Facility facility = reserve.getFacility();
+        String imagePath = facility.getPhotos().stream()
+                .findFirst()
+                .map(p -> p.getFile().getPath())
+                .orElse(null);
+
+        String imageUrl = imagePath != null ? storageService.generatePresignedUrl(imagePath) : null;
+
+        return ReserveDetailResponseDto.builder()
+                .id(reserve.getId())
+                .name(facility.getName())
+                .address(facility.getAddress())
+                .type(facility.getFacilityType().getName())
+                .status(reserve.getReserveStatus())
+                .entryTime(reserve.getEntryTime())
+                .exitTime(reserve.getExitTime())
+                .amount(reserve.getAmount())
+                .image(imageUrl)
+                .build();
+    }
+
 }
 

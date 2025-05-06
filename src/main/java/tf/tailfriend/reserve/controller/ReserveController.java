@@ -18,6 +18,7 @@ import tf.tailfriend.global.config.UserPrincipal;
 import tf.tailfriend.global.service.RedisService;
 import tf.tailfriend.reserve.dto.RequestForFacility.FacilityList;
 import tf.tailfriend.reserve.dto.RequestForFacility.ReviewInsertRequestDto;
+import tf.tailfriend.reserve.dto.ReserveDetailResponseDto;
 import tf.tailfriend.reserve.dto.ReserveListResponseDto;
 import tf.tailfriend.reserve.dto.ReserveRequestDto;
 import tf.tailfriend.reserve.entity.Reserve;
@@ -146,5 +147,11 @@ public class ReserveController {
         Integer parsedId = Integer.parseInt(id);
         return facilityService.getFacilityForReview(parsedId);
     }
+    @GetMapping("/{id}")
+    public ResponseEntity<ReserveDetailResponseDto> getReserveDetail(@PathVariable Integer id) {
+        ReserveDetailResponseDto dto = reserveService.getReserveDetail(id);
+        return ResponseEntity.ok(dto);
+    }
+
 
 }

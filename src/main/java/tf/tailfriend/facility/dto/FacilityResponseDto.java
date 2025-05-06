@@ -43,13 +43,17 @@ public class FacilityResponseDto {
 
     // Entity를 DTO로 변환하는 정적 메서드
     public static FacilityResponseDto fromEntity(Facility facility) {
+        Double starPoint = facility.getReviewCount() == 0
+                ? 0.0
+                : (double) facility.getTotalStarPoint() / facility.getReviewCount();
+
         return FacilityResponseDto.builder()
                 .id(facility.getId())
                 .facilityType(facility.getFacilityType().getName())
                 .name(facility.getName())
                 .tel(facility.getTel())
                 .comment(facility.getComment())
-                .starPoint(facility.getStarPoint())
+                .starPoint(starPoint)
                 .reviewCount(facility.getReviewCount())
                 .address(facility.getAddress())
                 .detailAddress(facility.getDetailAddress())

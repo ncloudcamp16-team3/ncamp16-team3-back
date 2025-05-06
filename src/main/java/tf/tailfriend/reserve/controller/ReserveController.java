@@ -1,16 +1,13 @@
 package tf.tailfriend.reserve.controller;
 
 import org.springframework.data.domain.Slice;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-import tf.tailfriend.facility.entity.Facility;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 import tf.tailfriend.facility.entity.dto.forReserve.FacilityCardResponseDto;
-import tf.tailfriend.facility.entity.dto.forReserve.FacilityDetailResponseDto;
-import tf.tailfriend.facility.entity.dto.forReserve.FacilityReviewResponseDto;
 import tf.tailfriend.facility.service.FacilityService;
-import tf.tailfriend.reserve.dto.RequestForFacility.FacilityDetailRequestDto;
-import tf.tailfriend.reserve.dto.RequestForFacility.FacilityListRequestDto;
-import tf.tailfriend.reserve.dto.RequestForFacility.FacilityReviewRequestDto;
+import tf.tailfriend.reserve.dto.RequestForFacility.FacilityList;
 import tf.tailfriend.reserve.service.ReserveService;
 import lombok.extern.slf4j.Slf4j;
 
@@ -27,19 +24,22 @@ public class ReserveController {
         this.reserveService = reserveService;
     }
 
-    @GetMapping("/facility/list")
+    @GetMapping("/facility/lists")
     public Slice<FacilityCardResponseDto> getFacilityList(
             @RequestParam("latitude") double latitude,
             @RequestParam("longitude") double longitude,
             @RequestParam("category") String category,
             @RequestParam("sortBy") String sortBy,
+            @RequestParam("day") String day,
             @RequestParam(value = "page", defaultValue = "0") int page,
             @RequestParam(value = "size", defaultValue = "10") int size) {
+        log.info("latitude: {}, longitude: {}, category: {}, sortBy: {}, day: {}, page: {}, size: {}", latitude, longitude, category, sortBy, day, page, size);
         String formattedSortBy = switch (sortBy) {
             case "distance" -> "distance";
             default -> "starPoint";
         };
-        FacilityListRequestDto requestDto = FacilityListRequestDto.builder()
+        FacilityList requestDto = FacilityList.builder()
+                .day(day)
                 .userLatitude(latitude)
                 .userLongitude(longitude)
                 .category(category)
@@ -47,30 +47,9 @@ public class ReserveController {
                 .page(page)
                 .size(size)
                 .build();
+        log.info("requestDto: {}", requestDto);
 
         return facilityService.getFacilityCardsForReserve(requestDto);
     }
 
-    @GetMapping("/facility/detail/{id}")
-    public ResponseEntity<FacilityDetailResponseDto> getFacility(
-            @PathVariable Integer id) {
-
-        FacilityDetailRequestDto requestDto = FacilityDetailRequestDto.builder()
-                .id(id)
-                .build();
-        FacilityDetailResponseDto facilityDetail = facilityService.getFacility(requestDto);
-        return ResponseEntity.ok(facilityDetail);
-    }
-
-    @GetMapping("/facility/detail/{id}/review/")
-    public Slice<FacilityReviewResponseDto> getFacilityReview(@PathVariable("id") Integer id,
-                                                              @RequestParam("page") Integer page,
-                                                              @RequestParam("size") Integer size) {
-        FacilityReviewRequestDto requestDto = FacilityReviewRequestDto.builder()
-                .facilityId(id)
-                .page(page)
-                .size(size)
-                .build();
-        return facilityService.getFacilityReview(requestDto);
-    }
 }

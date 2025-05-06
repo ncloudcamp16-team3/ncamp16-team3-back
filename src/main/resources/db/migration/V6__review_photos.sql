@@ -1,5 +1,4 @@
-CREATE TABLE IF NOT EXISTS review_photos
-(
+wq(
     file_id     INTEGER NOT NULL, -- 파일아이디
     review_id INTEGER NOT NULL, -- 리뷰 아이디
     PRIMARY KEY (file_id, review_id),

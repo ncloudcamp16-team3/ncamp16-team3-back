@@ -14,10 +14,7 @@ import tf.tailfriend.facility.entity.dto.forReserve.FacilityCardResponseDto;
 import tf.tailfriend.facility.entity.dto.forReserve.FacilityReviewResponseDto;
 import tf.tailfriend.facility.entity.dto.forReserve.FacilityWithDistanceProjection;
 import tf.tailfriend.facility.entity.dto.forReserve.ThumbnailForCardDto;
-import tf.tailfriend.facility.repository.FacilityDao;
-import tf.tailfriend.facility.repository.FacilityPhotoDao;
-import tf.tailfriend.facility.repository.FacilityTimetableDao;
-import tf.tailfriend.facility.repository.FacilityTypeDao;
+import tf.tailfriend.facility.repository.*;
 import tf.tailfriend.file.entity.File;
 import tf.tailfriend.file.repository.FileDao;
 import tf.tailfriend.file.service.FileService;
@@ -722,7 +719,7 @@ public class FacilityService {
 
         // 시설 찾기
         Facility facility = facilityDao.findById(requestDto.getFacilityId()).orElseThrow(() -> new EntityNotFoundException("시설 없음"));
-        log.info("바뀌기 전 별점: {}", facility.getStarPoint());
+        log.info("바뀌기 전 별점: {}", facility.getTotalStarPoint());
 
         // 리뷰 저장
         Review review = Review.builder()
@@ -735,10 +732,10 @@ public class FacilityService {
         log.info("리뷰: {}", review);
 
         // 시설 별점 통계 업데이트
-        Double starPoint = reviewDao.calculateAverageStarPointByFacilityId(facility.getId());
-        facility.updateAverageStarPoint(starPoint);
+        facility.updateTotalStarPoint(review.getStarPoint());
+        facility.updateReviewCount();
         facilityDao.save(facility);
-        log.info("바뀐 후 별점: {}", facility.getStarPoint());
+        log.info("바뀐 후 별점: {}", facility.getTotalStarPoint());
 
         // 리뷰 이미지 저장
         File file = fileService.save(image.getOriginalFilename(), "review", File.FileType.PHOTO);

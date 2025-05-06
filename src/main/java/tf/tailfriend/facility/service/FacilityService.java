@@ -1,18 +1,17 @@
 package tf.tailfriend.facility.service;
 
+import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.*;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import tf.tailfriend.facility.dto.FacilityAddResponseDto;
 import tf.tailfriend.facility.dto.FacilityRequestDto;
 import tf.tailfriend.facility.dto.FacilityResponseDto;
-import tf.tailfriend.facility.entity.Facility;
-import tf.tailfriend.facility.entity.FacilityPhoto;
-import tf.tailfriend.facility.entity.FacilityTimetable;
-import tf.tailfriend.facility.entity.FacilityType;
+import tf.tailfriend.facility.entity.*;
 import tf.tailfriend.facility.entity.dto.forReserve.FacilityCardResponseDto;
 import tf.tailfriend.facility.entity.dto.forReserve.FacilityWithDistanceProjection;
 import tf.tailfriend.facility.entity.dto.forReserve.ThumbnailForCardDto;
@@ -20,9 +19,13 @@ import tf.tailfriend.facility.repository.*;
 import tf.tailfriend.file.entity.File;
 import tf.tailfriend.file.repository.FileDao;
 import tf.tailfriend.file.service.FileService;
+import tf.tailfriend.global.config.UserPrincipal;
 import tf.tailfriend.global.service.StorageService;
 import tf.tailfriend.global.service.StorageServiceException;
 import tf.tailfriend.reserve.dto.RequestForFacility.FacilityList;
+import tf.tailfriend.reserve.dto.RequestForFacility.ReviewInsertRequestDto;
+import tf.tailfriend.user.entity.User;
+import tf.tailfriend.user.repository.UserDao;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -44,6 +47,8 @@ public class FacilityService {
     private final FacilityTypeDao facilityTypeDao;
     private final FacilityTimetableDao facilityTimetableDao;
     private final FacilityPhotoDao facilityPhotoDao;
+    private final ReviewDao reviewDao;
+    private final UserDao userDao;
     private final StorageService storageService;
     private final FileService fileService;
     private final FileDao fileDao;
@@ -637,5 +642,29 @@ public class FacilityService {
                 .collect(Collectors.toList());
 
         return new SliceImpl<>(mappedList, list.getPageable(), list.hasNext());
+    }
+
+    @Transactional
+    public void insertReview(ReviewInsertRequestDto requestDto, java.io.File image) {
+        UserPrincipal principal = (UserPrincipal) SecurityContextHolder
+                .getContext()
+                .getAuthentication()
+                .getPrincipal();
+
+        Integer userId = principal.getUserId();
+        User user = userDao.findById(userId).orElseThrow(() -> new EntityNotFoundException("유저 없음"));
+
+        Facility facility = facilityDao.findById(requestDto.getId()).orElseThrow(() -> new EntityNotFoundException("시설 없음"));
+        Review review = Review.builder()
+                .user(user)
+                .facility(facility)
+                .comment(requestDto.getComment())
+                .starPoint(requestDto.getStarPoint())
+                .build();
+        reviewDao.save(review);
+
+        Double starPoint = reviewDao.calculateAverageStarPointByFacilityId(facility.getId());
+        facility.updateAverageStarPoint(starPoint);
+        facilityDao.save(facility);
     }
 }

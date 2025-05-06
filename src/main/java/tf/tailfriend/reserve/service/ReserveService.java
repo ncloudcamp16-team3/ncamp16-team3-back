@@ -115,6 +115,8 @@ public class ReserveService {
                 .exitTime(reserve.getExitTime())
                 .amount(reserve.getAmount())
                 .image(imageUrl)
+                .latitude(reserve.getFacility().getLatitude())
+                .longitude(reserve.getFacility().getLongitude())
                 .build();
     }
 

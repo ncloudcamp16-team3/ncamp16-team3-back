@@ -1,8 +1,11 @@
 package tf.tailfriend.global.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
+import tf.tailfriend.reserve.dto.ReserveRequestDto;
 
 import java.time.Duration;
 
@@ -11,6 +14,7 @@ import java.time.Duration;
 public class RedisService {
 
     private final StringRedisTemplate redisTemplate;
+    private final ObjectMapper objectMapper;
 
     public void setStoryFlag(Integer userId) {
         String key = "story:" + userId;
@@ -49,18 +53,33 @@ public class RedisService {
     }
 
 
-    public boolean hasStory(Integer userId) {
-        return Boolean.TRUE.equals(redisTemplate.hasKey("story:" + userId));
+
+    // 예약 임시 저장
+    public void saveTempReserve(String reserveKey, ReserveRequestDto dto) {
+        try {
+            String json = objectMapper.writeValueAsString(dto);
+            redisTemplate.opsForValue().set(reserveKey, json, Duration.ofMinutes(15));
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException("예약 정보를 Redis에 저장하는 데 실패했습니다.", e);
+        }
     }
 
-    public void addVisitor(Integer targetUserId, Integer visitorId) {
-        String key = "story:visited:" + targetUserId;
-        redisTemplate.opsForSet().add(key, visitorId.toString());
-        redisTemplate.expire(key, Duration.ofHours(24)); // TTL 연장
+    // 예약 임시 조회
+    public ReserveRequestDto getTempReserve(String reserveKey) {
+        String json = redisTemplate.opsForValue().get(reserveKey);
+        if (json == null) return null;
+
+        try {
+            return objectMapper.readValue(json, ReserveRequestDto.class);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException("Redis에서 예약 정보를 파싱할 수 없습니다.", e);
+        }
     }
 
-    public boolean hasVisited(Integer targetUserId, Integer visitorId) {
-        return Boolean.TRUE.equals(redisTemplate.opsForSet().isMember(
-                "story:visited:" + targetUserId, visitorId.toString()));
+    // 예약 키 삭제
+    public void deleteTempReserve(String reserveKey) {
+        redisTemplate.delete(reserveKey);
     }
+
+
 }

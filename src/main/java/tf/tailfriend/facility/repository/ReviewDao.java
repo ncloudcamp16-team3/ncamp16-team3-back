@@ -7,7 +7,7 @@ import tf.tailfriend.facility.entity.Facility;
 import tf.tailfriend.facility.entity.Review;
 
 import java.util.List;
-
+@Repository
 public interface ReviewDao extends JpaRepository<Review, Integer> {
 
     // 시설별로 최신순 리뷰 조회

@@ -97,4 +97,8 @@ public class Facility {
         this.latitude = latitude;
         this.longitude = longitude;
     }
+
+    public void updateAverageStarPoint(Double average) {
+        this.starPoint = average;
+    }
 }

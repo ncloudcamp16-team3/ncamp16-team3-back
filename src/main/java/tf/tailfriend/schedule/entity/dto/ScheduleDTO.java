@@ -2,6 +2,8 @@ package tf.tailfriend.schedule.entity.dto;
 
 ;
 import com.fasterxml.jackson.annotation.JsonFormat;
+import jakarta.validation.constraints.AssertTrue;
+import jakarta.validation.constraints.NotNull;
 import lombok.*;
 import tf.tailfriend.schedule.entity.Schedule;
 
@@ -54,17 +56,39 @@ public class ScheduleDTO {
     @NoArgsConstructor
     @AllArgsConstructor
     public static class SchedulePostDTO {
+
+        @NotNull
         private Integer userId;
+
+        @NotNull
         private String title;
+
+        @NotNull
         private String content;
+
         @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+        @NotNull
         private LocalDateTime startDate;
+
         @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+        @NotNull
         private LocalDateTime endDate;
+
+        @NotNull
         private String address;
+
+        @NotNull
         private Double latitude;
+
+        @NotNull
         private Double longitude;
+
         private String fcmToken;
+
+        @AssertTrue(message = "시작일은 종료일보다 이후일 수 없습니다.")
+        public boolean isValidDateRange() {
+            return startDate == null || endDate == null || !startDate.isAfter(endDate);
+        }
     }
 
     @Getter
@@ -73,17 +97,40 @@ public class ScheduleDTO {
     @NoArgsConstructor
     @AllArgsConstructor
     public static class SchedulePutDTO {
+
+        @NotNull
         private Integer id;
+
+        @NotNull
         private Integer userId;
+
+        @NotNull
         private String title;
+
+        @NotNull
         private String content;
+
         @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+        @NotNull
         private LocalDateTime startDate;
+
         @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+        @NotNull
         private LocalDateTime endDate;
+
+        @NotNull
         private String address;
+
+        @NotNull
         private Double latitude;
+
+        @NotNull
         private Double longitude;
+
+        @AssertTrue(message = "시작일은 종료일보다 이후일 수 없습니다.")
+        public boolean isValidDateRange() {
+            return startDate == null || endDate == null || !startDate.isAfter(endDate);
+        }
     }
 
 

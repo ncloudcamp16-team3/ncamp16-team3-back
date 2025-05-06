@@ -84,7 +84,7 @@ public class PetSitterService {
 
         // 이미지 URL 설정
         if (petSitter.getFile() != null) {
-            String imageUrl = storageService.generatePresignedUrl(petSitter.getFile().getPath());
+            String imageUrl = fileService.getFullUrl(petSitter.getFile().getPath());
             dto.setImagePath(imageUrl);
         }
 
@@ -198,7 +198,7 @@ public class PetSitterService {
                 imageFileEntity = fileService.save(imageFile.getOriginalFilename(), "petsitter", File.FileType.PHOTO);
                 try (InputStream is = imageFile.getInputStream()) {
                     try {
-                        storageService.upload(imageFileEntity.getPath(), is);
+                        storageService.openUpload(imageFileEntity.getPath(), is);
                     } catch (StorageServiceException e) {
                         logger.error("이미지 업로드 실패", e);
                         throw new RuntimeException("파일 업로드 실패: " + e.getMessage());

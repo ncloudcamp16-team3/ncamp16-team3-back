@@ -22,13 +22,16 @@ public class PetSitter {
     private Integer id;
 
     @OneToOne(fetch = FetchType.LAZY)
-    @MapsId // User의 ID를 PetSitter의 ID로 사용
+    @MapsId
     @JoinColumn(name = "id")
     private User user;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "pet_type_id")
     private PetType petType;
+
+    @Column(name = "pet_types_formatted")
+    private String petTypesFormatted;
 
     @Column(nullable = false, length = 50)
     private String age;

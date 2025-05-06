@@ -4,6 +4,7 @@ import lombok.*;
 import tf.tailfriend.petsitter.entity.PetSitter;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Getter
 @Builder
@@ -14,21 +15,24 @@ import java.time.LocalDateTime;
 public class PetSitterResponseDto {
 
     private Integer id;
-    private String nickname; // 사용자의 닉네임
+    private String nickname;
     private String age;
     private String houseType;
     private String comment;
     private Boolean grown;
     private String petCount;
     private Boolean sitterExp;
-    private String imagePath; // 파일 경로
+    private String imagePath;
     private LocalDateTime createdAt;
     private LocalDateTime applyAt;
     private String status;
 
-    // Entity를 DTO로 변환하는 정적 메서드
+    private String petTypesFormatted;
+    private List<String> petTypes;
+
+
     public static PetSitterResponseDto fromEntity(PetSitter petSitter) {
-        return PetSitterResponseDto.builder()
+        PetSitterResponseDto dto = PetSitterResponseDto.builder()
                 .id(petSitter.getId())
                 .nickname(petSitter.getUser().getNickname())
                 .age(petSitter.getAge())
@@ -41,6 +45,9 @@ public class PetSitterResponseDto {
                 .createdAt(petSitter.getCreatedAt())
                 .applyAt(petSitter.getApplyAt() != null ? petSitter.getApplyAt() : null)
                 .status(petSitter.getStatus().toString())
+                .petTypesFormatted(petSitter.getPetTypesFormatted())
                 .build();
+
+        return dto;
     }
 }

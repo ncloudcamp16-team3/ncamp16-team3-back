@@ -27,7 +27,7 @@ public class PetSitterController {
     private final PetSitterService petSitterService;
     private final ObjectMapper objectMapper;
 
-    //사용자가 펫시터 신청을 제출하는 API
+
     @PostMapping("/apply")
     public ResponseEntity<?> applyForPetSitter(
             @AuthenticationPrincipal UserPrincipal userPrincipal,
@@ -49,6 +49,13 @@ public class PetSitterController {
 
             log.info("펫시터 신청 처리 시작: userId={}, age={}, houseType={}",
                     userPrincipal.getUserId(), requestDto.getAge(), requestDto.getHouseType());
+
+            if (requestDto.getPetTypesFormatted() != null) {
+                log.info("선택된 반려동물 타입: {}", requestDto.getPetTypesFormatted());
+            }
+            if (requestDto.getPetTypeIds() != null && !requestDto.getPetTypeIds().isEmpty()) {
+                log.info("선택된 반려동물 타입 ID: {}", requestDto.getPetTypeIds());
+            }
 
             // 펫시터 신청 처리
             PetSitterResponseDto result = petSitterService.applyForPetSitter(requestDto, image);
@@ -128,8 +135,6 @@ public class PetSitterController {
                     .body(new CustomResponse("펫시터 그만두기 처리 중 오류가 발생했습니다: " + e.getMessage(), null));
         }
     }
-
-    // 조건에 맞는 승인된 펫시터 목록을 조회하는 API
 
     // 조건에 맞는 승인된 펫시터 목록을 조회하는 API
     @GetMapping("/approved")

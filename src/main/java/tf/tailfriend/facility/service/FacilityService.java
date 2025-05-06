@@ -13,10 +13,7 @@ import tf.tailfriend.facility.entity.*;
 import tf.tailfriend.facility.entity.dto.forReserve.FacilityCardResponseDto;
 import tf.tailfriend.facility.entity.dto.forReserve.FacilityWithDistanceProjection;
 import tf.tailfriend.facility.entity.dto.forReserve.ThumbnailForCardDto;
-import tf.tailfriend.facility.repository.FacilityDao;
-import tf.tailfriend.facility.repository.FacilityPhotoDao;
-import tf.tailfriend.facility.repository.FacilityTimetableDao;
-import tf.tailfriend.facility.repository.FacilityTypeDao;
+import tf.tailfriend.facility.repository.*;
 import tf.tailfriend.file.entity.File;
 import tf.tailfriend.file.repository.FileDao;
 import tf.tailfriend.file.service.FileService;
@@ -729,8 +726,6 @@ public class FacilityService {
                 .build();
         reviewDao.save(review);
 
-        Double starPoint = reviewDao.calculateAverageStarPointByFacilityId(facility.getId());
-        facility.updateAverageStarPoint(starPoint);
         facilityDao.save(facility);
     }
 }

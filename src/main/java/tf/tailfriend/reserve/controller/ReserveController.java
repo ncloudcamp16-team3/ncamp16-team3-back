@@ -4,12 +4,15 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Slice;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.util.UriComponentsBuilder;
 import tf.tailfriend.facility.entity.dto.forReserve.FacilityCardResponseDto;
 import tf.tailfriend.facility.service.FacilityService;
+import tf.tailfriend.global.config.UserPrincipal;
 import tf.tailfriend.global.service.RedisService;
 import tf.tailfriend.reserve.dto.RequestForFacility.FacilityList;
+import tf.tailfriend.reserve.dto.ReserveListResponseDto;
 import tf.tailfriend.reserve.dto.ReserveRequestDto;
 import tf.tailfriend.reserve.entity.Reserve;
 import tf.tailfriend.reserve.service.ReserveService;
@@ -18,6 +21,7 @@ import lombok.extern.slf4j.Slf4j;
 import java.io.IOException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -92,6 +96,12 @@ public class ReserveController {
         }
 
         response.sendRedirect("http://localhost:5173/reserve/fail");
+    }
+
+    @GetMapping("/my")
+    public List<ReserveListResponseDto> getMyReserveList(
+            @AuthenticationPrincipal UserPrincipal userPrincipal) {
+        return reserveService.getReserveListByUser(userPrincipal.getUserId());
     }
 
 

@@ -154,14 +154,8 @@ public void sendNotificationToUser(NotificationDto dto) {
                              .setTitle(title)
                              .setBody(body)
                              .setImage(image)
-                            .build())
-//                    .putData("title", title)
-//                    .putData("body", body)
-//                    .putData("image", image)
+                             .build())
                     .putData("icon", image)
-//                    .setWebpushConfig(WebpushConfig.builder()
-//                            .putAllHeaders(headers)
-//                            .build())
                     .build();
 
             try {

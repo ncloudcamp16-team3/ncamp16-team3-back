@@ -1,41 +1,34 @@
 package tf.tailfriend.reserve.controller;
 
-<<<<<<< HEAD
 import jakarta.persistence.EntityNotFoundException;
+import jakarta.servlet.http.HttpServletResponse;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Slice;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-=======
-import jakarta.servlet.http.HttpServletResponse;
-import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Slice;
-import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.util.UriComponentsBuilder;
->>>>>>> aa8c1c467fbd3053c089c497665a3efb725bd691
 import tf.tailfriend.facility.entity.dto.forReserve.FacilityCardResponseDto;
 import tf.tailfriend.facility.service.FacilityService;
+import tf.tailfriend.global.config.UserPrincipal;
 import tf.tailfriend.global.service.RedisService;
 import tf.tailfriend.reserve.dto.RequestForFacility.FacilityList;
-<<<<<<< HEAD
 import tf.tailfriend.reserve.dto.RequestForFacility.ReviewInsertRequestDto;
-import tf.tailfriend.reserve.service.ReserveService;
-import lombok.extern.slf4j.Slf4j;
-
-import java.io.File;
-=======
+import tf.tailfriend.reserve.dto.ReserveListResponseDto;
 import tf.tailfriend.reserve.dto.ReserveRequestDto;
 import tf.tailfriend.reserve.entity.Reserve;
 import tf.tailfriend.reserve.service.ReserveService;
-import lombok.extern.slf4j.Slf4j;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
->>>>>>> aa8c1c467fbd3053c089c497665a3efb725bd691
+
 
 @Slf4j
 @RestController
@@ -76,7 +69,6 @@ public class ReserveController {
         return facilityService.getFacilityCardsForReserve(requestDto);
     }
 
-<<<<<<< HEAD
     @PutMapping("/facility/{id}/review")
     public ResponseEntity<String> insertReview(
             @PathVariable("id") Integer id,
@@ -100,7 +92,7 @@ public class ReserveController {
                     .body("리뷰 등록 중 오류가 발생했습니다: " + e.getMessage());
         }
     }
-=======
+  
     @PostMapping("/temp")
     public ResponseEntity<?> saveTempReserve(@RequestBody ReserveRequestDto dto) {
         String reserveKey = "reserve:temp:" + UUID.randomUUID();
@@ -135,7 +127,12 @@ public class ReserveController {
         response.sendRedirect("http://localhost:5173/reserve/fail");
     }
 
+    @GetMapping("/my")
+    public List<ReserveListResponseDto> getMyReserveList(
+            @AuthenticationPrincipal UserPrincipal userPrincipal) {
+        return reserveService.getReserveListByUser(userPrincipal.getUserId());
+    }
 
 
->>>>>>> aa8c1c467fbd3053c089c497665a3efb725bd691
+
 }

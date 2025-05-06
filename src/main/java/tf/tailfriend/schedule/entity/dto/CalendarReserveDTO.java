@@ -21,13 +21,14 @@ public class CalendarReserveDTO {
 
         private Integer id;
         private Integer userId;
-        private String title;
+        private String title; // 예약시설 이름
         private LocalDateTime entryTime;
         private LocalDateTime exitTime;
         private Integer amount;
         private Boolean reserveStatus;
         private Double latitude;
         private Double longitude;
+        private String address;
         private List<LocalDate> dateList;
 
         public CalendarReserveDTO(Reserve reserve) {
@@ -41,6 +42,7 @@ public class CalendarReserveDTO {
                 this.dateList = getDatesBetween(reserve.getEntryTime().toLocalDate(), reserve.getExitTime().toLocalDate());
                 this.latitude = reserve.getFacility().getLatitude();
                 this.longitude= reserve.getFacility().getLongitude();
+                this.address=reserve.getFacility().getAddress();
         }
 
         private List<LocalDate> getDatesBetween(LocalDate start, LocalDate end) {

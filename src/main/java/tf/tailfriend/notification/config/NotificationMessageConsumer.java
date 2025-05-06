@@ -7,21 +7,19 @@ import org.springframework.amqp.rabbit.annotation.Exchange;
 import org.springframework.amqp.rabbit.annotation.Queue;
 import org.springframework.amqp.rabbit.annotation.QueueBinding;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
+
+import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
-import tf.tailfriend.notification.config.RabbitConfig;
+
 import tf.tailfriend.notification.entity.Notification;
 import tf.tailfriend.notification.entity.NotificationType;
 import tf.tailfriend.notification.entity.dto.NotificationDto;
 import tf.tailfriend.notification.repository.NotificationDao;
 import tf.tailfriend.notification.repository.NotificationTypeDao;
-import tf.tailfriend.notification.service.FirebaseService;
+
 import tf.tailfriend.notification.service.NotificationService;
 import tf.tailfriend.user.entity.User;
 import tf.tailfriend.user.repository.UserDao;
-
-import java.util.HashSet;
-import java.util.Set;
 
 
 @Slf4j
@@ -35,9 +33,11 @@ public class NotificationMessageConsumer {
     private final NotificationService notificationService;
 
 
-
-    @RabbitListener(queues = RabbitConfig.QUEUE_NAME)
     public void receiveMessage(NotificationDto message) {
+
+        System.out.println("💥 수신된 메시지 클래스: " + message.getClass());
+        System.out.println("💬 메시지 내용: " + message);
+
 
         String messageId = message.getMessageId();
 
@@ -52,6 +52,28 @@ public class NotificationMessageConsumer {
 
             NotificationType notificationType = notificationTypeDao.findById(message.getNotifyTypeId())
                     .orElseThrow(() -> new IllegalArgumentException("알림 타입 없음"));
+
+            if (message.getNotifyTypeId() != null && message.getNotifyTypeId()==5) {
+                System.out.println("중복 체크 시작 - userId: " + user.getId() +
+                        ", notifyTypeId: 5" +
+                        ", content: " + message.getContent());
+
+                Notification existingNotification =
+                        notificationDao.findFirstByUserAndNotificationTypeIdAndContent(user, 5, message.getContent());
+
+                if (existingNotification != null) {
+                    System.out.println("기존 알림이 존재합니다. readStatus를 true로 업데이트합니다.");
+                    // 빌더를 사용하여 readStatus 값을 false로 설정
+                    Notification updated = existingNotification.toBuilder()
+                            .readStatus(false)
+                            .build();
+                    notificationDao.save(updated);
+                    notificationService.sendNotificationToUser(message);
+                    return;
+                }
+            }
+
+            System.out.println("메세지 아이디 : "+messageId);
 
             Notification notification = Notification.builder()
                     .user(user)
@@ -69,4 +91,5 @@ public class NotificationMessageConsumer {
             log.error("[RabbitMQ] Error while processing message", e);
         }
     }
+
 }

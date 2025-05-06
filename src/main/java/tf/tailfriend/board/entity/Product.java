@@ -28,4 +28,10 @@ public class Product {
     private Boolean sell = true;
 
     private String address;
+
+    public void updateProduct(Integer price, Boolean sell, String addres) {
+        this.price = price;
+        this.sell = sell;
+        this.address = addres;
+    }
 }

@@ -33,4 +33,5 @@ public interface UserDao extends JpaRepository<User, Integer> {
     @Query("update User u set u.followCount = u.followCount - 1 where u.id = :id")
     void decrementFollowCount(@Param("id") Integer userId);
 
+    boolean existsByNickname(String nickname);
 }

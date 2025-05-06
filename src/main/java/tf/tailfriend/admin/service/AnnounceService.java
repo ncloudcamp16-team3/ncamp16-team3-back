@@ -32,8 +32,6 @@ public class AnnounceService {
     private final AnnounceDao announceDao;
     private final FileService fileService;
     private final StorageService storageService;
-    private final NotificationScheduler notificationScheduler;
-    private final UserDao userDao;
 
     @Transactional
     public Announce createAnnounce(String title, String content, BoardType boardType, List<MultipartFile> images) {

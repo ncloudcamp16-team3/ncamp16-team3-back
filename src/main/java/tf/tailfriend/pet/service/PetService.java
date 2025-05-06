@@ -1,5 +1,6 @@
 package tf.tailfriend.pet.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -16,6 +17,7 @@ import tf.tailfriend.global.service.NCPObjectStorageService;
 import tf.tailfriend.global.service.StorageService;
 import tf.tailfriend.global.service.StorageServiceException;
 import tf.tailfriend.pet.entity.Pet;
+import tf.tailfriend.pet.entity.PetPhoto;
 import tf.tailfriend.pet.entity.PetType;
 import tf.tailfriend.pet.entity.dto.PetDetailResponseDto;
 import tf.tailfriend.pet.entity.dto.PetFriendDto;
@@ -34,8 +36,10 @@ import tf.tailfriend.user.repository.UserDao;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -58,7 +62,10 @@ public class PetService {
         Pet pet = petDao.findById(petId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 반려동물입니다: " + petId));
 
-        return makePetDetailResponseDto(pet);
+        PetDetailResponseDto petResponse = makePetDetailResponseDto(pet);
+        setPresignedUrl(petResponse.getPhotos());
+
+        return petResponse;
     }
 
 
@@ -83,10 +90,8 @@ public class PetService {
                         .thumbnail(photo.isThumbnail())
                         .build())
                 .collect(Collectors.toList());
-        System.out.println("시작======================================================================================");
-        System.out.println(photoDtos);
+
         setPublicUrls(photoDtos);
-        System.out.println(photoDtos);
 
         return PetDetailResponseDto.builder()
                 .ownerId(pet.getUser().getId())
@@ -162,15 +167,14 @@ public class PetService {
 
     private void setPublicUrls(List<PetPhotoDto> photoDtos) {
         for (PetPhotoDto dto : photoDtos) {
-            dto.setPath(fileService.getFullUrl(dto.getPath()));
+            dto.setPath(storageService.generatePresignedUrl(dto.getPath()));
         }
     }
 
-
-
     //수정
     @Transactional
-    public void updatePet(Integer userId, Integer petId, PetRequestDto petRequestDto, List<MultipartFile> images) {
+    public void updatePet(Integer userId, Integer petId, PetRequestDto petRequestDto,
+                          List<MultipartFile> images, MultipartFile existingPhotos) {
         // 1. 유저 확인
         User user = userDao.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회원입니다: " + userId));
@@ -179,7 +183,7 @@ public class PetService {
         Pet pet = petDao.findById(petId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 반려동물입니다: " + petId));
 
-        // 3. 권한 확인 (자신의 반려동물만 수정 가능)
+        // 3. 권한 확인
         if (!pet.getUser().getId().equals(userId)) {
             throw new IllegalArgumentException("해당 반려동물의 정보를 수정할 권한이 없습니다.");
         }
@@ -198,19 +202,47 @@ public class PetService {
                 petRequestDto.getIsNeutered()
         );
 
-        // 6. 이미지 처리
+        // 6. 기존 사진 처리
+        if (existingPhotos != null && !existingPhotos.isEmpty()) {
+            try {
+                String existingPhotosJson = new String(existingPhotos.getBytes(), StandardCharsets.UTF_8);
+                ObjectMapper objectMapper = new ObjectMapper();
+                Map<String, Object> photoInfo = objectMapper.readValue(existingPhotosJson, Map.class);
+
+                // 삭제된 이미지 처리
+                List<Integer> deleted = (List<Integer>) photoInfo.get("deleted");
+                if (deleted != null && !deleted.isEmpty()) {
+                    for (Integer photoId : deleted) {
+                        pet.getPhotos().removeIf(photo -> photo.getFile().getId().equals(photoId));
+                    }
+                }
+
+                // 모든 기존 이미지의 썸네일 상태 초기화
+                pet.getPhotos().forEach(photo -> photo.setThumbnail(false));
+
+                // 기존 이미지의 썸네일 설정 업데이트
+                List<Map<String, Object>> existing = (List<Map<String, Object>>) photoInfo.get("existing");
+                if (existing != null) {
+                    for (Map<String, Object> photoData : existing) {
+                        Integer photoId = (Integer) photoData.get("id");
+                        Boolean thumbnail = (Boolean) photoData.get("thumbnail");
+
+                        pet.getPhotos().stream()
+                                .filter(photo -> photo.getFile().getId().equals(photoId))
+                                .findFirst()
+                                .ifPresent(photo -> photo.setThumbnail(thumbnail));
+                    }
+                }
+            } catch (IOException e) {
+                throw new RuntimeException("기존 사진 정보 처리 실패: " + e.getMessage(), e);
+            }
+        }
+
+        // 7. 새로운 이미지 처리
         if (images != null && !images.isEmpty()) {
-            // mainPhotoIndex 처리
-            Integer mainIndex = petRequestDto.getMainPhotoIndex();
-
-            // 기존 썸네일 상태 초기화
-            pet.getPhotos().forEach(photo -> photo.setThumbnail(false));
-
-            // 새 이미지 추가
             for (int i = 0; i < images.size(); i++) {
                 MultipartFile image = images.get(i);
                 if (image != null && !image.isEmpty()) {
-                    // 파일 저장
                     File file = fileService.save(image.getOriginalFilename(), "pet", File.FileType.PHOTO);
 
                     try (InputStream is = image.getInputStream()) {
@@ -219,38 +251,24 @@ public class PetService {
                         throw new RuntimeException("파일 업로드 실패: " + e.getMessage(), e);
                     }
 
-                    // 현재 이미지가 메인 이미지인지 확인
-                    boolean isThumbnail = (mainIndex != null && i == mainIndex);
-
-                    // Pet에 사진 추가
-                    pet.addPhoto(file, isThumbnail);
+                    // 새로 추가되는 이미지의 썸네일 설정은 기본 false
+                    pet.addPhoto(file, false);
                 }
             }
         }
-        // 이미지가 없는 경우에도 기존 이미지 중 하나를 썸네일로 설정 (아직 썸네일이 없는 경우)
-        else if (petRequestDto.getMainPhotoIndex() != null) {
-            // 기존 썸네일 초기화
-            pet.getPhotos().forEach(photo -> photo.setThumbnail(false));
 
-            // 기존 이미지 중 하나를 썸네일로 설정
-            int photoCount = pet.getPhotos().size();
-            int mainIndex = Math.min(petRequestDto.getMainPhotoIndex(), photoCount - 1);
+        // 8. 최종 썸네일 확인 및 설정
+        boolean hasThumbnail = pet.getPhotos().stream()
+                .anyMatch(PetPhoto::isThumbnail);
 
-            if (photoCount > 0 && mainIndex >= 0) {
-                int idx = 0;
-                for (var photo : pet.getPhotos()) {
-                    if (idx == mainIndex) {
-                        photo.setThumbnail(true);
-                        break;
-                    }
-                    idx++;
-                }
-            }
+        if (!hasThumbnail && !pet.getPhotos().isEmpty()) {
+            // 썸네일이 없으면 첫 번째 사진을 썸네일로 설정
+            pet.getPhotos().get(0).setThumbnail(true);
         }
     }
 
     @Transactional
-    public void updatePet(PetDetailResponseDto petDetailResponseDto) {
+    public void MyupdatePet(PetDetailResponseDto petDetailResponseDto) {
         Pet petEntity = petDao.findById(petDetailResponseDto.getId())
                 .orElseThrow(() -> new FoundPetException());
 
@@ -326,7 +344,6 @@ public class PetService {
 
         // 5. 이미지 처리
         if (images != null && !images.isEmpty()) {
-            // mainPhotoIndex 기본값은 0 (첫 번째 이미지)
             int mainIndex = (petRequestDto.getMainPhotoIndex() != null)
                     ? petRequestDto.getMainPhotoIndex() : 0;
 
@@ -339,7 +356,6 @@ public class PetService {
             for (int i = 0; i < images.size(); i++) {
                 MultipartFile image = images.get(i);
                 if (image != null && !image.isEmpty()) {
-                    // 파일 저장
                     File file = fileService.save(image.getOriginalFilename(), "pet", File.FileType.PHOTO);
 
                     try (InputStream is = image.getInputStream()) {
@@ -348,10 +364,8 @@ public class PetService {
                         throw new RuntimeException("파일 업로드 실패: " + e.getMessage(), e);
                     }
 
-                    // 현재 이미지가 메인 이미지인지 확인
                     boolean isThumbnail = (i == mainIndex);
 
-                    // Pet에 사진 추가
                     savedPet.addPhoto(file, isThumbnail);
                 }
             }

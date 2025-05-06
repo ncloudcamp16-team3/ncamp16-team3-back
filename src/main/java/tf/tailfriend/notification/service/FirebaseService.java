@@ -6,7 +6,6 @@ import com.google.firebase.messaging.Notification;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import tf.tailfriend.notification.entity.dto.NotificationDto;
 
 @Slf4j
 @Service

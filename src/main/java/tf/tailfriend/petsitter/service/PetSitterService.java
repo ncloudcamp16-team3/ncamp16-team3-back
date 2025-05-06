@@ -33,7 +33,6 @@ import java.io.InputStream;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -183,7 +182,7 @@ public class PetSitterService {
         return dto;
     }
 
-    // 사용자의 펫시터 신청을 처리하는 메소드
+
     @Transactional(isolation = Isolation.READ_UNCOMMITTED)
     public PetSitterResponseDto applyForPetSitter(PetSitterRequestDto requestDto, MultipartFile imageFile) throws IOException {
         logger.info("펫시터 신청 시작: userId={}", requestDto.getUserId());
@@ -215,13 +214,21 @@ public class PetSitterService {
                 petType = petTypeDao.findById(requestDto.getPetTypeId()).orElse(null);
             }
 
-            //사용자 ID로 펫시터 존재 여부 확인
+            // 사용자 ID로 펫시터 존재 여부 확인
             boolean exists = petSitterDao.existsById(requestDto.getUserId());
 
             Integer petTypeId = petType != null ? petType.getId() : null;
             Integer fileId = imageFileEntity.getId();
 
-            //EntityManager 사용
+            // 다중 선택된 반려동물 타입 정보
+            String petTypesFormatted = requestDto.getPetTypesFormatted();
+            List<Integer> petTypeIds = requestDto.getPetTypeIds();
+
+            // 로깅
+            logger.info("펫시터 신청 정보: petTypesFormatted={}, petTypeIds={}",
+                    petTypesFormatted, petTypeIds != null ? petTypeIds.toString() : "null");
+
+            // EntityManager 사용
             if (exists) {
                 String updateQuery =
                         "UPDATE pet_sitters SET " +
@@ -233,9 +240,10 @@ public class PetSitterService {
                                 "sitter_exp = ?6, " +
                                 "file_id = ?7, " +
                                 "pet_type_id = ?8, " +
+                                "pet_types_formatted = ?9, " +
                                 "status = 'NONE', " +
                                 "apply_at = NULL " +
-                                "WHERE id = ?9";
+                                "WHERE id = ?10";
 
                 // 쿼리 파라미터 설정
                 Query query = entityManager.createNativeQuery(updateQuery);
@@ -247,7 +255,8 @@ public class PetSitterService {
                 query.setParameter(6, requestDto.getSitterExp());
                 query.setParameter(7, fileId);
                 query.setParameter(8, petTypeId);
-                query.setParameter(9, requestDto.getUserId());
+                query.setParameter(9, petTypesFormatted);
+                query.setParameter(10, requestDto.getUserId());
 
                 // 쿼리 실행
                 int updated = query.executeUpdate();
@@ -255,10 +264,10 @@ public class PetSitterService {
             } else {
                 // 새 데이터 삽입 쿼리
                 String insertQuery =
-                        "INSERT INTO pet_sitters (id, age, house_type, comment, grown, pet_count, sitter_exp, file_id, pet_type_id, status, created_at) " +
-                                "VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, 'NONE', NOW())";
+                        "INSERT INTO pet_sitters (id, age, house_type, comment, grown, pet_count, sitter_exp, file_id, pet_type_id, pet_types_formatted, status, created_at) " +
+                                "VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, 'NONE', NOW())";
 
-                // 쿼리 파라미터 설정
+
                 Query query = entityManager.createNativeQuery(insertQuery);
                 query.setParameter(1, requestDto.getUserId());
                 query.setParameter(2, requestDto.getAge());
@@ -269,6 +278,7 @@ public class PetSitterService {
                 query.setParameter(7, requestDto.getSitterExp());
                 query.setParameter(8, fileId);
                 query.setParameter(9, petTypeId);
+                query.setParameter(10, petTypesFormatted);
 
                 // 쿼리 실행
                 int inserted = query.executeUpdate();
@@ -282,6 +292,16 @@ public class PetSitterService {
                     .orElseThrow(() -> new IllegalStateException("저장된 펫시터 정보를 조회할 수 없습니다"));
 
             PetSitterResponseDto responseDto = PetSitterResponseDto.fromEntity(updatedPetSitter);
+
+
+            responseDto.setPetTypesFormatted(petTypesFormatted);
+
+            if (petTypeIds != null && !petTypeIds.isEmpty()) {
+                List<String> petTypeNames = petTypeIds.stream()
+                        .map(id -> petTypeDao.findById(id).map(PetType::getName).orElse("알 수 없음"))
+                        .collect(Collectors.toList());
+                responseDto.setPetTypes(petTypeNames);
+            }
 
             // 이미지 URL 설정
             String imageUrl = storageService.generatePresignedUrl(imageFileEntity.getPath());
@@ -353,26 +373,17 @@ public class PetSitterService {
         return new PageImpl<>(petSitterDtos, pageable, petSitters.getTotalElements());
     }
 
-    /**
-     * 승인된 펫시터 중 검색 조건에 맞는 펫시터 목록을 조회하는 메소드
-     *
-     * @param age          연령대 (20대, 30대, 40대, 50대이상)
-     * @param petOwnership 반려동물 소유 여부
-     * @param sitterExp    펫시터 경험 여부
-     * @param houseType    주거 형태
-     * @param pageable     페이징 정보
-     * @return 조건에 맞는 펫시터 목록 (페이징)
-     */
+    //승인된 펫시터 중 검색 조건에 맞는 펫시터 목록을 조회하는 메소드
     @Transactional(readOnly = true)
     public Page<PetSitterResponseDto> findApprovedPetSittersWithCriteria(
-            String age, Boolean petOwnership, Boolean sitterExp, String houseType, Pageable pageable) {
+            String age, Boolean petOwnership, Boolean sitterExp, String houseType, Pageable pageable, Integer currentUserId) {
 
-        logger.info("승인된 펫시터 검색 시작: age={}, petOwnership={}, sitterExp={}, houseType={}",
-                age, petOwnership, sitterExp, houseType);
+        logger.info("승인된 펫시터 검색 시작: age={}, petOwnership={}, sitterExp={}, houseType={}, currentUserId={}",
+                age, petOwnership, sitterExp, houseType, currentUserId);
 
-        //기본 쿼리
-        String baseQuery = "SELECT ps FROM PetSitter ps WHERE ps.status = :status";
-        String countQuery = "SELECT COUNT(ps) FROM PetSitter ps WHERE ps.status = :status";
+        //기본 쿼리 - 자신은 제외
+        String baseQuery = "SELECT ps FROM PetSitter ps WHERE ps.status = :status AND ps.id != :currentUserId";
+        String countQuery = "SELECT COUNT(ps) FROM PetSitter ps WHERE ps.status = :status AND ps.id != :currentUserId";
 
         // 조건에 따라 동적으로 쿼리 구성
         StringBuilder queryBuilder = new StringBuilder(baseQuery);
@@ -381,6 +392,7 @@ public class PetSitterService {
         // 파라미터 맵
         Map<String, Object> params = new HashMap<>();
         params.put("status", PetSitter.PetSitterStatus.APPROVE);
+        params.put("currentUserId", currentUserId);
 
         // 연령대 조건
         if (age != null && !age.isEmpty()) {

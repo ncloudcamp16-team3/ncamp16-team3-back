@@ -28,20 +28,13 @@ import tf.tailfriend.global.config.UserPrincipal;
 import tf.tailfriend.global.exception.CustomException;
 import tf.tailfriend.global.response.CustomResponse;
 import tf.tailfriend.global.service.StorageServiceException;
-import tf.tailfriend.notification.service.NotificationService;
-import tf.tailfriend.user.entity.User;
-import tf.tailfriend.notification.entity.UserFcm;
-import tf.tailfriend.notification.repository.UserFcmDao;
 import tf.tailfriend.notification.scheduler.NotificationScheduler;
-import tf.tailfriend.user.entity.User;
+import tf.tailfriend.notification.service.NotificationService;
 import tf.tailfriend.user.exception.UnauthorizedException;
-import tf.tailfriend.user.service.UserService;
 
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-
-import java.util.List;
 
 import static tf.tailfriend.board.message.SuccessMessage.*;
 
@@ -64,12 +57,12 @@ public class BoardController {
                                        @AuthenticationPrincipal UserPrincipal userPrincipal) throws StorageServiceException {
         log.info("요청 boardRequestDto: {} \nphotos: {}", boardRequestDto, photos);
 
-        Integer postId = boardService.saveBoard(boardRequestDto, photos, userPrincipal.getUserId());
-
         try {
+            Integer postId = boardService.saveBoard(boardRequestDto, photos, userPrincipal.getUserId());
             return ResponseEntity.status(HttpStatus.OK)
                     .body(new CustomResponse("게시물 저장에 성공하였습니다", postId));
         } catch (Exception e) {
+            log.error(e.getMessage(), e);
             throw new CustomException() {
                 @Override
                 public HttpStatus getStatus() {
@@ -78,7 +71,7 @@ public class BoardController {
 
                 @Override
                 public String getMessage() {
-                    return "게시물 저장에 실패하였습니다";
+                    return e.getMessage();
                 }
             };
         }
@@ -89,11 +82,10 @@ public class BoardController {
                                          @AuthenticationPrincipal UserPrincipal userPrincipal) throws StorageServiceException {
         log.info("삭제요청 요청 commentId: {}", postId);
 
-        boardService.deleteBoard(postId, userPrincipal.getUserId());
-
         try {
+            boardService.deleteBoard(postId, userPrincipal.getUserId());
             return ResponseEntity.status(HttpStatus.OK)
-                    .body(new CustomResponse("게시물 저장에 성공하였습니다", null));
+                    .body(new CustomResponse("게시물 삭제에 성공하였습니다", null));
         } catch (Exception e) {
             throw new CustomException() {
                 @Override
@@ -103,7 +95,7 @@ public class BoardController {
 
                 @Override
                 public String getMessage() {
-                    return "게시물 저장에 실패하였습니다";
+                    return "게시물 삭제에 실패하였습니다";
                 }
             };
         }
@@ -185,7 +177,7 @@ public class BoardController {
 
     @GetMapping("/like/add")
     public ResponseEntity<?> likeAdd(@RequestParam("userId") Integer userId,
-                                         @RequestParam("boardId") Integer boardId) {
+                                     @RequestParam("boardId") Integer boardId) {
         log.info("\n좋아요 요청\n userId: {}, boardId: {}", userId, boardId);
 
         try {
@@ -210,7 +202,7 @@ public class BoardController {
 
     @DeleteMapping("/like/delete")
     public ResponseEntity<?> likeDelete(@RequestParam("userId") Integer userId,
-                                            @RequestParam("boardId") Integer boardId) {
+                                        @RequestParam("boardId") Integer boardId) {
         log.info("\n좋아요 취소 요청\n userId: {}, boardId: {}", userId, boardId);
 
         try {
@@ -228,6 +220,29 @@ public class BoardController {
                 @Override
                 public String getMessage() {
                     return "좋아요 취소에 실패하였습니다";
+                }
+            };
+        }
+    }
+
+    @GetMapping("/comment")
+    public ResponseEntity<?> getComments(@RequestParam("boardId") Integer boardId) {
+        log.info("\n댓글리스트 요청 보드ID {}", boardId);
+
+        try {
+            return ResponseEntity.status(HttpStatus.OK)
+                    .body(new CustomResponse("게시글의 댓글 조회에 성공하였습니다", commentService.getComments(boardId)));
+        } catch (Exception e) {
+            log.error(e.getMessage());
+            throw new CustomException() {
+                @Override
+                public HttpStatus getStatus() {
+                    return HttpStatus.BAD_REQUEST;
+                }
+
+                @Override
+                public String getMessage() {
+                    return "게시글의 댓글 조회에 실패하였습니다";
                 }
             };
         }
@@ -252,6 +267,7 @@ public class BoardController {
             if (comment.getParent() != null) {
                 parentCommentWriterId = comment.getParent().getUser().getId();
             }
+
             // 알림 대상 유저 식별
             Set<Integer> targetUserIds = new HashSet<>();
             if (!postOwnerId.equals(commentWriterId)) {
@@ -263,27 +279,12 @@ public class BoardController {
 
             System.out.println("✅ 알림 대상 유저 ID 목록: " + targetUserIds);
 
-            // 알림 전송
-            for (Integer userId : targetUserIds) {
-                notificationScheduler.sendNotificationAndSaveLog(
-                        userId,
-                        1, // 댓글 알림 타입
-                        String.valueOf(comment.getId()),
-                        comment.getCreatedAt(),
-                        "💬 댓글 알림 전송 완료: 게시글 제목={}, 댓글={}",
-                        comment.getBoard().getTitle(),
-                        comment.getContent(),
-                        "❌ 댓글 알림 전송 실패: commentId=" + comment.getId()
-                );
-            }
-
             // 알림 전송 (예외는 무시)
             try {
                 notificationService.sendBoardCommentNotification(comment);
             } catch (Exception e) {
                 log.warn("게시판 댓글 알림 전송 실패: {}", e.getMessage());
             }
-
 
             return ResponseEntity.status(HttpStatus.OK)
                     .body(new CustomResponse("댓글 저장에 성공하였습니다", null));
@@ -297,7 +298,7 @@ public class BoardController {
 
                 @Override
                 public String getMessage() {
-                    return "댓글 저장에 실패하였습니다";
+                    return e.getMessage();
                 }
             };
         }
@@ -343,9 +344,9 @@ public class BoardController {
         }
 
         try {
-            commentService.deleteComment(commentId);
+            Comment comment = commentService.deleteComment(commentId);
             return ResponseEntity.status(HttpStatus.OK)
-                    .body(new CustomResponse("댓글 삭제에 성공하였습니다", null));
+                    .body(new CustomResponse("댓글 삭제에 성공하였습니다", boardService.getBoardById(comment.getBoard().getId()).getComments()));
         } catch (Exception e) {
             log.error(e.getMessage());
             throw new CustomException() {

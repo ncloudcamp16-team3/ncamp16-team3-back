@@ -36,6 +36,7 @@ public class ScheduleService {
 
     public void postSchedule(SchedulePostDTO dto) {
 
+
         User user = userDao.findById(dto.getUserId())
                 .orElseThrow(() -> new IllegalArgumentException("유효하지 않은 사용자 ID입니다."));
 

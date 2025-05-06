@@ -1,8 +1,11 @@
 package tf.tailfriend.reserve.controller;
 
+import jakarta.persistence.EntityNotFoundException;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Slice;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -12,18 +15,20 @@ import tf.tailfriend.facility.service.FacilityService;
 import tf.tailfriend.global.config.UserPrincipal;
 import tf.tailfriend.global.service.RedisService;
 import tf.tailfriend.reserve.dto.RequestForFacility.FacilityList;
+import tf.tailfriend.reserve.dto.RequestForFacility.ReviewInsertRequestDto;
 import tf.tailfriend.reserve.dto.ReserveListResponseDto;
 import tf.tailfriend.reserve.dto.ReserveRequestDto;
 import tf.tailfriend.reserve.entity.Reserve;
 import tf.tailfriend.reserve.service.ReserveService;
-import lombok.extern.slf4j.Slf4j;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+
 
 @Slf4j
 @RestController
@@ -64,6 +69,30 @@ public class ReserveController {
         return facilityService.getFacilityCardsForReserve(requestDto);
     }
 
+    @PutMapping("/facility/{id}/review")
+    public ResponseEntity<String> insertReview(
+            @PathVariable("id") Integer id,
+            @RequestParam("comment") String comment,
+            @RequestParam("starPoint") Integer starPoint,
+            @RequestParam("image") File image) {
+        log.info("id: {}, comment: {}, starPoint: {}", id, comment, starPoint);
+        ReviewInsertRequestDto requestDto = ReviewInsertRequestDto.builder()
+                .id(id)
+                .comment(comment)
+                .starPoint(starPoint)
+                .build();
+        try {
+            facilityService.insertReview(requestDto, image);
+            return ResponseEntity.ok("리뷰가 성공적으로 등록되었습니다.");
+        } catch (EntityNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body("리소스를 찾을 수 없습니다: " + e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("리뷰 등록 중 오류가 발생했습니다: " + e.getMessage());
+        }
+    }
+  
     @PostMapping("/temp")
     public ResponseEntity<?> saveTempReserve(@RequestBody ReserveRequestDto dto) {
         String reserveKey = "reserve:temp:" + UUID.randomUUID();

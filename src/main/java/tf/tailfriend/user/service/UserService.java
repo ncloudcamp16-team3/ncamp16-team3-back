@@ -19,6 +19,7 @@ import tf.tailfriend.global.service.StorageService;
 import tf.tailfriend.notification.repository.NotificationDao;
 import tf.tailfriend.pet.entity.Pet;
 import tf.tailfriend.pet.entity.PetPhoto;
+import tf.tailfriend.pet.repository.PetMatchDao;
 import tf.tailfriend.pet.repository.PetPhotoDao;
 import tf.tailfriend.pet.repository.PetDao;
 import tf.tailfriend.petsitter.repository.PetSitterDao;
@@ -68,6 +69,7 @@ public class UserService {
     private final ReserveDao reserveDao; // 추가
     private final PaymentDao paymentDao;
     private final NotificationDao notificationDao;
+    private final PetMatchDao petMatchDao;
 
 
 
@@ -158,91 +160,82 @@ public class UserService {
         User user = userDao.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회원입니다: " + userId));
 
-        // 2. 예약과 결제 데이터 삭제 (추가)
-        List<Reserve> userReserves = reserveDao.findByUserId(userId);
-        for (Reserve reserve : userReserves) {
-            // 결제 내역 삭제
-            Payment payment = paymentDao.findByReserveId(reserve.getId()).orElse(null);
-            if (payment != null) {
-                paymentDao.delete(payment);
-            }
-            // 예약 삭제
-            reserveDao.delete(reserve);
-        }
+        // 2. 알림 데이터 삭제
+        notificationDao.deleteByUserId(userId);
 
-        // 3. 일정(스케줄) 데이터 삭제
-        scheduleDao.deleteByUserId(userId);
+        // 3. 채팅 관련 데이터 삭제
+        List<ChatRoom> userChatRooms = chatRoomDao.findAllByUser1OrUser2(user, user);
+        for (ChatRoom chatRoom : userChatRooms) {
+            chatRoomDao.delete(chatRoom);
+        }
 
         // 4. 거래 매칭 데이터 삭제
         tradeMatchDao.deleteByUserId(userId);
 
-        // 5. PetSta 북마크 삭제
-        petstaBookmarkDao.deleteByUserId(userId);
-
-        // 6. PetSta 좋아요 삭제
-        petstaLikeDao.deleteByUserId(userId);
-
-
-        // 1. 내가 작성한 게시글 ID들 조회
-        List<Integer> postIds = petstaPostDao.findIdsByUserId(userId);
-
-        // 2. 각 게시글에 달린 댓글 먼저 삭제
-        for (Integer postId : postIds) {
-            petstaCommentDao.deleteRepliesByPostId(postId);
-
-            // 2. 그다음 부모 댓글들(= parent == null) 삭제
-            petstaCommentDao.deleteParentsByPostId(postId);
-            petstaCommentDao.deleteByPostId(postId);
+        // 5. 예약 및 결제 데이터 삭제
+        List<Reserve> userReserves = reserveDao.findByUserId(userId);
+        for (Reserve reserve : userReserves) {
+            Payment payment = paymentDao.findByReserveId(reserve.getId()).orElse(null);
+            if (payment != null) {
+                paymentDao.delete(payment);
+            }
+            reserveDao.delete(reserve);
         }
 
-        // 8. PetSta 포스트 삭제
-        petstaPostDao.deleteByUserId(userId);
+        // 6. 일정(스케줄) 데이터 삭제
+        scheduleDao.deleteByUserId(userId);
 
-        // 9. 일정 삭제
-        notificationDao.deleteByUserId(userId);
-
-        // 9. 사용자의 채팅방 및 메시지 처리
-        List<ChatRoom> userChatRooms = chatRoomDao.findAllByUser1OrUser2(user, user);
-        for (ChatRoom chatRoom : userChatRooms) {
-            // 채팅방 삭제
-            chatRoomDao.delete(chatRoom);
-        }
-
-        // 10. 사용자가 작성한 게시글 처리
+        // 7. 게시판 관련 데이터 삭제
+        //사용자가 작성한 댓글 삭제
+        commentDao.deleteByUserId(userId);
+        //게시판 좋아요 삭제
+        boardLikeDao.deleteByUserId(userId);
+        // 게시판 북마크 삭제
+        boardBookmarkDao.deleteByUserId(userId);
+        // 사용자가 작성한 게시글 처리
         List<Board> userBoards = boardDao.findByUserIdOrderByCreatedAtDesc(userId);
         for (Board board : userBoards) {
-            // 게시글과 관련된 모든 데이터 삭제
             boardBookmarkDao.deleteAllByBoard(board);
             boardLikeDao.deleteAllByBoard(board);
             commentDao.deleteAllByBoard(board);
-            // 게시글 삭제
             boardDao.delete(board);
         }
 
-        notificationDao.deleteByUserId(userId);
-        // 11. 게시판 북마크 삭제
-        boardBookmarkDao.deleteByUserId(userId);
+        // 8. 펫스타 관련 데이터 삭제
+        //사용자가 작성한 펫스타 댓글 삭제
+        petstaCommentDao.deleteByUserId(userId);
+        //펫스타 좋아요 삭제
+        petstaLikeDao.deleteByUserId(userId);
+        // 펫스타 북마크 삭제
+        petstaBookmarkDao.deleteByUserId(userId);
+        // 사용자가 작성한 펫스타 게시글 관련 댓글 삭제
+        List<Integer> postIds = petstaPostDao.findIdsByUserId(userId);
+        for (Integer postId : postIds) {
+            petstaCommentDao.deleteRepliesByPostId(postId);
+            petstaCommentDao.deleteParentsByPostId(postId);
+            petstaCommentDao.deleteByPostId(postId);
+        }
+        //사용자가 작성한 펫스타 게시글 삭제
+        petstaPostDao.deleteByUserId(userId);
 
-        // 12. 팔로우 관계 삭제 (팔로워 및 팔로잉)
+        // 9. 팔로우 관계 삭제
         userFollowDao.deleteByFollowerId(userId);
         userFollowDao.deleteByFollowedId(userId);
 
-        // 13. 펫시터 정보가 있다면 함께 삭제
+        // 10. 펫시터 정보 삭제
         petSitterDao.findById(userId).ifPresent(petSitterDao::delete);
 
-        // 14. 반려동물 관련 데이터 삭제
+        // 11. 반려동물 관련 데이터 삭제
         user.getPet().forEach(pet -> {
+            //  반려동물 매칭 데이터 삭제
+            petMatchDao.deleteByPet1IdOrPet2Id(pet.getId());
             // 반려동물 사진 삭제
             petPhotoDao.deleteByPetId(pet.getId());
-
-            // 반려동물 삭제
+            //  반려동물 삭제
             petDao.delete(pet);
         });
 
-        // 일정 삭제
-        notificationDao.deleteByUserId(userId);
-
-        // 15. 회원 삭제
+        // 12. 회원 삭제
         userDao.delete(user);
     }
 

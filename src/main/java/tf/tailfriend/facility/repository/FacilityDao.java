@@ -11,6 +11,8 @@ import tf.tailfriend.facility.entity.FacilityType;
 import tf.tailfriend.facility.entity.Facility;
 import tf.tailfriend.facility.entity.dto.forReserve.FacilityWithDistanceProjection;
 
+import java.util.Optional;
+
 @Repository
 public interface FacilityDao extends JpaRepository<Facility, Integer> {
 
@@ -57,4 +59,15 @@ public interface FacilityDao extends JpaRepository<Facility, Integer> {
             "WHERE f.facilityType.name = :category " +
             "ORDER BY f.starPoint DESC")
     Slice<FacilityWithDistanceProjection> findByCategoryWithSortByStarPoint(@Param("lng") Double lng, @Param("lat") Double lat, @Param("category") String category, Pageable pageable);
+
+    /**
+     * Fetch a facility by ID with all related entities eagerly loaded
+     */
+    @Query("SELECT f FROM Facility f " +
+            "LEFT JOIN FETCH f.facilityType " +
+            "LEFT JOIN FETCH f.photos fp " +
+            "LEFT JOIN FETCH fp.file " +
+            "LEFT JOIN FETCH f.timetables " +
+            "WHERE f.id = :facilityId")
+    Facility findByIdWithDetails(@Param("facilityId") Integer facilityId);
 }

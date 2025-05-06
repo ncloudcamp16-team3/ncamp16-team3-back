@@ -9,24 +9,22 @@ import org.springframework.web.multipart.MultipartFile;
 import tf.tailfriend.facility.dto.FacilityAddResponseDto;
 import tf.tailfriend.facility.dto.FacilityRequestDto;
 import tf.tailfriend.facility.dto.FacilityResponseDto;
-import tf.tailfriend.facility.entity.Facility;
-import tf.tailfriend.facility.entity.FacilityPhoto;
-import tf.tailfriend.facility.entity.FacilityTimetable;
-import tf.tailfriend.facility.entity.FacilityType;
-import tf.tailfriend.facility.entity.dto.forReserve.FacilityCardResponseDto;
-import tf.tailfriend.facility.entity.dto.forReserve.FacilityWithDistanceProjection;
-import tf.tailfriend.facility.entity.dto.forReserve.ThumbnailForCardDto;
+import tf.tailfriend.facility.entity.*;
+import tf.tailfriend.facility.entity.dto.forReserve.*;
 import tf.tailfriend.facility.repository.*;
 import tf.tailfriend.file.entity.File;
 import tf.tailfriend.file.repository.FileDao;
 import tf.tailfriend.file.service.FileService;
 import tf.tailfriend.global.service.StorageService;
 import tf.tailfriend.global.service.StorageServiceException;
-import tf.tailfriend.reserve.dto.RequestForFacility.FacilityList;
+import tf.tailfriend.reserve.dto.RequestForFacility.FacilityDetailRequestDto;
+import tf.tailfriend.reserve.dto.RequestForFacility.FacilityListRequestDto;
+import tf.tailfriend.reserve.dto.RequestForFacility.FacilityReviewRequestDto;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.sql.Time;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.time.LocalTime;
@@ -44,6 +42,7 @@ public class FacilityService {
     private final FacilityTypeDao facilityTypeDao;
     private final FacilityTimetableDao facilityTimetableDao;
     private final FacilityPhotoDao facilityPhotoDao;
+    private final ReviewDao reviewDao;
     private final StorageService storageService;
     private final FileService fileService;
     private final FileDao fileDao;
@@ -570,9 +569,8 @@ public class FacilityService {
         return dto;
     }
 
-    public Slice<FacilityCardResponseDto> getFacilityCardsForReserve(FacilityList requestDto) {
-        String day = requestDto.getDay();
-        FacilityTimetable.Day dayEnum = FacilityTimetable.Day.valueOf(day.toUpperCase());
+    public Slice<FacilityCardResponseDto> getFacilityCardsForReserve(FacilityListRequestDto requestDto) {
+        FacilityTimetable.Day dayEnum = FacilityTimetable.Day.valueOf(LocalDate.now().getDayOfWeek().name().substring(0, 3));
         String category = requestDto.getCategory();
         double lat = requestDto.getUserLatitude();
         double lng = requestDto.getUserLongitude();
@@ -637,5 +635,92 @@ public class FacilityService {
                 .collect(Collectors.toList());
 
         return new SliceImpl<>(mappedList, list.getPageable(), list.hasNext());
+    }
+
+    /**
+     * Get detailed facility information by ID, including paginated reviews
+     */
+    /**
+     * Get detailed facility information by ID, including paginated reviews
+     */
+    @Transactional(readOnly = true)
+    public FacilityDetailResponseDto getFacility(FacilityDetailRequestDto requestDto) {
+        // Fetch the facility with all related entities except reviews
+        Integer id = requestDto.getId();
+        Facility facility = facilityDao.findByIdWithDetails(id);
+
+        // Create photos list if there are any photos
+        List<String> photoUrls = new ArrayList<>();
+        if (facility.getPhotos() != null && !facility.getPhotos().isEmpty()) {
+            photoUrls = facility.getPhotos().stream()
+                    .map(photo -> storageService.generatePresignedUrl(photo.getFile().getPath()))
+                    .collect(Collectors.toList());
+        }
+
+        // Get the thumbnail (first photo) if available
+        String thumbnail = null;
+        if (!photoUrls.isEmpty()) {
+            thumbnail = photoUrls.get(0);
+        }
+        String nowDayStr = LocalDate.now().getDayOfWeek().toString().substring(0, 3).toUpperCase();
+        String openTimeRange = "운영시간 정보 없음";
+
+        for (FacilityTimetable timetable : facility.getTimetables()) {
+            if (timetable.getDay().toString().equalsIgnoreCase(nowDayStr)) {
+                if (timetable.getOpenTime() != null && timetable.getCloseTime() != null) {
+                    openTimeRange = timetable.getOpenTime().toString().substring(0, 5)
+                            + " - " + timetable.getCloseTime().toString().substring(0, 5);
+                    break;
+                }
+            }
+        }
+
+        FacilityDetailResponseDto responseDto = FacilityDetailResponseDto.builder()
+                .id(facility.getId())
+                .category(facility.getFacilityType().getName())
+                .name(facility.getName())
+                .tel(facility.getTel())
+                .comment(facility.getComment())
+                .starPoint(facility.getStarPoint())
+                .reviewCount(facility.getReviewCount())
+                .address(facility.getAddress())
+                .detailAddress(facility.getDetailAddress())
+                .latitude(facility.getLatitude())
+                .longitude(facility.getLongitude())
+                .openTimeRange(openTimeRange)
+                .createdAt(facility.getCreatedAt())
+                .thumbnail(thumbnail)
+                .timetables(facility.getTimetables().stream()
+                        .map(timetable -> FacilityDetailResponseDto.FacilityTimetableDto.builder()
+                                .id(timetable.getId())
+                                .day(timetable.getDay())
+                                .openTime(timetable.getOpenTime())
+                                .closeTime(timetable.getCloseTime())
+                                .build())
+                        .collect(Collectors.toList()))
+                .build();
+
+        // Construct and return the DTO
+        return responseDto;
+    }
+
+    public Slice<FacilityReviewResponseDto> getFacilityReview(FacilityReviewRequestDto requestDto) {
+        Integer facilityId = requestDto.getFacilityId();
+        Pageable pageable = PageRequest.of(requestDto.getPage(), requestDto.getSize());
+        Slice<Review> reviews = reviewDao.findReviewsByFacilityId(facilityId, pageable);
+
+        List<FacilityReviewResponseDto> dtoList = reviews.stream()
+                .map(review -> FacilityReviewResponseDto.builder()
+                        .id(review.getId())
+                        .starPoint(review.getStarPoint())
+                        .avatar(storageService.generatePresignedUrl(review.getUser().getFile().getPath()))
+                        .user(review.getUser().getNickname())
+//                        .image()
+                        .comment(review.getComment())
+                        .date(review.getCreatedAt().toString())
+                        .build())
+                .collect(Collectors.toList());
+
+        return new SliceImpl<>(dtoList, pageable, reviews.hasNext());
     }
 }

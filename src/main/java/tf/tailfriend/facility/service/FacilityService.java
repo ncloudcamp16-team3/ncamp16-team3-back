@@ -726,8 +726,6 @@ public class FacilityService {
                 .build();
         reviewDao.save(review);
 
-        Double starPoint = reviewDao.calculateAverageStarPointByFacilityId(facility.getId());
-        facility.updateAverageStarPoint(starPoint);
         facilityDao.save(facility);
     }
 }

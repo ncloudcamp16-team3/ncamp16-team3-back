@@ -93,8 +93,7 @@ public class PetSitterController {
 
             if (!exists) {
                 log.info("펫시터 정보 없음: userId={}", userPrincipal.getUserId());
-                return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                        .body(new CustomResponse("펫시터 정보가 없습니다.", null));
+                return ResponseEntity.ok(new CustomResponse("펫시터 정보가 없습니다.", null));
             }
 
             PetSitterResponseDto result = petSitterService.getPetSitterStatus(userPrincipal.getUserId());

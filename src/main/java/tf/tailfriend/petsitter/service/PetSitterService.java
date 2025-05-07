@@ -345,13 +345,12 @@ public class PetSitterService {
             throw new IllegalArgumentException("승인된 펫시터만 그만둘 수 있습니다");
         }
 
-        // Native 쿼리 사용하여 상태 변경
-        String updateQuery = "UPDATE pet_sitters SET status = 'DELETE' WHERE id = ?1";
-        Query query = entityManager.createNativeQuery(updateQuery);
-        query.setParameter(1, userId);
+        petSitterDao.delete(petSitter);
 
-        int updated = query.executeUpdate();
-        logger.info("펫시터 상태 변경 완료 (DELETE): userId={}, rows={}", userId, updated);
+        entityManager.flush();
+        entityManager.clear();
+
+        logger.info("펫시터 데이터 완전 삭제 완료: userId={}", userId);
     }
 
     // 페이지 객체를 DTO로 변환하는 공통 메서드

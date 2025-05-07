@@ -239,6 +239,16 @@ public class FacilityService {
                 .orElseThrow(() -> new IllegalArgumentException("시설을 찾을 수 없습니다: " + facilityId));
 
         FacilityResponseDto facilityDto = convertToDto(facility);
+        Integer totalStarPoint = facility.getTotalStarPoint();
+        Integer reviewCount = facility.getReviewCount();
+        if (totalStarPoint == 0 || reviewCount == 0) {
+            facilityDto.setStarPoint(0.0);
+        } else {
+            double avg = (double) totalStarPoint / reviewCount;
+            facilityDto.setStarPoint(avg);
+        }
+
+        log.info("facilityDto: {}", facilityDto);
 
         List<ReviewResponseDto> reviewDtos = getReviewDtos(facilityId);
 

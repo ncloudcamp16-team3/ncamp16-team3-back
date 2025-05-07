@@ -121,6 +121,7 @@ public class ReserveController {
             String encodedName = URLEncoder.encode(saved.getFacility().getName(), StandardCharsets.UTF_8);
 
             String query = UriComponentsBuilder.fromPath("/reserve/success")
+                    .queryParam("id", saved.getId())
                     .queryParam("name", encodedName)
                     .queryParam("amount", saved.getAmount())
                     .queryParam("start", saved.getEntryTime())

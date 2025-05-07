@@ -5,13 +5,15 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-//import tf.tailfriend.notification.config.PushNotificationService;
+import tf.tailfriend.global.response.CustomResponse;
 import tf.tailfriend.notification.entity.dto.ChatNotificationDto;
 import tf.tailfriend.notification.entity.dto.GetNotifyDto;
-import tf.tailfriend.notification.entity.dto.NotificationDto;
 import tf.tailfriend.notification.service.NotificationService;
 
 import java.util.List;
+import java.util.Map;
+
+import static tf.tailfriend.user.message.SuccessMessage.*;
 
 @RestController
 @RequiredArgsConstructor
@@ -61,5 +63,12 @@ public class NotificationController {
             e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("알림 처리 실패");
         }
+    }
+
+
+    @GetMapping("/check-notification")
+    public ResponseEntity<?> checkNickname(@RequestParam Integer userId) {
+        boolean exists = notificationService.existsByUserIdAndReadStatusFalse(userId);
+        return ResponseEntity.ok(new CustomResponse(CHECK_NOTIFICATION_READ_SUCCESS.getMessage(), Map.of("exists", exists)));
     }
 }

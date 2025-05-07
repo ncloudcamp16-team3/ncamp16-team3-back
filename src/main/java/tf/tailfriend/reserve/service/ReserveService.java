@@ -4,6 +4,8 @@ import jakarta.persistence.EntityNotFoundException;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import tf.tailfriend.board.entity.Board;
+import tf.tailfriend.board.exception.GetPostException;
 import tf.tailfriend.facility.entity.Facility;
 import tf.tailfriend.facility.entity.FacilityPhoto;
 import tf.tailfriend.facility.entity.dto.forReserve.FacilityReviewResponseDto;
@@ -15,15 +17,19 @@ import tf.tailfriend.global.service.StorageService;
 import tf.tailfriend.reserve.dto.ReserveDetailResponseDto;
 import tf.tailfriend.reserve.dto.ReserveListResponseDto;
 import tf.tailfriend.reserve.dto.ReserveRequestDto;
+import tf.tailfriend.reserve.entity.Payment;
 import tf.tailfriend.reserve.dto.ReviewPageRenderingRequestDto;
 import tf.tailfriend.reserve.entity.Reserve;
+import tf.tailfriend.reserve.repository.PaymentDao;
 import tf.tailfriend.reserve.repository.ReserveDao;
 import tf.tailfriend.user.entity.User;
+import tf.tailfriend.user.exception.UnauthorizedException;
 import tf.tailfriend.user.repository.UserDao;
 
 import java.nio.file.AccessDeniedException;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @RequiredArgsConstructor
@@ -37,6 +43,7 @@ public class ReserveService {
     private final FacilityDao facilityDao;
     private final FacilityPhotoDao facilityPhotoDao;
     private final StorageService storageService;
+    private final PaymentDao paymentDao;
 
     @Transactional
     public Reserve saveReserveAfterPayment(String merchantPayKey) {
@@ -62,11 +69,18 @@ public class ReserveService {
                 .reserveStatus(true)
                 .build();
 
+        Reserve savedReserve = reserveDao.save(reserve);
 
-        Reserve saved = reserveDao.save(reserve);
+        Payment payment = Payment.builder()
+                .uuid(merchantPayKey) // 또는 uuidService.create()
+                .reserve(savedReserve)
+                .price(dto.getAmount())
+                .build();
+
+        paymentDao.save(payment);
         redisService.deleteTempReserve("reserve:" + merchantPayKey);
 
-        return saved;
+        return savedReserve;
     }
 
     @Transactional
@@ -161,5 +175,16 @@ public class ReserveService {
         }
     }
 
+    @Transactional
+    public void cancelReserve(Integer reserveId, Integer userId) {
+        Reserve deleteEntity = reserveDao.findById(reserveId)
+                .orElseThrow(() -> new GetPostException());
+
+        if (!deleteEntity.getUser().getId().equals(userId)) {
+            throw new UnauthorizedException();
+        }
+
+        reserveDao.delete(deleteEntity);
+    }
 }
 

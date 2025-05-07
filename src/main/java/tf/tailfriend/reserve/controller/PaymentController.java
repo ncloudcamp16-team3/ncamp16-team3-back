@@ -1,18 +1,21 @@
 package tf.tailfriend.reserve.controller;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import tf.tailfriend.reserve.dto.DateTimeRange;
-import tf.tailfriend.reserve.dto.ListResponseDto;
-import tf.tailfriend.reserve.dto.PaymentInfoResponseDto;
-import tf.tailfriend.reserve.dto.PaymentListRequestDto;
+import tf.tailfriend.global.config.UserPrincipal;
+import tf.tailfriend.reserve.dto.*;
 import tf.tailfriend.reserve.service.PaymentService;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
 
 @RequiredArgsConstructor
 @RestController
@@ -21,39 +24,14 @@ public class PaymentController {
 
     private final PaymentService paymentService;
 
-    @RequestMapping("/get")
-    public ResponseEntity<ListResponseDto<PaymentInfoResponseDto>> getPayments(
-            @RequestParam("id") int userId,
-            @RequestParam(value = "startDate", required = false) String startDate,
-            @RequestParam(value = "endDate", required = false) String endDate,
-            @RequestParam(value = "page", required = false, defaultValue = "0") int page,
-            @RequestParam(value = "size", required = false, defaultValue = "10") int size) {
-
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-
-        LocalDateTime parsedStartDate = null;
-        LocalDateTime parsedEndDate = null;
-
-        try {
-            if (startDate != null && !startDate.isEmpty()) {
-                parsedStartDate = LocalDateTime.parse(startDate, formatter);
-            }
-            if (endDate != null && !endDate.isEmpty()) {
-                parsedEndDate = LocalDateTime.parse(endDate, formatter);
-            }
-        } catch (Exception e) {
-            System.out.println("예외 발생");
-            return ResponseEntity.badRequest().body(null); // 예외 처리
-        }
-
-        PaymentListRequestDto requestDto = PaymentListRequestDto.builder()
-                .userId(userId)
-                .datetimeRange(new DateTimeRange(parsedStartDate, parsedEndDate))
-                .page(page)
-                .size(size)
-                .build();
-
-        ListResponseDto<PaymentInfoResponseDto> list = paymentService.getList(requestDto);
-        return ResponseEntity.ok(list);
+    @GetMapping("/list")
+    public ResponseEntity<List<PaymentHistoryDto>> getUserPaymentList(
+            @AuthenticationPrincipal UserPrincipal userPrincipal,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate
+    ) {
+        Integer userId = userPrincipal.getUserId();
+        List<PaymentHistoryDto> payments = paymentService.getPaymentsByPeriod(userId, startDate, endDate);
+        return ResponseEntity.ok(payments);
     }
 }

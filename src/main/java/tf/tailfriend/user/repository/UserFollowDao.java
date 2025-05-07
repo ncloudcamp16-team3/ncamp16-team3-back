@@ -15,6 +15,8 @@ public interface UserFollowDao extends JpaRepository<UserFollow, Integer> {
     Optional<UserFollow> findByFollowerIdAndFollowedId(Integer followerId, Integer followedId);
     boolean existsByFollowerIdAndFollowedId(Integer followerId, Integer followedId);
 
+
+
     @Modifying
     @Query("DELETE FROM UserFollow uf WHERE uf.follower.id = :followerId")
     void deleteByFollowerId(@Param("followerId") Integer followerId);
@@ -26,6 +28,7 @@ public interface UserFollowDao extends JpaRepository<UserFollow, Integer> {
     // UserFollowDao.java
     @Query("SELECT uf.followed FROM UserFollow uf WHERE uf.follower.id = :followerId")
     List<User> findTop10ByFollowerId(@Param("followerId") Integer followerId, Pageable pageable);
+
 
 
     List<UserFollow> findByFollowerIdAndFollowedIdIn(Integer currentUserId, List<Integer> collect);

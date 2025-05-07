@@ -64,7 +64,7 @@ public class AuthService {
     }
 
     public Integer getUserIdBySnsAccountIdAndSnsTypeId(String snsAccountId, Integer snsTypeId) {
-        return userDao.findBySnsAccountIdAndSnsTypeId(snsAccountId,snsTypeId)
+        return userDao.findBySnsAccountIdAndSnsTypeIdAndDeletedFalse(snsAccountId, snsTypeId)
                 .map(User::getId)
                 .orElse(null);
     }

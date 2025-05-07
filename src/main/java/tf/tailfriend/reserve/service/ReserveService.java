@@ -12,12 +12,15 @@ import tf.tailfriend.global.service.StorageService;
 import tf.tailfriend.reserve.dto.ReserveDetailResponseDto;
 import tf.tailfriend.reserve.dto.ReserveListResponseDto;
 import tf.tailfriend.reserve.dto.ReserveRequestDto;
+import tf.tailfriend.reserve.entity.Payment;
 import tf.tailfriend.reserve.entity.Reserve;
+import tf.tailfriend.reserve.repository.PaymentDao;
 import tf.tailfriend.reserve.repository.ReserveDao;
 import tf.tailfriend.user.entity.User;
 import tf.tailfriend.user.repository.UserDao;
 
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @RequiredArgsConstructor
@@ -30,6 +33,7 @@ public class ReserveService {
     private final RedisService redisService;
     private final FacilityDao facilityDao;
     private final StorageService storageService;
+    private final PaymentDao paymentDao;
 
     @Transactional
     public Reserve saveReserveAfterPayment(String merchantPayKey) {
@@ -55,11 +59,18 @@ public class ReserveService {
                 .reserveStatus(true)
                 .build();
 
+        Reserve savedReserve = reserveDao.save(reserve);
 
-        Reserve saved = reserveDao.save(reserve);
+        Payment payment = Payment.builder()
+                .uuid(merchantPayKey) // 또는 uuidService.create()
+                .reserve(savedReserve)
+                .price(dto.getAmount())
+                .build();
+
+        paymentDao.save(payment);
         redisService.deleteTempReserve("reserve:" + merchantPayKey);
 
-        return saved;
+        return savedReserve;
     }
 
     @Transactional

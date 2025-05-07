@@ -12,6 +12,7 @@ import org.springframework.web.multipart.MultipartFile;
 import tf.tailfriend.admin.dto.AnnounceResponseDto;
 import tf.tailfriend.admin.entity.Announce;
 import tf.tailfriend.admin.service.AnnounceService;
+import tf.tailfriend.board.dto.AnnounceDto;
 import tf.tailfriend.board.dto.BoardResponseDto;
 import tf.tailfriend.board.entity.BoardType;
 import tf.tailfriend.board.service.BoardTypeService;
@@ -73,6 +74,17 @@ public class AdminAnnounceController {
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of("message", "공지 목록 조회 실패: " + e.getMessage()));
+        }
+    }
+
+    @GetMapping("/announce/{id}")
+    public ResponseEntity<?> getBoardDetail(@PathVariable Integer id) {
+        try {
+            AnnounceDto announce = announceService.getAnnounceDetail(id);
+            return ResponseEntity.ok(announce);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("message", "공지 상세 조회 실패: " + e.getMessage()));
         }
     }
 

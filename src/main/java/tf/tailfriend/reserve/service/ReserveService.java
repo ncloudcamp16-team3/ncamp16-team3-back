@@ -48,10 +48,13 @@ public class ReserveService {
                 .user(user)
                 .facility(facility)
                 .entryTime(dto.getEntryTime())
-                .exitTime(dto.getExitTime())
+                .exitTime(dto.getExitTime() != null
+                        ? dto.getExitTime()
+                        : dto.getEntryTime().plusHours(1)) // ✅ 없으면 entryTime + 1시간
                 .amount(dto.getAmount())
                 .reserveStatus(true)
                 .build();
+
 
         Reserve saved = reserveDao.save(reserve);
         redisService.deleteTempReserve("reserve:" + merchantPayKey);

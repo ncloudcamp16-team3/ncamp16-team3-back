@@ -32,7 +32,7 @@ public class CommentResponseDto {
                 .authorId(comment.getUser().getId())
                 .authorNickname(comment.getUser().getNickname())
                 .authorProfileImg(comment.getUser().getFile().getPath())
-                .content(comment.getContent())
+                .content(comment.isDeleted() ? "삭제된 댓글입니다" : comment.getContent())
                 .createdAt(comment.getCreatedAt())
                 .modified(comment.isModified())
                 .deleted(comment.isDeleted())
@@ -41,7 +41,6 @@ public class CommentResponseDto {
                         .map(CommentResponseDto::fromEntity)
                         .toList())
                 .refComment(comment.getRefComment() != null ? CommentSummaryDto.fromEntity(comment.getRefComment()) : null)
-
                 .build();
     }
 

@@ -6,7 +6,8 @@ import lombok.Getter;
 @Getter
 @Builder
 public class ReviewInsertRequestDto {
-    private Integer id;
+    private Integer userId;
+    private Integer facilityId;
     private String comment;
     private Integer starPoint;
 }

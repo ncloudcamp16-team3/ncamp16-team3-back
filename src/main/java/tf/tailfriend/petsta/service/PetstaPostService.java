@@ -465,6 +465,7 @@ public class PetstaPostService {
 
         // 삭제된 댓글 저장
         petstaPostDao.save(post);
+        userDao.decrementPostCount(userId);
     }
 
 

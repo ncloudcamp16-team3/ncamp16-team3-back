@@ -11,10 +11,14 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.util.UriComponentsBuilder;
+import tf.tailfriend.board.entity.Board;
+import tf.tailfriend.board.exception.GetPostException;
 import tf.tailfriend.facility.entity.dto.forReserve.FacilityCardResponseDto;
 import tf.tailfriend.facility.entity.dto.forReserve.FacilityReviewResponseDto;
 import tf.tailfriend.facility.service.FacilityService;
 import tf.tailfriend.global.config.UserPrincipal;
+import tf.tailfriend.global.exception.CustomException;
+import tf.tailfriend.global.response.CustomResponse;
 import tf.tailfriend.global.service.RedisService;
 import tf.tailfriend.reserve.dto.RequestForFacility.FacilityList;
 import tf.tailfriend.reserve.dto.RequestForFacility.ReviewInsertRequestDto;
@@ -23,6 +27,7 @@ import tf.tailfriend.reserve.dto.ReserveListResponseDto;
 import tf.tailfriend.reserve.dto.ReserveRequestDto;
 import tf.tailfriend.reserve.entity.Reserve;
 import tf.tailfriend.reserve.service.ReserveService;
+import tf.tailfriend.user.exception.UnauthorizedException;
 
 import java.io.File;
 import java.io.IOException;
@@ -148,11 +153,21 @@ public class ReserveController {
         Integer parsedId = Integer.parseInt(id);
         return facilityService.getFacilityForReview(parsedId);
     }
+
     @GetMapping("/{id}")
     public ResponseEntity<ReserveDetailResponseDto> getReserveDetail(@PathVariable Integer id) {
         ReserveDetailResponseDto dto = reserveService.getReserveDetail(id);
         return ResponseEntity.ok(dto);
     }
 
+    @DeleteMapping("")
+    public ResponseEntity<?> cancelReserve(@RequestParam("id") Integer id,
+                                           @AuthenticationPrincipal UserPrincipal userPrincipal) {
+
+        reserveService.cancelReserve(id, userPrincipal.getUserId());
+
+        return ResponseEntity.status(HttpStatus.OK)
+                .body(new CustomResponse("예약 취소에 성공하였습니다", null));
+    }
 
 }

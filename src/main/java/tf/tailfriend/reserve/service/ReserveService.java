@@ -4,6 +4,8 @@ import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import tf.tailfriend.board.entity.Board;
+import tf.tailfriend.board.exception.GetPostException;
 import tf.tailfriend.facility.entity.Facility;
 import tf.tailfriend.facility.repository.FacilityDao;
 import tf.tailfriend.global.service.DateTimeFormatProvider;
@@ -15,6 +17,7 @@ import tf.tailfriend.reserve.dto.ReserveRequestDto;
 import tf.tailfriend.reserve.entity.Reserve;
 import tf.tailfriend.reserve.repository.ReserveDao;
 import tf.tailfriend.user.entity.User;
+import tf.tailfriend.user.exception.UnauthorizedException;
 import tf.tailfriend.user.repository.UserDao;
 
 import java.util.List;
@@ -123,5 +126,16 @@ public class ReserveService {
                 .build();
     }
 
+    @Transactional
+    public void cancelReserve(Integer reserveId, Integer userId) {
+        Reserve deleteEntity = reserveDao.findById(reserveId)
+                .orElseThrow(() -> new GetPostException());
+
+        if (!deleteEntity.getUser().getId().equals(userId)) {
+            throw new UnauthorizedException();
+        }
+
+        reserveDao.delete(deleteEntity);
+    }
 }
 

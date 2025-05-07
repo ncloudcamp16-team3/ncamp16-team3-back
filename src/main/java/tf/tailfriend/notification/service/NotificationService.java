@@ -66,6 +66,7 @@ public class NotificationService {
 
 
 // 특정 사용자에게 직접 푸시 전송
+@Transactional
 public void sendNotificationToUser(NotificationDto dto) {
 
     boolean isLinux = System.getProperty("os.name").toLowerCase().contains("linux");
@@ -146,11 +147,6 @@ public void sendNotificationToUser(NotificationDto dto) {
 
             Message message = Message.builder()
                     .setToken(fcmToken)
-//                    .setNotification(Notification.builder()
-//                             .setTitle(title)
-//                             .setBody(body)
-//                             .setImage(image)
-//                             .build())
                     .putData("title", title)
                     .putData("body", body)
                     .putData("icon", image)

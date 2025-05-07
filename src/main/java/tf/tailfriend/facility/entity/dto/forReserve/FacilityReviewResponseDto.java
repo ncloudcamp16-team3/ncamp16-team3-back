@@ -8,4 +8,5 @@ import lombok.Getter;
 public class FacilityReviewResponseDto {
     private Integer id;
     private String name;
+    private String thumbnail;
 }

@@ -72,21 +72,21 @@ public class ReserveController {
         return facilityService.getFacilityCardsForReserve(requestDto);
     }
 
-    @PostMapping("/facility/{id}/review")
+    @PutMapping("/facility/{id}/review")
     public ResponseEntity<String> insertReview(
             @PathVariable("id") String id,
             @RequestParam("comment") String comment,
-            @RequestParam("starPoint") Integer starPoint,
-            @RequestPart("image") MultipartFile file,
+            @RequestParam("starPoint") String starPoint,
+            @RequestPart("file") MultipartFile file,
             @AuthenticationPrincipal UserPrincipal userPrincipal) {
-        log.info("id: {}, comment: {}, starPoint: {}, file {}", id, comment, starPoint, file);
+        log.info("id: {}, comment: {}, starPoint: {}, file: {}", id, comment, starPoint, file.getOriginalFilename());
         Integer parsedId = Integer.parseInt(id);
-//        Integer parsedStarPoint = Integer.parseInt(starPoint);
+        Integer parsedStarPoint = Integer.parseInt(starPoint);
         ReviewInsertRequestDto requestDto = ReviewInsertRequestDto.builder()
                 .userId(userPrincipal.getUserId())
                 .facilityId(parsedId)
                 .comment(comment)
-                .starPoint(starPoint)
+                .starPoint(parsedStarPoint)
                 .build();
         try {
             facilityService.insertReview(requestDto, file);

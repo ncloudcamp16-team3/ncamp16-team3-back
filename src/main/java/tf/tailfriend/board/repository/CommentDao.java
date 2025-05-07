@@ -28,5 +28,15 @@ public interface CommentDao extends JpaRepository<Comment, Integer> {
     @Query("DELETE FROM Comment c WHERE c.user.id = :userId")
     void deleteByUserId(@Param("userId") Integer userId);
 
+    @Modifying
+    @Query("UPDATE Comment c SET c.refComment = NULL WHERE c.user.id = :userId OR c.refComment.id IN (SELECT c2.id FROM Comment c2 WHERE c2.user.id = :userId)")
+    void clearRefCommentIdByUser(@Param("userId") Integer userId);
+
+    @Modifying
+    @Query("DELETE FROM Comment c WHERE c.parent.id IN (SELECT c2.id FROM Comment c2 WHERE c2.user.id = :userId)")
+    void deleteChildCommentsByParentUserId(@Param("userId") Integer userId);
+    @Modifying
+    @Query(value = "?1", nativeQuery = true)
+    void executeNativeQuery(String sql, Object... params);
     List<Comment> findRepliesByParentId(Integer parentId);
 }

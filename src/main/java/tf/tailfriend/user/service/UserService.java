@@ -1,5 +1,7 @@
 package tf.tailfriend.user.service;
 
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -39,6 +41,7 @@ import tf.tailfriend.user.exception.UserException;
 import tf.tailfriend.user.exception.UserSaveException;
 import tf.tailfriend.user.repository.UserDao;
 import tf.tailfriend.user.repository.UserFollowDao;
+
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.Optional;
@@ -70,8 +73,8 @@ public class UserService {
     private final PaymentDao paymentDao;
     private final NotificationDao notificationDao;
     private final PetMatchDao petMatchDao;
-
-
+    @PersistenceContext
+    private EntityManager entityManager;
 
     //회원의 마이페이지 정보 조회
     public MypageResponseDto getMemberInfo(Integer userId) {
@@ -156,88 +159,117 @@ public class UserService {
     //회원을 탈퇴
     @Transactional
     public void withdrawMember(Integer userId) {
-        // 1. 회원 조회
-        User user = userDao.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회원입니다: " + userId));
+        try {
+            // 회원 조회
+            User user = userDao.findById(userId)
+                    .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회원입니다: " + userId));
 
-        // 2. 알림 데이터 삭제
-        notificationDao.deleteByUserId(userId);
 
-        // 3. 채팅 관련 데이터 삭제
-        List<ChatRoom> userChatRooms = chatRoomDao.findAllByUser1OrUser2(user, user);
-        for (ChatRoom chatRoom : userChatRooms) {
-            chatRoomDao.delete(chatRoom);
-        }
+            // 알림 데이터 삭제
+            notificationDao.deleteByUserId(userId);
 
-        // 4. 거래 매칭 데이터 삭제
-        tradeMatchDao.deleteByUserId(userId);
-
-        // 5. 예약 및 결제 데이터 삭제
-        List<Reserve> userReserves = reserveDao.findByUserId(userId);
-        for (Reserve reserve : userReserves) {
-            Payment payment = paymentDao.findByReserveId(reserve.getId()).orElse(null);
-            if (payment != null) {
-                paymentDao.delete(payment);
+            // 채팅 관련 데이터 삭제
+            List<ChatRoom> userChatRooms = chatRoomDao.findAllByUser1OrUser2(user, user);
+            for (ChatRoom chatRoom : userChatRooms) {
+                chatRoomDao.delete(chatRoom);
             }
-            reserveDao.delete(reserve);
+
+            // 거래 매칭 데이터 삭제
+            tradeMatchDao.deleteByUserId(userId);
+
+            // 예약 및 결제 데이터 삭제
+            List<Reserve> userReserves = reserveDao.findByUserId(userId);
+            for (Reserve reserve : userReserves) {
+                Payment payment = paymentDao.findByReserveId(reserve.getId()).orElse(null);
+                if (payment != null) {
+                    paymentDao.delete(payment);
+                }
+                reserveDao.delete(reserve);
+            }
+
+            //  일정데이터 삭제
+            scheduleDao.deleteByUserId(userId);
+
+            // 게시판 관련 데이터 삭제
+            // 댓글 처리 - 댓글 소유권 이전 및 소프트 삭제
+            try {
+                // 탈토한 계정으로 할꺼임 id1을 ㅇㅋ?
+                Integer systemUserId = 1; // 관리자 또는 시스템 계정 ID
+
+                // 댓글 소프트 삭제 처리 및 소유권 이전
+                int updatedComments = entityManager.createNativeQuery(
+                                "UPDATE comments SET content = '삭제된 댓글입니다', deleted = true, user_id = ?1 WHERE user_id = ?2")
+                        .setParameter(1, systemUserId)
+                        .setParameter(2, userId)
+                        .executeUpdate();
+                log.info("댓글 소프트 삭제 및 소유권 이전 처리 결과: {}", updatedComments);
+            } catch (Exception e) {
+                log.error("댓글 처리 중 오류: {}", e.getMessage(), e);
+            }
+
+            // 게시판 북마크, 좋아요 삭제
+            boardBookmarkDao.deleteByUserId(userId);
+            boardLikeDao.deleteByUserId(userId);
+
+            //사용자가 작성한 게시글 처리
+            List<Board> userBoards = boardDao.findByUserIdOrderByCreatedAtDesc(userId);
+            for (Board board : userBoards) {
+                try {
+                    boardDao.delete(board);
+                } catch (Exception e) {
+                    log.error("게시글 삭제 중 오류: {}", e.getMessage());
+                }
+            }
+
+            // 펫스타 관련 데이터 삭제
+            try {
+                Integer systemUserId = 1; // 관리자 또는 시스템 계정 ID -탈퇴한 사용자로
+
+                // 펫스타 댓글 소프트 삭제 처리 및 소유권 이전
+                int updatedComments = entityManager.createNativeQuery(
+                                "UPDATE petsta_comments SET content = '삭제된 댓글입니다', deleted = true, user_id = ?1 WHERE user_id = ?2")
+                        .setParameter(1, systemUserId)
+                        .setParameter(2, userId)
+                        .executeUpdate();
+                log.info("펫스타 댓글 소프트 삭제 및 소유권 이전 처리 결과: {}", updatedComments);
+            } catch (Exception e) {
+                log.error("펫스타 댓글 처리 중 오류: {}", e.getMessage(), e);
+            }
+
+            // 펫스타 북마크, 좋아요 삭제
+            petstaBookmarkDao.deleteByUserId(userId);
+            petstaLikeDao.deleteByUserId(userId);
+
+            //펫스타 게시글 삭제
+            petstaPostDao.deleteByUserId(userId);
+
+            // 팔로우 관계 삭제
+            userFollowDao.deleteByFollowerId(userId);
+            userFollowDao.deleteByFollowedId(userId);
+
+            // 펫시터 정보 삭제
+            petSitterDao.findById(userId).ifPresent(petSitterDao::delete);
+
+            // 반려동물 관련 데이터 삭제
+            user.getPet().forEach(pet -> {
+                try {
+                    petMatchDao.deleteByPet1IdOrPet2Id(pet.getId());
+                    petPhotoDao.deleteByPetId(pet.getId());
+                    petDao.delete(pet);
+                } catch (Exception e) {
+                    log.error("반려동물 데이터 삭제 중 오류: {}", e.getMessage());
+                }
+            });
+
+            // 회원 삭제
+            userDao.delete(user);
+
+        } catch (Exception e) {
+            log.error("회원 탈퇴 중 오류 발생: {}", e.getMessage(), e);
+            throw new IllegalStateException("회원 탈퇴 처리 중 오류가 발생했습니다: " + e.getMessage());
         }
-
-        // 6. 일정(스케줄) 데이터 삭제
-        scheduleDao.deleteByUserId(userId);
-
-        // 7. 게시판 관련 데이터 삭제
-        //사용자가 작성한 댓글 삭제
-        commentDao.deleteByUserId(userId);
-        //게시판 좋아요 삭제
-        boardLikeDao.deleteByUserId(userId);
-        // 게시판 북마크 삭제
-        boardBookmarkDao.deleteByUserId(userId);
-        // 사용자가 작성한 게시글 처리
-        List<Board> userBoards = boardDao.findByUserIdOrderByCreatedAtDesc(userId);
-        for (Board board : userBoards) {
-            boardBookmarkDao.deleteAllByBoard(board);
-            boardLikeDao.deleteAllByBoard(board);
-            commentDao.deleteAllByBoard(board);
-            boardDao.delete(board);
-        }
-
-        // 8. 펫스타 관련 데이터 삭제
-        //사용자가 작성한 펫스타 댓글 삭제
-        petstaCommentDao.deleteByUserId(userId);
-        //펫스타 좋아요 삭제
-        petstaLikeDao.deleteByUserId(userId);
-        // 펫스타 북마크 삭제
-        petstaBookmarkDao.deleteByUserId(userId);
-        // 사용자가 작성한 펫스타 게시글 관련 댓글 삭제
-        List<Integer> postIds = petstaPostDao.findIdsByUserId(userId);
-        for (Integer postId : postIds) {
-            petstaCommentDao.deleteRepliesByPostId(postId);
-            petstaCommentDao.deleteParentsByPostId(postId);
-            petstaCommentDao.deleteByPostId(postId);
-        }
-        //사용자가 작성한 펫스타 게시글 삭제
-        petstaPostDao.deleteByUserId(userId);
-
-        // 9. 팔로우 관계 삭제
-        userFollowDao.deleteByFollowerId(userId);
-        userFollowDao.deleteByFollowedId(userId);
-
-        // 10. 펫시터 정보 삭제
-        petSitterDao.findById(userId).ifPresent(petSitterDao::delete);
-
-        // 11. 반려동물 관련 데이터 삭제
-        user.getPet().forEach(pet -> {
-            //  반려동물 매칭 데이터 삭제
-            petMatchDao.deleteByPet1IdOrPet2Id(pet.getId());
-            // 반려동물 사진 삭제
-            petPhotoDao.deleteByPetId(pet.getId());
-            //  반려동물 삭제
-            petDao.delete(pet);
-        });
-
-        // 12. 회원 삭제
-        userDao.delete(user);
     }
+
 
     private PetResponseDto convertToPetDto(Pet pet) {
         // 1. 반려동물 썸네일 이미지 URL 찾기
@@ -293,7 +325,7 @@ public class UserService {
                 .orElseThrow(() -> new IllegalArgumentException("유저를 찾을 수 없습니다."))
                 .getNickname(); // ← 여기서 닉네임만 추출
     }
-  
+
     public void userInfoSave(UserInfoDto userInfoDto) {
 
         User userEntity = userDao.findById(userInfoDto.getId())
@@ -311,7 +343,7 @@ public class UserService {
 
             userDao.save(updatedUser);
 
-        }  catch (Exception e) {
+        } catch (Exception e) {
             throw new UserSaveException();
         }
     }

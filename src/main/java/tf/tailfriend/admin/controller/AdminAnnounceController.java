@@ -119,4 +119,11 @@ public class AdminAnnounceController {
                     .body(Map.of("message", "공지사항 등록 실패: " + e.getMessage()));
         }
     }
+
+    @DeleteMapping("/announce/{id}/delete")
+    public ResponseEntity<?> deleteBoard(@PathVariable Integer id) {
+        announceService.deleteAnnounceById(id);
+        return ResponseEntity.status(HttpStatus.OK)
+                .body(Map.of("message", "게시글 삭제 완료"));
+    }
 }

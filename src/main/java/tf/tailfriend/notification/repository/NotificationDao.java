@@ -20,4 +20,6 @@ public interface NotificationDao extends JpaRepository<Notification, Integer> {
 
     Notification findFirstByUserAndNotificationTypeIdAndContent(User user, Integer notificationTypeId, String content);
 
+    boolean existsByUserIdAndReadStatusFalse(Integer userId);
+
 }

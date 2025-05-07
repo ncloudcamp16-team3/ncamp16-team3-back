@@ -169,6 +169,9 @@ public void sendNotificationToUser(NotificationDto dto) {
         e.printStackTrace();
     }
 }
+public boolean existsByUserIdAndReadStatusFalse(Integer userId) {
+    return notificationDao.existsByUserIdAndReadStatusFalse(userId);
+}
 
 
     public void sendAnnounceNotificationToAllUsers(Announce announce) {
@@ -485,6 +488,8 @@ public void sendNotificationToUser(NotificationDto dto) {
 
         notification.markAsRead(); // 변경
     }
+
+
 
 
 }

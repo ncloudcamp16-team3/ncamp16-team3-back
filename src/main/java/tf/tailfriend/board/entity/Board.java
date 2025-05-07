@@ -18,7 +18,6 @@ import java.util.Optional;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@ToString
 public class Board {
 
     @Id

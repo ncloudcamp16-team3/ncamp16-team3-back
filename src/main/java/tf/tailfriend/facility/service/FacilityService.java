@@ -11,6 +11,7 @@ import org.springframework.web.multipart.MultipartFile;
 import tf.tailfriend.facility.dto.*;
 import tf.tailfriend.facility.entity.*;
 import tf.tailfriend.facility.entity.dto.forReserve.FacilityCardResponseDto;
+import tf.tailfriend.facility.entity.dto.forReserve.FacilityReviewResponseDto;
 import tf.tailfriend.facility.entity.dto.forReserve.FacilityWithDistanceProjection;
 import tf.tailfriend.facility.entity.dto.forReserve.ThumbnailForCardDto;
 import tf.tailfriend.facility.repository.*;
@@ -28,6 +29,7 @@ import tf.tailfriend.user.repository.UserDao;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.sql.Time;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -726,16 +728,18 @@ public class FacilityService {
     }
 
     @Transactional
-    public void insertReview(ReviewInsertRequestDto requestDto, java.io.File image) {
-        UserPrincipal principal = (UserPrincipal) SecurityContextHolder
-                .getContext()
-                .getAuthentication()
-                .getPrincipal();
+    public void insertReview(ReviewInsertRequestDto requestDto, MultipartFile image) {
 
-        Integer userId = principal.getUserId();
+        // 로그인 되어있는 유저 찾기
+        Integer userId = requestDto.getUserId();
         User user = userDao.findById(userId).orElseThrow(() -> new EntityNotFoundException("유저 없음"));
+        log.info("유저: {}", user);
 
-        Facility facility = facilityDao.findById(requestDto.getId()).orElseThrow(() -> new EntityNotFoundException("시설 없음"));
+        // 시설 찾기
+        Facility facility = facilityDao.findById(requestDto.getFacilityId()).orElseThrow(() -> new EntityNotFoundException("시설 없음"));
+        log.info("바뀌기 전 총 별점: {}", facility.getTotalStarPoint());
+
+        // 리뷰 저장
         Review review = Review.builder()
                 .user(user)
                 .facility(facility)
@@ -743,7 +747,40 @@ public class FacilityService {
                 .starPoint(requestDto.getStarPoint())
                 .build();
         reviewDao.save(review);
+        log.info("리뷰: {}", review);
 
+        // 시설 별점 통계 업데이트
+        facility.updateTotalStarPoint(review.getStarPoint());
+        facility.updateReviewCount();
         facilityDao.save(facility);
+        log.info("바뀐 후 총 별점: {}", facility.getTotalStarPoint());
+
+        // 리뷰 이미지 저장
+        File file = fileService.save(image.getOriginalFilename(), "review", File.FileType.PHOTO);
+        log.info("파일 저장 완료");
+
+        // 시설-리뷰 이미지 연결 생성
+        ReviewPhoto reviewPhoto = ReviewPhoto.of(file, review);
+        reviewPhotoDao.save(reviewPhoto);
+        log.info("시설-리뷰 이미지 연결 생성 완료");
+
+        try (InputStream is = image.getInputStream()) {
+        storageService.upload(file.getPath(), is);
+
+        } catch (IOException | StorageServiceException e) {
+            throw new RuntimeException("파일 업로드 중 오류 발생: " + e);
+        }
+    }
+
+    public FacilityReviewResponseDto getFacilityForReview(Integer id) {
+        Optional<Facility> facilityOptional = facilityDao.findById(id);
+        List<FacilityPhoto> facilityPhotos = facilityPhotoDao.findByFacilityId(id);
+
+        return facilityOptional.map(facility -> FacilityReviewResponseDto.builder()
+                        .id(facility.getId())
+                        .name(facility.getName())
+                        .thumbnail(facilityPhotos.isEmpty() ? null : storageService.generatePresignedUrl(facilityPhotos.get(0).getFile().getPath()))
+                        .build())
+                .orElse(null); // 또는 예외 처리
     }
 }

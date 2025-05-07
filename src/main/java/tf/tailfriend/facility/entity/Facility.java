@@ -98,4 +98,11 @@ public class Facility {
         this.longitude = longitude;
     }
 
+    public void updateTotalStarPoint(Integer starPoint) {
+        this.totalStarPoint += starPoint;
+    }
+
+    public void updateReviewCount() {
+        this.reviewCount += 1;
+    }
 }

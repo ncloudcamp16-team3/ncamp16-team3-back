@@ -2,6 +2,9 @@ package tf.tailfriend.admin.controller;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -9,6 +12,7 @@ import org.springframework.web.multipart.MultipartFile;
 import tf.tailfriend.admin.dto.AnnounceResponseDto;
 import tf.tailfriend.admin.entity.Announce;
 import tf.tailfriend.admin.service.AnnounceService;
+import tf.tailfriend.board.dto.BoardResponseDto;
 import tf.tailfriend.board.entity.BoardType;
 import tf.tailfriend.board.service.BoardTypeService;
 import tf.tailfriend.file.entity.File;
@@ -36,6 +40,42 @@ public class AdminAnnounceController {
     private final AnnounceService announceService;
     private final NotificationService notificationService;
 
+    @GetMapping("/announce/list")
+    public ResponseEntity<?> boardList(
+            @RequestParam(required = false, defaultValue = "0") int page,
+            @RequestParam(required = false, defaultValue = "10") int size,
+            @RequestParam(required = false) Integer boardTypeId,
+            @RequestParam(required = false) String searchTerm,
+            @RequestParam(required = false, defaultValue = "all") String searchField
+    ) {
+        try {
+            PageRequest pageRequest = PageRequest.of(page, size, Sort.by("id").descending());
+            Page<AnnounceResponseDto> announces;
+//            log.info("page: {}, size: {}, boardTypeId: {}, searchTerm: {}, searchField: {}", page, size, boardTypeId, searchTerm, searchField);
+
+            // 검색어가 있는 경우 검색 로직 실행
+            if (searchTerm != null && !searchTerm.isEmpty()) {
+                announces = announceService.searchAnnounces(searchTerm, searchField, boardTypeId, pageRequest);
+            }
+            // 게시판 타입 필터링만 있는 경우
+            else if (boardTypeId != null) {
+                announces = announceService
+
+                        .getAnnouncesByType(boardTypeId, pageRequest);
+            }
+            // 아무 조건 없는 경우 전체 조회
+            else {
+//                log.info("여기로 들어와야함");
+                announces = announceService.getAllAnnounces(pageRequest);
+            }
+
+            return ResponseEntity.ok(announces);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("message", "공지 목록 조회 실패: " + e.getMessage()));
+        }
+    }
+
     @PostMapping("/announce/post")
     public ResponseEntity<?> createAnnounce(
             @RequestParam("boardTypeId") Integer boardTypeId,
@@ -52,7 +92,7 @@ public class AdminAnnounceController {
             }
 
             // 알람 전송을 위한 객체 저장
-            Announce announce=announceService.createAnnounce(title, content, boardType, images);
+            Announce announce = announceService.createAnnounce(title, content, boardType, images);
 
             try {
                 notificationService.sendAnnounceNotificationToAllUsers(announce);

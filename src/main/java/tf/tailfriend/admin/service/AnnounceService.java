@@ -18,10 +18,6 @@ import tf.tailfriend.file.entity.File;
 import tf.tailfriend.file.service.FileService;
 import tf.tailfriend.global.service.StorageService;
 import tf.tailfriend.global.service.StorageServiceException;
-import tf.tailfriend.notification.scheduler.NotificationScheduler;
-import tf.tailfriend.reserve.entity.Reserve;
-import tf.tailfriend.user.entity.User;
-import tf.tailfriend.user.repository.UserDao;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -164,6 +160,11 @@ public class AnnounceService {
         }
 
         return responseAnnounceDto;
+    }
+
+    @Transactional
+    public void deleteAnnounceById(Integer id) {
+        announceDao.deleteById(id);
     }
 
     private List<String> makePresignedPath(List<String> paths) {

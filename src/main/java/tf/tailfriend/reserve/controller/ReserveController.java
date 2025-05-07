@@ -21,6 +21,7 @@ import tf.tailfriend.reserve.dto.RequestForFacility.ReviewInsertRequestDto;
 import tf.tailfriend.reserve.dto.ReserveDetailResponseDto;
 import tf.tailfriend.reserve.dto.ReserveListResponseDto;
 import tf.tailfriend.reserve.dto.ReserveRequestDto;
+import tf.tailfriend.reserve.dto.ReviewPageRenderingRequestDto;
 import tf.tailfriend.reserve.entity.Reserve;
 import tf.tailfriend.reserve.service.ReserveService;
 
@@ -77,7 +78,7 @@ public class ReserveController {
             @PathVariable("id") String id,
             @RequestParam("comment") String comment,
             @RequestParam("starPoint") String starPoint,
-            @RequestPart("file") MultipartFile file,
+            @RequestPart(value = "file", required = false) MultipartFile file,
             @AuthenticationPrincipal UserPrincipal userPrincipal) {
         log.info("id: {}, comment: {}, starPoint: {}, file: {}", id, comment, starPoint, file.getOriginalFilename());
         Integer parsedId = Integer.parseInt(id);
@@ -142,16 +143,19 @@ public class ReserveController {
     }
 
     @GetMapping("/facility/{id}/review")
-    public FacilityReviewResponseDto getFacilityForReview(@PathVariable("id") String id) {
+    public FacilityReviewResponseDto getFacilityForReview(@PathVariable("id") String id, @AuthenticationPrincipal UserPrincipal userPrincipal) {
         log.info("id: {}", id);
         Integer parsedId = Integer.parseInt(id);
-        return facilityService.getFacilityForReview(parsedId);
+        ReviewPageRenderingRequestDto requestDto = ReviewPageRenderingRequestDto.builder()
+                .userId(userPrincipal.getUserId())
+                .reserveId(parsedId)
+                .build();
+        return reserveService.getReserveForReview(requestDto);
     }
     @GetMapping("/{id}")
     public ResponseEntity<ReserveDetailResponseDto> getReserveDetail(@PathVariable Integer id) {
         ReserveDetailResponseDto dto = reserveService.getReserveDetail(id);
         return ResponseEntity.ok(dto);
     }
-
 
 }

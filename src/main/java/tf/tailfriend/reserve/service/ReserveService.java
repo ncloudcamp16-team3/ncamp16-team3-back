@@ -1,23 +1,29 @@
 package tf.tailfriend.reserve.service;
 
 import jakarta.persistence.EntityNotFoundException;
-import jakarta.transaction.Transactional;
+import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import tf.tailfriend.facility.entity.Facility;
+import tf.tailfriend.facility.entity.FacilityPhoto;
+import tf.tailfriend.facility.entity.dto.forReserve.FacilityReviewResponseDto;
 import tf.tailfriend.facility.repository.FacilityDao;
+import tf.tailfriend.facility.repository.FacilityPhotoDao;
 import tf.tailfriend.global.service.DateTimeFormatProvider;
 import tf.tailfriend.global.service.RedisService;
 import tf.tailfriend.global.service.StorageService;
 import tf.tailfriend.reserve.dto.ReserveDetailResponseDto;
 import tf.tailfriend.reserve.dto.ReserveListResponseDto;
 import tf.tailfriend.reserve.dto.ReserveRequestDto;
+import tf.tailfriend.reserve.dto.ReviewPageRenderingRequestDto;
 import tf.tailfriend.reserve.entity.Reserve;
 import tf.tailfriend.reserve.repository.ReserveDao;
 import tf.tailfriend.user.entity.User;
 import tf.tailfriend.user.repository.UserDao;
 
+import java.nio.file.AccessDeniedException;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @RequiredArgsConstructor
@@ -29,6 +35,7 @@ public class ReserveService {
     private final UserDao userDao;
     private final RedisService redisService;
     private final FacilityDao facilityDao;
+    private final FacilityPhotoDao facilityPhotoDao;
     private final StorageService storageService;
 
     @Transactional
@@ -121,6 +128,37 @@ public class ReserveService {
                 .latitude(reserve.getFacility().getLatitude())
                 .longitude(reserve.getFacility().getLongitude())
                 .build();
+    }
+
+    @Transactional(readOnly = true)
+    public FacilityReviewResponseDto getReserveForReview(ReviewPageRenderingRequestDto requestDto) {
+        Optional<Reserve> reserveOptional = reserveDao.findById(requestDto.getReserveId());
+
+        try {
+            Reserve reserve = reserveOptional.orElseThrow(() -> new EntityNotFoundException("예약 정보를 찾을 수 없습니다."));
+
+            if (!reserve.getUser().getId().equals(requestDto.getUserId())) {
+                return FacilityReviewResponseDto.builder()
+                        .errorMsg("접근 권한이 없습니다.") // 더 사용자 친화적인 메시지
+                        .build();
+            }
+
+            Facility facility = reserve.getFacility();
+            List<FacilityPhoto> facilityPhotos = facilityPhotoDao.findByFacilityId(facility.getId());
+
+            String thumbnail = facilityPhotos.isEmpty() ? null : storageService.generatePresignedUrl(facilityPhotos.get(0).getFile().getPath());
+
+            return FacilityReviewResponseDto.builder()
+                    .id(facility.getId())
+                    .name(reserve.getFacility().getName())
+                    .thumbnail(thumbnail)
+                    .build();
+
+        } catch (EntityNotFoundException e) {
+            return FacilityReviewResponseDto.builder()
+                    .errorMsg(e.getMessage())
+                    .build();
+        }
     }
 
 }

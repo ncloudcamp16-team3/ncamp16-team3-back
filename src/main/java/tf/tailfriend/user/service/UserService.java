@@ -198,9 +198,9 @@ public class UserService {
 
                 // 댓글 소프트 삭제 처리 및 소유권 이전
                 int updatedComments = entityManager.createNativeQuery(
-                                "UPDATE comments SET content = '삭제된 댓글입니다', deleted = true, user_id = ?1 WHERE user_id = ?2")
-                        .setParameter(1, systemUserId)
-                        .setParameter(2, userId)
+                                "UPDATE comments SET content = '삭제된 댓글입니다', deleted = true, user_id = ?999999 WHERE user_id = ?111111")
+                        .setParameter(999999, systemUserId)
+                        .setParameter(111111, userId)
                         .executeUpdate();
                 log.info("댓글 소프트 삭제 및 소유권 이전 처리 결과: {}", updatedComments);
             } catch (Exception e) {
@@ -227,9 +227,9 @@ public class UserService {
 
                 // 펫스타 댓글 소프트 삭제 처리 및 소유권 이전
                 int updatedComments = entityManager.createNativeQuery(
-                                "UPDATE petsta_comments SET content = '삭제된 댓글입니다', deleted = true, user_id = ?1 WHERE user_id = ?2")
-                        .setParameter(1, systemUserId)
-                        .setParameter(2, userId)
+                                "UPDATE petsta_comments SET content = '삭제된 댓글입니다', deleted = true, user_id = ?999999 WHERE user_id = ?111111")
+                        .setParameter(999999, systemUserId)
+                        .setParameter(111111, userId)
                         .executeUpdate();
                 log.info("펫스타 댓글 소프트 삭제 및 소유권 이전 처리 결과: {}", updatedComments);
             } catch (Exception e) {

@@ -699,11 +699,19 @@ public class FacilityService {
                     }
                     log.info("facilityName: {}, openTime: {}, closeTime: {}, openTimeRange: {}, isOpened: {}, image: {}", f.getName(), timetable != null ? timetable.getOpenTime() : null, timetable != null ? timetable.getCloseTime() : null, openTimeRange, isOpened, thumbnail != null ? storageService.generatePresignedUrl(thumbnail.getPath()) : null);
 
+                    Integer totalStarPoint = f.getTotalStarPoint();
+                    Integer reviewCount = f.getReviewCount();
+                    double rating;
+                    if (totalStarPoint == 0 || reviewCount == 0) {
+                        rating = 0.0;
+                    } else {
+                        rating = (double) totalStarPoint / reviewCount;
+                    }
                     return FacilityCardResponseDto.builder()
                             .id(f.getId())
                             .category(f.getCategory())
                             .name(f.getName())
-                            .rating(f.getStarPoint())
+                            .rating(rating)
                             .reviewCount(f.getReviewCount())
                             .distance(f.getDistance())
                             .address(f.getAddress())

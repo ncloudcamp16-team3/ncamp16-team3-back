@@ -13,12 +13,11 @@ import tf.tailfriend.file.service.FileService;
 import tf.tailfriend.global.service.RedisService;
 import tf.tailfriend.global.service.StorageService;
 import tf.tailfriend.global.service.StorageServiceException;
-import tf.tailfriend.petsta.entity.PetstaBookmark;
-import tf.tailfriend.petsta.entity.PetstaComment;
-import tf.tailfriend.petsta.entity.PetstaLike;
-import tf.tailfriend.petsta.entity.PetstaPost;
+import tf.tailfriend.petsta.entity.*;
+import tf.tailfriend.petsta.entity.dto.MentionDto;
 import tf.tailfriend.petsta.entity.dto.PetstaCommentResponseDto;
 import tf.tailfriend.petsta.entity.dto.PetstaPostResponseDto;
+import tf.tailfriend.petsta.exception.PostNotFoundException;
 import tf.tailfriend.petsta.repository.PetstaBookmarkDao;
 import tf.tailfriend.petsta.repository.PetstaCommentDao;
 import tf.tailfriend.petsta.repository.PetstaLikeDao;
@@ -29,8 +28,11 @@ import tf.tailfriend.user.repository.UserFollowDao;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.AccessDeniedException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -132,61 +134,65 @@ public class PetstaPostService {
     @Transactional
     public List<PetstaPostResponseDto> getAllPosts(Integer loginUserId, int page, int size) {
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
-        List<PetstaPost> posts = petstaPostDao.findAllByOrderByCreatedAtDesc(pageable).getContent();
 
+        // 🔥 삭제되지 않은 게시글만 가져옴
+        List<PetstaPost> posts = petstaPostDao.findAllByDeletedFalseOrderByCreatedAtDesc(pageable).getContent();
 
         return posts.stream()
                 .map(post -> {
                     boolean initialLiked = petstaLikeDao.existsByUserIdAndPetstaPostId(loginUserId, post.getId());
                     boolean initialBookmarked = petstaBookmarkDao.existsByUserIdAndPetstaPostId(loginUserId, post.getId());
                     boolean initialFollowed = userFollowDao.existsByFollowerIdAndFollowedId(loginUserId, post.getUser().getId());
-                    boolean isVisited = redisService.hasVisitedStory(post.getUser().getId(), loginUserId); // ✅ 방문 여부 조회
-
+                    boolean isVisited = redisService.hasVisitedStory(post.getUser().getId(), loginUserId);
 
                     PetstaPostResponseDto dto = new PetstaPostResponseDto(post, initialLiked, initialBookmarked, initialFollowed, isVisited);
 
-                    // 게시글 파일 URL
+                    // 파일 presigned URL
                     String fileUrl = storageService.generatePresignedUrl(post.getFile().getPath());
                     dto.setFileName(fileUrl);
 
-                    // 글쓴이(유저) 정보
+                    // 작성자 프로필 사진 presigned URL
                     User writer = post.getUser();
-
                     String userPhotoUrl = storageService.generatePresignedUrl(writer.getFile().getPath());
                     dto.setUserPhoto(userPhotoUrl);
-                    System.out.println(userPhotoUrl);
 
                     return dto;
                 })
-
                 .collect(Collectors.toList());
     }
 
+
     @Transactional
     public PetstaPostResponseDto getPostById(Integer loginUserId, Integer postId) {
-        // 1. postId로 게시글 조회
-        PetstaPost post = petstaPostDao.findById(postId)
-                .orElseThrow(() -> new EntityNotFoundException("해당 게시글을 찾을 수 없습니다."));
+        PetstaPost post = petstaPostDao.findByIdAndDeletedFalse(postId)
+                .orElseThrow(PostNotFoundException::new);
 
-        // 2. 좋아요, 북마크 여부 조회
         boolean initialLiked = petstaLikeDao.existsByUserIdAndPetstaPostId(loginUserId, post.getId());
         boolean initialBookmarked = petstaBookmarkDao.existsByUserIdAndPetstaPostId(loginUserId, post.getId());
         boolean initialFollowed = userFollowDao.existsByFollowerIdAndFollowedId(loginUserId, post.getUser().getId());
 
-        // 3. DTO 생성
         PetstaPostResponseDto dto = new PetstaPostResponseDto(post, initialLiked, initialBookmarked, initialFollowed, true);
 
-        // 4. 게시글 파일 presigned URL 생성
         String fileUrl = storageService.generatePresignedUrl(post.getFile().getPath());
         dto.setFileName(fileUrl);
 
-        // 5. 글쓴이 프로필사진 presigned URL 생성
-        User writer = post.getUser();
-
-        String userPhotoUrl = storageService.generatePresignedUrl(writer.getFile().getPath());
+        String userPhotoUrl = storageService.generatePresignedUrl(post.getUser().getFile().getPath());
         dto.setUserPhoto(userPhotoUrl);
 
         return dto;
+    }
+
+    @Transactional
+    public void updatePostContent(Integer userId, Integer postId, String newContent) throws AccessDeniedException {
+        PetstaPost post = petstaPostDao.findByIdAndDeletedFalse(postId)
+                .orElseThrow(() -> new PostNotFoundException());
+
+        if (!post.getUser().getId().equals(userId)) {
+            throw new AccessDeniedException("해당 게시글을 수정할 권한이 없습니다.");
+        }
+
+        post.setContent(newContent);
+        // 엔티티 변경 감지 → 자동 flush
     }
 
 
@@ -232,13 +238,80 @@ public class PetstaPostService {
     }
 
     @Transactional
-    public void addComment(Integer postId, Integer userId, String content, Integer parentId) {
+    public PetstaCommentResponseDto addComment(Integer postId, Integer userId, String content, Integer parentId, MentionDto mention) {
         PetstaPost post = petstaPostDao.findById(postId)
                 .orElseThrow(() -> new IllegalArgumentException("게시글을 찾을 수 없습니다: " + postId));
 
         User user = userDao.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("회원을 찾을 수 없습니다: " + userId));
 
+        PetstaComment parent = null;
+        if (parentId != null) {
+            parent = petstaCommentDao.findById(parentId)
+                    .orElseThrow(() -> new IllegalArgumentException("부모 댓글을 찾을 수 없습니다: " + parentId));
+        }
+
+        PetstaComment comment = PetstaComment.builder()
+                .post(post)
+                .user(user)
+                .content(content)
+                .parent(parent)
+                .build();
+
+        // ⬇️ 멘션 처리
+        PetstaCommentMention mentionEntity = null;
+        if (mention != null) {
+            User mentionedUser = userDao.findById(mention.getUserId())
+                    .orElseThrow(() -> new IllegalArgumentException("멘션된 유저를 찾을 수 없습니다: " + mention.getUserId()));
+
+            mentionEntity = PetstaCommentMention.builder()
+                    .comment(comment)
+                    .mentionedUser(mentionedUser)
+                    .mentionedNickname(mention.getNickname())
+                    .build();
+
+            comment.setMention(mentionEntity);
+        }
+
+        PetstaComment savedComment = petstaCommentDao.save(comment);
+
+        if (parent != null) {
+            parent.addReply(savedComment);
+            petstaCommentDao.save(parent);
+        }
+
+        petstaPostDao.incrementCommentCount(postId);
+
+        String formattedCreatedAt = savedComment.getCreatedAt()
+                .atZone(ZoneId.of("Asia/Seoul"))
+                .format(DateTimeFormatter.ISO_OFFSET_DATE_TIME);
+
+
+        // ✅ 최종 응답 DTO 생성 및 반환
+        return new PetstaCommentResponseDto(
+                savedComment.getId(),
+                savedComment.getContent(),
+                user.getNickname(),
+                user.getId(),
+                storageService.generatePresignedUrl(user.getFile().getPath()),
+                formattedCreatedAt,
+                parentId,
+                0,
+                true,
+                mention,
+                false
+        );
+    }
+
+
+
+    @Transactional
+    public PetstaComment addCommententity(Integer postId, Integer userId, String content, Integer parentId) {
+        PetstaPost post = petstaPostDao.findById(postId)
+                .orElseThrow(() -> new IllegalArgumentException("게시글을 찾을 수 없습니다: " + postId));
+
+        User user = userDao.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("회원을 찾을 수 없습니다: " + userId));
 
         PetstaComment parent = null;
         if (parentId != null) {
@@ -255,15 +328,16 @@ public class PetstaPostService {
 
         PetstaComment savedComment = petstaCommentDao.save(comment);
 
-        // 부모 댓글이 있으면, 대댓글 추가 처리
         if (parent != null) {
             parent.addReply(savedComment);
-            petstaCommentDao.save(parent); // replyCount 증가 저장
+            petstaCommentDao.save(parent);
         }
 
         petstaPostDao.incrementCommentCount(postId);
 
+        return savedComment;
     }
+
 
     @Transactional
     public List<PetstaCommentResponseDto> getParentCommentsByPostId(Integer currentId, Integer postId) {
@@ -272,9 +346,24 @@ public class PetstaPostService {
 
         return petstaCommentDao.findByPostAndParentIsNullOrderByCreatedAtDesc(post)
                 .stream()
+                .filter(comment -> !(comment.isDeleted() && comment.getReplyCount() == 0)) // 🔥 필터 조건
                 .map(comment -> {
                     Integer commentUserId = comment.getUser().getId();
-                    boolean isVisited = redisService.hasVisitedStory(commentUserId, currentId); // ✅ 방문 여부 조회
+                    boolean isVisited = redisService.hasVisitedStory(commentUserId, currentId);
+
+                    PetstaCommentMention mention = comment.getMention();
+                    MentionDto mentionDto = null;
+                    if (mention != null) {
+                        mentionDto = new MentionDto(
+                                mention.getMentionedUser().getId(),
+                                mention.getMentionedNickname()
+                        );
+                    }
+
+                    // ✅ createdAt을 KST 기준 문자열로 변환
+                    String formattedCreatedAt = comment.getCreatedAt()
+                            .atZone(ZoneId.of("Asia/Seoul"))
+                            .format(DateTimeFormatter.ISO_OFFSET_DATE_TIME);
 
                     return new PetstaCommentResponseDto(
                             comment.getId(),
@@ -282,14 +371,17 @@ public class PetstaPostService {
                             comment.getUser().getNickname(),
                             commentUserId,
                             storageService.generatePresignedUrl(comment.getUser().getFile().getPath()),
-                            comment.getCreatedAt(),
+                            formattedCreatedAt, // ✅ 포맷된 시간
                             null,
                             comment.getReplyCount(),
-                            isVisited
+                            isVisited,
+                            mentionDto,
+                            comment.isDeleted()
                     );
                 })
                 .collect(Collectors.toList());
     }
+
 
 
     @Transactional
@@ -299,9 +391,23 @@ public class PetstaPostService {
 
         return petstaCommentDao.findByParentOrderByCreatedAtAsc(parentComment)
                 .stream()
+                .filter(reply -> !(reply.isDeleted() && reply.getReplyCount() == 0)) // 🔥 동일 필터
                 .map(reply -> {
                     Integer replyUserId = reply.getUser().getId();
                     boolean isVisited = redisService.hasVisitedStory(replyUserId, currentUserId);
+
+                    PetstaCommentMention mention = reply.getMention();
+                    MentionDto mentionDto = null;
+                    if (mention != null) {
+                        mentionDto = new MentionDto(
+                                mention.getMentionedUser().getId(),
+                                mention.getMentionedNickname()
+                        );
+                    }
+
+                    String formattedCreatedAt = reply.getCreatedAt()
+                            .atZone(ZoneId.of("Asia/Seoul"))
+                            .format(DateTimeFormatter.ISO_OFFSET_DATE_TIME);
 
                     return new PetstaCommentResponseDto(
                             reply.getId(),
@@ -309,17 +415,57 @@ public class PetstaPostService {
                             reply.getUser().getNickname(),
                             replyUserId,
                             storageService.generatePresignedUrl(reply.getUser().getFile().getPath()),
-                            reply.getCreatedAt(),
+                            formattedCreatedAt,
                             reply.getParent().getId(),
                             reply.getReplyCount(),
-                            isVisited // 🔄 이제 동적으로 처리
+                            isVisited,
+                            mentionDto,
+                            reply.isDeleted() // 🔥 추가
                     );
                 })
                 .collect(Collectors.toList());
     }
 
 
+    @Transactional
+    public void deleteComment(Integer userId, Integer commentId) {
+        PetstaComment comment = petstaCommentDao.findById(commentId)
+                .orElseThrow(() -> new IllegalArgumentException("댓글을 찾을 수 없습니다: " + commentId));
 
+        if (!comment.getUser().getId().equals(userId)) {
+            throw new SecurityException("자신의 댓글만 삭제할 수 있습니다.");
+        }
+
+        comment.markAsDeleted(); // 삭제 표시
+
+        // 부모 댓글이면 replyCount 감소
+        if (comment.getParent() != null) {
+            PetstaComment parent = comment.getParent();
+            parent.setReplyCount(parent.getReplyCount() - 1);
+            petstaCommentDao.save(parent);
+        }
+
+        // 포스트 전체 댓글 수 감소
+        petstaPostDao.decrementCommentCount(comment.getPost().getId());
+
+        // 삭제된 댓글 저장
+        petstaCommentDao.save(comment);
+    }
+
+    @Transactional
+    public void deletePost(Integer userId, Integer postId) {
+        PetstaPost post = petstaPostDao.findById(postId)
+                .orElseThrow(() -> new IllegalArgumentException("게시물을 찾을 수 없습니다: " + postId));
+
+        if (!post.getUser().getId().equals(userId)) {
+            throw new SecurityException("자신의 게시물만 삭제할 수 있습니다.");
+        }
+
+        post.markAsDeleted(); // 삭제 표시
+
+        // 삭제된 댓글 저장
+        petstaPostDao.save(post);
+    }
 
 
 }

@@ -45,6 +45,9 @@ public class PetstaPost {
     @Column(name = "like_count", nullable = false)
     private Integer likeCount = 0;
 
+    @Column(nullable = false, columnDefinition = "TINYINT(1) DEFAULT 0")
+    private boolean deleted; // 🔥 삭제 여부
+
     public void increaseLikeCount() {
         this.likeCount++;
     }
@@ -61,4 +64,15 @@ public class PetstaPost {
 
     @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<PetstaComment> comments = new ArrayList<>();
+
+
+    // 🔽 댓글 삭제 처리 (소프트 삭제)
+    public void markAsDeleted() {
+        this.content = "";
+        this.deleted = true;
+    }
+
+    public void setContent(String content) {
+        this.content = content;
+    }
 }

@@ -25,7 +25,7 @@ public class FacilityAddResponseDto {
     private Integer reviewCount;
     private LocalDateTime createdAt;
     private List<FacilityTimetableDto> timetables;
-    private List<String> imageUrls;
+    private List<FacilityImageDto> images;
 
     // 내부 클래스: 시간표 DTO
     @Getter
@@ -37,5 +37,15 @@ public class FacilityAddResponseDto {
         private String day;
         private String openTime;
         private String closeTime;
+    }
+
+    @Getter
+    @Setter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
+    public static class FacilityImageDto {
+        private Integer id;
+        private String url;
     }
 }

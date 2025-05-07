@@ -1,13 +1,9 @@
 package tf.tailfriend.board.dto;
 
-import jakarta.persistence.FetchType;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
 import lombok.*;
 import tf.tailfriend.board.entity.Comment;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
 
 @Setter
@@ -15,7 +11,6 @@ import java.util.List;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@ToString
 public class CommentResponseDto {
 
     private Integer id;
@@ -28,7 +23,7 @@ public class CommentResponseDto {
     private boolean deleted;
     private boolean hasParent;
     private List<CommentResponseDto> children;
-    private CommentResponseDto refComment;
+    private CommentSummaryDto refComment;
 
 
     public static CommentResponseDto fromEntity(Comment comment) {
@@ -37,7 +32,7 @@ public class CommentResponseDto {
                 .authorId(comment.getUser().getId())
                 .authorNickname(comment.getUser().getNickname())
                 .authorProfileImg(comment.getUser().getFile().getPath())
-                .content(comment.getContent())
+                .content(comment.isDeleted() ? "삭제된 댓글입니다" : comment.getContent())
                 .createdAt(comment.getCreatedAt())
                 .modified(comment.isModified())
                 .deleted(comment.isDeleted())
@@ -45,8 +40,30 @@ public class CommentResponseDto {
                 .children(comment.getChildren().stream()
                         .map(CommentResponseDto::fromEntity)
                         .toList())
-                .refComment(comment.getRefComment() != null ? CommentResponseDto.fromEntity(comment.getRefComment()) : null)
-
+                .refComment(comment.getRefComment() != null ? CommentSummaryDto.fromEntity(comment.getRefComment()) : null)
                 .build();
     }
+
+    @Getter
+    public static class CommentSummaryDto {
+        private Integer id;
+        private String authorNickname;
+        private Integer authorId;
+
+        @Builder
+        public CommentSummaryDto(Integer id, String authorNickname, Integer authorId) {
+            this.id = id;
+            this.authorNickname = authorNickname;
+            this.authorId = authorId;
+        }
+
+        public static CommentSummaryDto fromEntity(Comment refcomment) {
+            return CommentSummaryDto.builder()
+                    .id(refcomment.getId())
+                    .authorNickname(refcomment.getUser().getNickname())
+                    .authorId(refcomment.getUser().getId())
+                    .build();
+        }
+    }
+
 }

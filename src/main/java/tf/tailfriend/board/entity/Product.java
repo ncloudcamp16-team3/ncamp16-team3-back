@@ -29,10 +29,9 @@ public class Product {
 
     private String address;
 
-    public void modifyProduct(Board board, Integer price, boolean sell, String address) {
-        this.board = board;
+    public void updateProduct(Integer price, Boolean sell, String addres) {
         this.price = price;
         this.sell = sell;
-        this.address = address;
+        this.address = addres;
     }
 }

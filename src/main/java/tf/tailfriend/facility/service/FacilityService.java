@@ -1,40 +1,42 @@
 package tf.tailfriend.facility.service;
 
+import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.*;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
-import tf.tailfriend.facility.dto.FacilityAddResponseDto;
-import tf.tailfriend.facility.dto.FacilityRequestDto;
-import tf.tailfriend.facility.dto.FacilityResponseDto;
-import tf.tailfriend.facility.entity.Facility;
-import tf.tailfriend.facility.entity.FacilityPhoto;
-import tf.tailfriend.facility.entity.FacilityTimetable;
-import tf.tailfriend.facility.entity.FacilityType;
+import tf.tailfriend.facility.dto.*;
+import tf.tailfriend.facility.entity.*;
 import tf.tailfriend.facility.entity.dto.forReserve.FacilityCardResponseDto;
+import tf.tailfriend.facility.entity.dto.forReserve.FacilityReviewResponseDto;
 import tf.tailfriend.facility.entity.dto.forReserve.FacilityWithDistanceProjection;
 import tf.tailfriend.facility.entity.dto.forReserve.ThumbnailForCardDto;
 import tf.tailfriend.facility.repository.*;
 import tf.tailfriend.file.entity.File;
+import tf.tailfriend.file.repository.FileDao;
 import tf.tailfriend.file.service.FileService;
+import tf.tailfriend.global.config.UserPrincipal;
 import tf.tailfriend.global.service.StorageService;
 import tf.tailfriend.global.service.StorageServiceException;
 import tf.tailfriend.reserve.dto.RequestForFacility.FacilityList;
+import tf.tailfriend.reserve.dto.RequestForFacility.ReviewInsertRequestDto;
+import tf.tailfriend.user.entity.User;
+import tf.tailfriend.user.repository.UserDao;
+
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.sql.Time;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-
 
 
 @Slf4j
@@ -46,8 +48,12 @@ public class FacilityService {
     private final FacilityTypeDao facilityTypeDao;
     private final FacilityTimetableDao facilityTimetableDao;
     private final FacilityPhotoDao facilityPhotoDao;
+    private final ReviewDao reviewDao;
+    private final UserDao userDao;
     private final StorageService storageService;
     private final FileService fileService;
+    private final FileDao fileDao;
+    private final ReviewPhotoDao reviewPhotoDao;
 
     @Transactional(readOnly = true)
     public Page<FacilityResponseDto> findAll(Pageable pageable) {
@@ -144,7 +150,7 @@ public class FacilityService {
                 .latitude(requestDto.getLatitude())
                 .longitude(requestDto.getLongitude())
                 .reviewCount(0)
-                .starPoint(0.0)
+                .totalStarPoint(0)
                 .createdAt(LocalDateTime.now())
                 .build();
 
@@ -161,6 +167,141 @@ public class FacilityService {
         List<File> savedFiles = saveImages(savedFacility, images);
 
         return convertToResponseDto(savedFacility, savedFiles);
+    }
+
+    @Transactional
+    public FacilityAddResponseDto updateFacility(Integer id, FacilityRequestDto requestDto, List<MultipartFile> newImages, List<String> imageIdsToKeep) {
+        log.info("시설 ID: {}의 이미지 업데이트", id);
+        log.info("유지할 이미지 ID: {}", imageIdsToKeep);
+        log.info("새 이미지 개수: {}", newImages != null ? newImages.size() : 0);
+
+        Facility facility = facilityDao.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("등록된 업체가 없습니다"));
+
+        FacilityType facilityType = facilityTypeDao.findById(requestDto.getFacilityTypeId())
+                .orElseThrow(() -> new IllegalArgumentException("등록된 시설 유형이 없습니다"));
+
+        facility.updateInformation(
+                facilityType,
+                requestDto.getName(),
+                requestDto.getTel(),
+                requestDto.getAddress(),
+                requestDto.getDetailAddress(),
+                requestDto.getComment(),
+                requestDto.getLatitude(),
+                requestDto.getLongitude()
+        );
+
+        updateWeeklyTimetables(
+                facility,
+                requestDto.getOpenTimes(),
+                requestDto.getCloseTimes(),
+                requestDto.getOpenDays()
+        );
+
+        List<File> updatedFiles;
+
+        if (newImages == null) {
+            newImages = Collections.emptyList();
+        }
+
+        if (imageIdsToKeep == null) {
+            imageIdsToKeep = Collections.emptyList();
+        }
+
+        // 1. newImages가 비어있고 imageIdsToKeep도 비어있으면 → 모든 이미지 삭제
+        // 2. imageIdsToKeep가 있으면 → 지정된 이미지만 유지하고 나머지 삭제
+        // 3. newImages가 있으면 → 새 이미지 추가
+        if (newImages.isEmpty() && imageIdsToKeep.isEmpty()) {
+            log.info("모든 이미지 삭제 요청 (newImages 없음, imageIdsToKeep 없음)");
+            // 모든 이미지 삭제
+            updatedFiles = updateImages(facility, Collections.emptyList(), Collections.emptyList());
+        } else {
+            // 특정 이미지 유지 및/또는 새 이미지 추가
+            log.info("이미지 선택적 업데이트 (유지할 이미지: {}, 새 이미지: {})",
+                    imageIdsToKeep.size(), newImages.size());
+            updatedFiles = updateImages(facility, newImages, imageIdsToKeep);
+        }
+
+        log.info("이미지 업데이트 완료 - 최종 이미지 개수: {}", updatedFiles.size());
+        return convertToResponseDto(facility, updatedFiles);
+    }
+
+    @Transactional
+    public void deleteFacilityById(Integer facilityId) {
+        Facility facility = facilityDao.findById(facilityId)
+                .orElseThrow(() -> new IllegalArgumentException("등록된 업체가 없습니다"));
+
+        facilityDao.delete(facility);
+    }
+
+    @Transactional(readOnly = true)
+    public FacilityDetailDto getFacilityDetailWithReviews(Integer facilityId) {
+        Facility facility = facilityDao.findById(facilityId)
+                .orElseThrow(() -> new IllegalArgumentException("시설을 찾을 수 없습니다: " + facilityId));
+
+        FacilityResponseDto facilityDto = convertToDto(facility);
+        Integer totalStarPoint = facility.getTotalStarPoint();
+        Integer reviewCount = facility.getReviewCount();
+        if (totalStarPoint == 0 || reviewCount == 0) {
+            facilityDto.setStarPoint(0.0);
+        } else {
+            double avg = (double) totalStarPoint / reviewCount;
+            facilityDto.setStarPoint(avg);
+        }
+
+        log.info("facilityDto: {}", facilityDto);
+
+        List<ReviewResponseDto> reviewDtos = getReviewDtos(facilityId);
+
+        List<Object[]> reviewRatio = reviewDao.countReviewsByStarPoint(facilityId);
+
+        return new FacilityDetailDto(facilityDto, reviewDtos, reviewRatio);
+    }
+
+    private List<ReviewResponseDto> getReviewDtos(Integer facilityId) {
+        // 1. 시설 ID로 리뷰 목록 조회
+        List<Review> reviews = reviewDao.findByFacilityIdOrderByCreatedAtDesc(facilityId);
+
+        // 2. 리뷰 DTO 목록 생성
+        List<ReviewResponseDto> reviewDtos = new ArrayList<>();
+
+        // 3. 각 리뷰를 DTO로 변환하여 목록에 추가
+        for (Review review : reviews) {
+            User user = review.getUser();
+
+            // 리뷰 기본 정보 생성
+            ReviewResponseDto reviewDto = ReviewResponseDto.builder()
+                    .id(review.getId())
+                    .userId(user.getId())
+                    .userName(user.getNickname())
+                    .comment(review.getComment())
+                    .starPoint(review.getStarPoint())
+                    .createdAt(review.getCreatedAt())
+                    .build();
+
+            // 사용자 프로필 이미지 URL 설정
+            if (user.getFile() != null && user.getFile().getId() != null) {
+                reviewDto.setUserProfileImage(
+                        storageService.generatePresignedUrl(user.getFile().getPath())
+                );
+            }
+
+            // 리뷰 이미지 URL 목록 설정
+            List<ReviewPhoto> reviewPhotos = reviewPhotoDao.findByReviewId(review.getId());
+            if (reviewPhotos != null && !reviewPhotos.isEmpty()) {
+                List<String> reviewImageUrls = reviewPhotos.stream()
+                        .map(reviewPhoto -> storageService.generatePresignedUrl(reviewPhoto.getFile().getPath()))
+                        .collect(Collectors.toList());
+                reviewDto.setReviewImages(reviewImageUrls);
+            } else {
+                reviewDto.setReviewImages(Collections.emptyList());
+            }
+
+            reviewDtos.add(reviewDto);
+        }
+
+        return reviewDtos;
     }
 
     private void saveWeeklyTimetables(Facility facility, Map<String, String> openTimes, Map<String, String> closeTimes, Map<String, Boolean> openDays) {
@@ -191,8 +332,7 @@ public class FacilityService {
                     log.error("시설 ID {}의 요일 {} 시간 반환 오류: {}", facility.getId(), dayName, e.getMessage());
                     continue;
                 }
-            }
-            else {
+            } else {
                 log.info("시설 ID {}의 요일 {} 휴무일 처리: null 시간 설정", facility.getId(), dayName);
                 timetable = FacilityTimetable.builder()
                         .facility(facility)
@@ -210,12 +350,67 @@ public class FacilityService {
         }
     }
 
+    private void updateWeeklyTimetables(Facility facility, Map<String, String> openTimes, Map<String, String> closeTimes, Map<String, Boolean> openDays) {
+        List<FacilityTimetable> timetables = new ArrayList<>();
+
+        for (FacilityTimetable.Day day : FacilityTimetable.Day.values()) {
+            String dayName = day.name();
+
+            boolean isOpen = openDays == null || Boolean.TRUE.equals(openDays.get(dayName));
+
+            FacilityTimetable timetable;
+
+            if (isOpen) {
+                String openTimeStr = openTimes.get(dayName);
+                String closeTimeStr = closeTimes.get(dayName);
+
+                try {
+                    Time openTime = Time.valueOf(openTimeStr + ":00");
+                    Time closeTime = Time.valueOf(closeTimeStr + ":00");
+
+                    timetable = facilityTimetableDao.findByFacilityAndDay(facility, day)
+                            .orElse(FacilityTimetable.builder()
+                                    .facility(facility)
+                                    .day(day)
+                                    .build());
+
+                    timetable = timetable.toBuilder()
+                            .openTime(openTime)
+                            .closeTime(closeTime)
+                            .build();
+                } catch (IllegalArgumentException e) {
+                    log.error("시설 ID {}의 요일 {} 시간 반환 오류: {}", facility.getId(), dayName, e.getMessage());
+                    continue;
+                }
+            } else {
+                log.info("시설 ID {}의 요일 {} 휴무일 처리: null 시간 설정", facility.getId(), dayName);
+                timetable = facilityTimetableDao.findByFacilityAndDay(facility, day)
+                        .orElse(FacilityTimetable.builder()
+                                .facility(facility)
+                                .day(day)
+                                .build());
+
+                timetable = timetable.toBuilder()
+                        .openTime(null)
+                        .closeTime(null)
+                        .build();
+            }
+
+            timetables.add(timetable);
+        }
+
+        if (!timetables.isEmpty()) {
+            facilityTimetableDao.saveAll(timetables);
+            log.info("시설 ID {}에 요일별 영업시간 {}건 업데이트 완료", facility.getId(), timetables.size());
+        }
+    }
+
     private List<File> saveImages(Facility facility, List<MultipartFile> images) {
         List<File> savedFiles = new ArrayList<>();
 
         if (images == null || images.isEmpty()) {
             log.info("시설 ID {}에 업로드된 이미지 없음", facility.getId());
-            return  savedFiles;
+            return savedFiles;
         }
 
         for (MultipartFile image : images) {
@@ -247,6 +442,97 @@ public class FacilityService {
         return savedFiles;
     }
 
+    private List<File> updateImages(Facility facility, List<MultipartFile> newImages, List<String> fileNamesToKeep) {
+        if (newImages == null) {
+            newImages = Collections.emptyList();
+        }
+
+        if (fileNamesToKeep == null) {
+            fileNamesToKeep = Collections.emptyList();
+        }
+
+        log.info("시설 ID: {}의 이미지 업데이트", facility.getId());
+        log.info("유지할 파일명 목록: {}", fileNamesToKeep);
+        log.info("새 이미지 개수: {}", newImages.size());
+
+        List<File> updatedFiles = new ArrayList<>();
+
+        // 기존 이미지
+        List<FacilityPhoto> existingPhotos = facilityPhotoDao.findByFacilityId(facility.getId());
+        log.info("기존 이미지 수: {}", existingPhotos);
+
+        if (existingPhotos != null && !existingPhotos.isEmpty()) {
+            // 삭제할 이미지와 유지할 이미지 분리
+            for (FacilityPhoto photo : existingPhotos) {
+                File file = photo.getFile();
+                String path = file.getPath();
+
+                String fileName = extractFileName(path);
+
+                if (fileNamesToKeep.contains(fileName)) {
+                    // 유지할 이미지
+                    updatedFiles.add(photo.getFile());
+                    log.info("이미지 유지: fileName: {}, fileId: {}", fileName, file.getId());
+                } else {
+                    // 삭제할 이미지
+                    try {
+                        log.info("이미지 삭제 처리 fileId: {}, fileName: {}", file.getId(), fileName);
+                        facilityPhotoDao.delete(photo);
+                        fileDao.delete(file);
+                        storageService.delete(path);
+                    } catch (StorageServiceException e) {
+                        log.warn("이미지 삭제 중 오류 발생: {}", e.getMessage());
+                    }
+                }
+            }
+        }
+
+        // 새 이미지 추가
+        if (!newImages.isEmpty()) {
+            for (MultipartFile imageFile : newImages) {
+                if (imageFile != null && !imageFile.isEmpty()) {
+                    try {
+                        // 파일 저장
+                        File savedFile = fileService.save(
+                                imageFile.getOriginalFilename(),
+                                "facility",
+                                File.FileType.PHOTO);
+
+                        // 물리적 파일 업로드
+                        try (InputStream is = imageFile.getInputStream()) {
+                            storageService.upload(savedFile.getPath(), is);
+                        }
+
+                        // 시설-이미지 연결 생성
+                        FacilityPhoto newPhoto = FacilityPhoto.of(savedFile, facility);
+
+                        // DB에 저장
+                        facilityPhotoDao.save(newPhoto);
+
+                        // 결과 목록에 추가
+                        updatedFiles.add(savedFile);
+                        log.info("새 이미지 추가 완료: fileId={}", savedFile.getId());
+                    } catch (Exception | StorageServiceException e) {
+                        log.error("새 이미지 추가 중 오류 발생: {}", e.getMessage());
+                    }
+                }
+            }
+        }
+
+        log.info("이미지 업데이트 완료 - 최종 이미지 개수: {}", updatedFiles.size());
+        return updatedFiles;
+    }
+
+    // 파일명 추출 헬퍼 메서드
+    private String extractFileName(String path) {
+        // uploads/facility/filename.jpg 형태에서 filename.jpg만 추출
+        int lastSlashIndex = path.lastIndexOf('/');
+        if (lastSlashIndex >= 0 && lastSlashIndex < path.length() - 1) {
+            return path.substring(lastSlashIndex + 1);
+        }
+        return path; // 슬래시가 없으면 전체 경로 반환
+    }
+
     private void validateImage(MultipartFile image) {
         long maxSize = 5 * 1024 * 1024;
         if (image.getSize() > maxSize) {
@@ -254,15 +540,11 @@ public class FacilityService {
         }
     }
 
-    @Transactional
-    public void deleteFacilityById(Integer facilityId) {
-        Facility facility = facilityDao.findById(facilityId)
-                .orElseThrow(() -> new IllegalArgumentException("등록된 업체가 없습니다"));
-
-        facilityDao.delete(facility);
-    }
-
     private FacilityAddResponseDto convertToResponseDto(Facility facility, List<File> files) {
+        Double starPoint = facility.getReviewCount() == 0
+                ? 0.0
+                : (double) facility.getTotalStarPoint() / facility.getReviewCount();
+
         FacilityAddResponseDto responseDto = FacilityAddResponseDto.builder()
                 .id(facility.getId())
                 .name(facility.getName())
@@ -273,7 +555,7 @@ public class FacilityService {
                 .comment(facility.getComment())
                 .latitude(facility.getLatitude())
                 .longitude(facility.getLongitude())
-                .starPoint(facility.getStarPoint())
+                .starPoint(starPoint)
                 .reviewCount(facility.getReviewCount())
                 .createdAt(facility.getCreatedAt())
                 .build();
@@ -295,14 +577,15 @@ public class FacilityService {
 
         responseDto.setTimetables(timetableDtos);
 
-        List<String> imageUrls = files.stream()
-                .map(file -> {
-                    String presignedUrl = storageService.generatePresignedUrl(file.getPath());
-                    return presignedUrl;
-                })
+        List<FacilityAddResponseDto.FacilityImageDto> imageDtos = files.stream()
+                .peek(file -> log.info("파일 ID: {}, 파일 경로: {}", file.getId(), file.getPath())) // 파일 정보 확인
+                .map(file -> FacilityAddResponseDto.FacilityImageDto.builder()
+                        .id(file.getId())
+                        .url(storageService.generatePresignedUrl(file.getPath()))
+                        .build())
                 .collect(Collectors.toList());
 
-        responseDto.setImageUrls(imageUrls);
+        responseDto.setImages(imageDtos);
 
         return responseDto;
     }
@@ -337,11 +620,32 @@ public class FacilityService {
                     .map(photo -> storageService.generatePresignedUrl(photo.getFile().getPath()))
                     .collect(Collectors.toList());
             dto.setImagePaths(imageUrls);
+            log.info("imageUrls: {}", imageUrls);
 
             if (!imageUrls.isEmpty()) {
                 dto.setImagePath(imageUrls.get(0));
             }
         }
+
+        // 영업 시간표 조회 및 설정
+        List<FacilityTimetable> timetables = facilityTimetableDao.findByFacilityId(facility.getId());
+
+        // 요일별 영업시간 맵으로 변환
+        Map<String, FacilityResponseDto.OpeningHoursDto> openingHours = new HashMap<>();
+
+        // DB에서 가져온 영업시간으로 업데이트
+        for (FacilityTimetable timetable : timetables) {
+            String day = timetable.getDay().toString();
+
+            FacilityResponseDto.OpeningHoursDto hoursDto = new FacilityResponseDto.OpeningHoursDto(
+                    timetable.getOpenTime() != null ? timetable.getOpenTime().toString() : null,
+                    timetable.getCloseTime() != null ? timetable.getCloseTime().toString() : null,
+                    timetable.getOpenTime() != null
+            );
+
+            openingHours.put(day, hoursDto);
+        }
+        dto.setOpeningHours(openingHours);
 
         return dto;
     }
@@ -397,11 +701,19 @@ public class FacilityService {
                     }
                     log.info("facilityName: {}, openTime: {}, closeTime: {}, openTimeRange: {}, isOpened: {}, image: {}", f.getName(), timetable != null ? timetable.getOpenTime() : null, timetable != null ? timetable.getCloseTime() : null, openTimeRange, isOpened, thumbnail != null ? storageService.generatePresignedUrl(thumbnail.getPath()) : null);
 
+                    Integer totalStarPoint = f.getTotalStarPoint();
+                    Integer reviewCount = f.getReviewCount();
+                    double rating;
+                    if (totalStarPoint == 0 || reviewCount == 0) {
+                        rating = 0.0;
+                    } else {
+                        rating = (double) totalStarPoint / reviewCount;
+                    }
                     return FacilityCardResponseDto.builder()
                             .id(f.getId())
                             .category(f.getCategory())
                             .name(f.getName())
-                            .rating(f.getStarPoint())
+                            .rating(rating)
                             .reviewCount(f.getReviewCount())
                             .distance(f.getDistance())
                             .address(f.getAddress())
@@ -413,5 +725,62 @@ public class FacilityService {
                 .collect(Collectors.toList());
 
         return new SliceImpl<>(mappedList, list.getPageable(), list.hasNext());
+    }
+
+    @Transactional
+    public void insertReview(ReviewInsertRequestDto requestDto, MultipartFile image) {
+
+        // 로그인 되어있는 유저 찾기
+        Integer userId = requestDto.getUserId();
+        User user = userDao.findById(userId).orElseThrow(() -> new EntityNotFoundException("유저 없음"));
+        log.info("유저: {}", user);
+
+        // 시설 찾기
+        Facility facility = facilityDao.findById(requestDto.getFacilityId()).orElseThrow(() -> new EntityNotFoundException("시설 없음"));
+        log.info("바뀌기 전 총 별점: {}", facility.getTotalStarPoint());
+
+        // 리뷰 저장
+        Review review = Review.builder()
+                .user(user)
+                .facility(facility)
+                .comment(requestDto.getComment())
+                .starPoint(requestDto.getStarPoint())
+                .build();
+        reviewDao.save(review);
+        log.info("리뷰: {}", review);
+
+        // 시설 별점 통계 업데이트
+        facility.updateTotalStarPoint(review.getStarPoint());
+        facility.updateReviewCount();
+        facilityDao.save(facility);
+        log.info("바뀐 후 총 별점: {}", facility.getTotalStarPoint());
+
+        // 리뷰 이미지 저장
+        File file = fileService.save(image.getOriginalFilename(), "review", File.FileType.PHOTO);
+        log.info("파일 저장 완료");
+
+        // 시설-리뷰 이미지 연결 생성
+        ReviewPhoto reviewPhoto = ReviewPhoto.of(file, review);
+        reviewPhotoDao.save(reviewPhoto);
+        log.info("시설-리뷰 이미지 연결 생성 완료");
+
+        try (InputStream is = image.getInputStream()) {
+        storageService.upload(file.getPath(), is);
+
+        } catch (IOException | StorageServiceException e) {
+            throw new RuntimeException("파일 업로드 중 오류 발생: " + e);
+        }
+    }
+
+    public FacilityReviewResponseDto getFacilityForReview(Integer id) {
+        Optional<Facility> facilityOptional = facilityDao.findById(id);
+        List<FacilityPhoto> facilityPhotos = facilityPhotoDao.findByFacilityId(id);
+
+        return facilityOptional.map(facility -> FacilityReviewResponseDto.builder()
+                        .id(facility.getId())
+                        .name(facility.getName())
+                        .thumbnail(facilityPhotos.isEmpty() ? null : storageService.generatePresignedUrl(facilityPhotos.get(0).getFile().getPath()))
+                        .build())
+                .orElse(null); // 또는 예외 처리
     }
 }

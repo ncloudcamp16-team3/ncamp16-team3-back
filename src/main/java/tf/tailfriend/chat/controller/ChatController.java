@@ -52,6 +52,23 @@ public class ChatController {
         return new CustomResponse("매칭 여부 조회 성공", matched);
     }
 
+    @PostMapping("/trade/start")
+    public void tradeMatchStart(
+            @AuthenticationPrincipal UserPrincipal userPrincipal,
+            @RequestParam Integer postId) {
+        Integer userId = userPrincipal.getUserId();
+        chatService.checkOrCreateTradeMatch(userId, postId);
+    }
+
+    @GetMapping("/trade/check")
+    public CustomResponse checkTradeMatch(
+            @AuthenticationPrincipal UserPrincipal userPrincipal,
+            @RequestParam Integer postId) {
+        Integer userId = userPrincipal.getUserId();
+        boolean matched = chatService.isTradeMatched(userId, postId);
+        return new CustomResponse("거래 매칭 여부 조회 성공", matched);
+    }
+
 
 }
 

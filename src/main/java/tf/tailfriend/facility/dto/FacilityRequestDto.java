@@ -12,7 +12,7 @@ import java.util.Map;
 public class FacilityRequestDto {
 
     private String name;
-    private String facilityTypeId;
+    private Integer facilityTypeId;
     private String tel;
     private String address;
     private String detailAddress;

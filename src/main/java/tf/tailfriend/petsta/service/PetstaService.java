@@ -40,7 +40,7 @@ public class PetstaService {
                 .orElseThrow(() -> new IllegalArgumentException("해당 유저를 찾을 수 없습니다."));
 
         // 2. 유저 게시글 조회
-        List<PetstaPost> posts = petstaPostDao.findByUserIdOrderByCreatedAtDesc(userId);
+        List<PetstaPost> posts = petstaPostDao.findByUserIdAndDeletedFalseOrderByCreatedAtDesc(userId);
 
         // 3. 요약 DTO로 변환
         List<PetstaSimplePostDto> postDtos = posts.stream()

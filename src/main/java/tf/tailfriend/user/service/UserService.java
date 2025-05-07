@@ -1,35 +1,47 @@
 package tf.tailfriend.user.service;
 
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
+import tf.tailfriend.board.entity.Board;
+import tf.tailfriend.board.repository.BoardBookmarkDao;
+import tf.tailfriend.board.repository.BoardDao;
+import tf.tailfriend.board.repository.BoardLikeDao;
+import tf.tailfriend.board.repository.CommentDao;
+import tf.tailfriend.chat.entity.ChatRoom;
+import tf.tailfriend.chat.repository.ChatRoomDao;
+import tf.tailfriend.chat.repository.TradeMatchDao;
 import tf.tailfriend.file.entity.File;
 import tf.tailfriend.file.repository.FileDao;
-import tf.tailfriend.file.service.FileService;
 import tf.tailfriend.global.service.StorageService;
-import tf.tailfriend.global.service.StorageServiceException;
+import tf.tailfriend.notification.repository.NotificationDao;
 import tf.tailfriend.pet.entity.Pet;
 import tf.tailfriend.pet.entity.PetPhoto;
-import tf.tailfriend.pet.entity.PetType;
+import tf.tailfriend.pet.repository.PetMatchDao;
 import tf.tailfriend.pet.repository.PetPhotoDao;
 import tf.tailfriend.pet.repository.PetDao;
-import tf.tailfriend.pet.repository.PetTypeDao;
 import tf.tailfriend.petsitter.repository.PetSitterDao;
-import tf.tailfriend.user.distance.Distance;
-import tf.tailfriend.user.entity.SnsType;
+import tf.tailfriend.petsta.repository.PetstaBookmarkDao;
+import tf.tailfriend.petsta.repository.PetstaCommentDao;
+import tf.tailfriend.petsta.repository.PetstaLikeDao;
+import tf.tailfriend.petsta.repository.PetstaPostDao;
+import tf.tailfriend.reserve.entity.Payment;
+import tf.tailfriend.reserve.entity.Reserve;
+import tf.tailfriend.reserve.repository.PaymentDao;
+import tf.tailfriend.reserve.repository.ReserveDao;
+import tf.tailfriend.schedule.repository.ScheduleDao;
 import tf.tailfriend.user.entity.User;
 import tf.tailfriend.user.entity.UserFollow;
 import tf.tailfriend.user.entity.dto.*;
 import tf.tailfriend.user.exception.UserException;
 import tf.tailfriend.user.exception.UserSaveException;
-import tf.tailfriend.user.repository.SnsTypeDao;
 import tf.tailfriend.user.repository.UserDao;
 import tf.tailfriend.user.repository.UserFollowDao;
 
-import java.io.IOException;
-import java.io.InputStream;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.Optional;
@@ -46,14 +58,25 @@ public class UserService {
     private final PetPhotoDao petPhotoDao;
     private final UserFollowDao userFollowDao;
     private final StorageService storageService;
+    private final BoardBookmarkDao boardBookmarkDao;
+    private final BoardDao boardDao;
+    private final BoardLikeDao boardLikeDao;
+    private final CommentDao commentDao;
+    private final ChatRoomDao chatRoomDao;
+    private final PetstaBookmarkDao petstaBookmarkDao;
+    private final PetstaLikeDao petstaLikeDao;
+    private final PetstaCommentDao petstaCommentDao;
+    private final PetstaPostDao petstaPostDao;
+    private final TradeMatchDao tradeMatchDao;
+    private final ScheduleDao scheduleDao;
+    private final ReserveDao reserveDao; // 추가
+    private final PaymentDao paymentDao;
+    private final NotificationDao notificationDao;
+    private final PetMatchDao petMatchDao;
+    @PersistenceContext
+    private EntityManager entityManager;
 
-
-    /**
-     * 회원의 마이페이지 정보를 조회합니다.
-     *
-     * @param userId 조회할 회원의 ID
-     * @return 회원 정보와 반려동물 정보가 포함된 MyPageResponseDto
-     */
+    //회원의 마이페이지 정보 조회
     public MypageResponseDto getMemberInfo(Integer userId) {
         // 1. 회원 정보 조회
         User user = userDao.findById(userId)
@@ -77,13 +100,7 @@ public class UserService {
                 .build();
     }
 
-    /**
-     * 회원의 닉네임을 업데이트합니다.
-     *
-     * @param userId      수정할 회원의 ID
-     * @param newNickname 새로운 닉네임
-     * @return 업데이트된 닉네임
-     */
+    // 회원의 닉네임 업데이트
     @Transactional
     public String updateNickname(Integer userId, String newNickname) {
         // 1. 닉네임 유효성 검사
@@ -91,7 +108,7 @@ public class UserService {
             throw new IllegalArgumentException("닉네임은 비어있을 수 없습니다.");
         }
 
-        // 2. 닉네임 길이 제한 (예시: 2-20자)
+        // 2. 닉네임 길이 제한
         if (newNickname.length() < 2 || newNickname.length() > 20) {
             throw new IllegalArgumentException("닉네임은 2-20자 사이여야 합니다.");
         }
@@ -107,8 +124,8 @@ public class UserService {
                     throw new IllegalArgumentException("이미 사용 중인 닉네임입니다: " + newNickname);
                 });
 
-        // 5. 닉네임 업데이트 (instanceof 검사 제거)
-        if (user != null) { // null 검사만 유지
+        // 5. 닉네임 업데이트
+        if (user != null) {
             user.updateNickname(newNickname);
         } else {
             throw new UnsupportedOperationException("닉네임 업데이트를 할 수 없습니다.");
@@ -120,13 +137,7 @@ public class UserService {
         return newNickname;
     }
 
-    /**
-     * 회원 프로필 이미지를 업데이트합니다.
-     *
-     * @param userId 수정할 회원의 ID
-     * @param fileId 새 프로필 이미지 파일 ID
-     * @return 업데이트된 이미지 URL
-     */
+    // 회원 프로필 이미지 업데이트
     @Transactional
     public String updateProfileImage(Integer userId, Integer fileId) {
         // 1. 회원 조회
@@ -145,55 +156,135 @@ public class UserService {
         return file.getPath();
     }
 
-    /**
-     * 회원을 탈퇴시킵니다.
-     *
-     * @param userId 탈퇴할 회원의 ID
-     */
+    //회원을 탈퇴
     @Transactional
     public void withdrawMember(Integer userId) {
-        // 1. 회원 조회
-        User user = userDao.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회원입니다: " + userId));
+        try {
+            // 회원 조회
+            User user = userDao.findById(userId)
+                    .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회원입니다: " + userId));
 
 
-        // 2. 팔로우 관계 삭제 (팔로워 및 팔로잉)
-        userFollowDao.deleteByFollowerId(userId);
-        userFollowDao.deleteByFollowedId(userId);
+            // 알림 데이터 삭제
+            notificationDao.deleteByUserId(userId);
 
-        // 3. 펫시터 정보가 있다면 함께 삭제
-        petSitterDao.findById(userId).ifPresent(petSitterDao::delete);
+            // 채팅 관련 데이터 삭제
+            List<ChatRoom> userChatRooms = chatRoomDao.findAllByUser1OrUser2(user, user);
+            for (ChatRoom chatRoom : userChatRooms) {
+                chatRoomDao.delete(chatRoom);
+            }
 
-        // 4. 반려동물 관련 데이터 삭제
-        user.getPet().forEach(pet -> {
-            // 반려동물 사진 삭제
-            petPhotoDao.deleteByPetId(pet.getId());
+            // 거래 매칭 데이터 삭제
+            tradeMatchDao.deleteByUserId(userId);
 
-            // 반려동물 삭제
-            petDao.delete(pet);
-        });
+            // 예약 및 결제 데이터 삭제
+            List<Reserve> userReserves = reserveDao.findByUserId(userId);
+            for (Reserve reserve : userReserves) {
+                Payment payment = paymentDao.findByReserveId(reserve.getId()).orElse(null);
+                if (payment != null) {
+                    paymentDao.delete(payment);
+                }
+                reserveDao.delete(reserve);
+            }
 
-        // 5. 회원 삭제
-        userDao.delete(user);
+            //  일정데이터 삭제
+            scheduleDao.deleteByUserId(userId);
+
+            // 게시판 관련 데이터 삭제
+            // 댓글 처리 - 댓글 소유권 이전 및 소프트 삭제
+            try {
+                // 탈토한 계정으로 할꺼임 id1을 ㅇㅋ?
+                Integer systemUserId = 1; // 관리자 또는 시스템 계정 ID
+
+                // 댓글 소프트 삭제 처리 및 소유권 이전
+                int updatedComments = entityManager.createNativeQuery(
+                                "UPDATE comments SET content = '삭제된 댓글입니다', deleted = true, user_id = ?1 WHERE user_id = ?2")
+                        .setParameter(1, systemUserId)
+                        .setParameter(2, userId)
+                        .executeUpdate();
+                log.info("댓글 소프트 삭제 및 소유권 이전 처리 결과: {}", updatedComments);
+            } catch (Exception e) {
+                log.error("댓글 처리 중 오류: {}", e.getMessage(), e);
+            }
+
+            // 게시판 북마크, 좋아요 삭제
+            boardBookmarkDao.deleteByUserId(userId);
+            boardLikeDao.deleteByUserId(userId);
+
+            //사용자가 작성한 게시글 처리
+            List<Board> userBoards = boardDao.findByUserIdOrderByCreatedAtDesc(userId);
+            for (Board board : userBoards) {
+                try {
+                    boardDao.delete(board);
+                } catch (Exception e) {
+                    log.error("게시글 삭제 중 오류: {}", e.getMessage());
+                }
+            }
+
+            // 펫스타 관련 데이터 삭제
+            try {
+                Integer systemUserId = 1; // 관리자 또는 시스템 계정 ID -탈퇴한 사용자로
+
+                // 펫스타 댓글 소프트 삭제 처리 및 소유권 이전
+                int updatedComments = entityManager.createNativeQuery(
+                                "UPDATE petsta_comments SET content = '삭제된 댓글입니다', deleted = true, user_id = ?1 WHERE user_id = ?2")
+                        .setParameter(1, systemUserId)
+                        .setParameter(2, userId)
+                        .executeUpdate();
+                log.info("펫스타 댓글 소프트 삭제 및 소유권 이전 처리 결과: {}", updatedComments);
+            } catch (Exception e) {
+                log.error("펫스타 댓글 처리 중 오류: {}", e.getMessage(), e);
+            }
+
+            // 펫스타 북마크, 좋아요 삭제
+            petstaBookmarkDao.deleteByUserId(userId);
+            petstaLikeDao.deleteByUserId(userId);
+
+            //펫스타 게시글 삭제
+            petstaPostDao.deleteByUserId(userId);
+
+            // 팔로우 관계 삭제
+            userFollowDao.deleteByFollowerId(userId);
+            userFollowDao.deleteByFollowedId(userId);
+
+            // 펫시터 정보 삭제
+            petSitterDao.findById(userId).ifPresent(petSitterDao::delete);
+
+            // 반려동물 관련 데이터 삭제
+            user.getPet().forEach(pet -> {
+                try {
+                    petMatchDao.deleteByPet1IdOrPet2Id(pet.getId());
+                    petPhotoDao.deleteByPetId(pet.getId());
+                    petDao.delete(pet);
+                } catch (Exception e) {
+                    log.error("반려동물 데이터 삭제 중 오류: {}", e.getMessage());
+                }
+            });
+
+            // 회원 삭제
+            userDao.delete(user);
+
+        } catch (Exception e) {
+            log.error("회원 탈퇴 중 오류 발생: {}", e.getMessage(), e);
+            throw new IllegalStateException("회원 탈퇴 처리 중 오류가 발생했습니다: " + e.getMessage());
+        }
     }
 
-    /**
-     * Pet 엔티티를 PetResponseDto로 변환합니다.
-     */
+
     private PetResponseDto convertToPetDto(Pet pet) {
         // 1. 반려동물 썸네일 이미지 URL 찾기
         String petProfileImageUrl = pet.getPhotos().stream()
-                .filter(PetPhoto::isThumbnail)  // 썸네일로 설정된 사진 필터링
+                .filter(PetPhoto::isThumbnail)
                 .findFirst()
                 .or(() -> pet.getPhotos().stream().findFirst())
                 .map(photo -> storageService.generatePresignedUrl(photo.getFile().getPath()))
-                .orElse(null);  // 썸네일이 없으면 null
+                .orElse(null);
 
         // 2. PetResponseDto 생성 및 반환
         return PetResponseDto.builder()
                 .id(pet.getId())
                 .name(pet.getName())
-                .type(pet.getPetType().getName())  // ID가 아닌 이름으로 반환
+                .type(pet.getPetType().getName())
                 .gender(pet.getGender())
                 .birth(pet.getBirth())
                 .weight(pet.getWeight())
@@ -234,7 +325,7 @@ public class UserService {
                 .orElseThrow(() -> new IllegalArgumentException("유저를 찾을 수 없습니다."))
                 .getNickname(); // ← 여기서 닉네임만 추출
     }
-  
+
     public void userInfoSave(UserInfoDto userInfoDto) {
 
         User userEntity = userDao.findById(userInfoDto.getId())
@@ -252,7 +343,7 @@ public class UserService {
 
             userDao.save(updatedUser);
 
-        }  catch (Exception e) {
+        } catch (Exception e) {
             throw new UserSaveException();
         }
     }

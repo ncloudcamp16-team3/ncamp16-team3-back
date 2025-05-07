@@ -28,6 +28,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
 
+
+
 @Service
 @RequiredArgsConstructor
 public class AuthService {
@@ -115,7 +117,7 @@ public class AuthService {
                 File file = fileService.save(image.getOriginalFilename(), "pet", photoDto.getType());
 
                 try (InputStream is = image.getInputStream()) {
-                    storageService.upload(file.getPath(), is);
+                    storageService.openUpload(file.getPath(), is);
                 } catch (IOException | StorageServiceException e) {
                     throw new RuntimeException("파일 업로드 실패: " + e.getMessage(), e);
                 }
@@ -133,5 +135,10 @@ public class AuthService {
 
         return user;
     }
+
+    public boolean isNicknameExists(String nickname) {
+        return userDao.existsByNickname(nickname);
+    }
+
 
 }

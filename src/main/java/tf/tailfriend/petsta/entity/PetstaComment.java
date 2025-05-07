@@ -32,6 +32,9 @@ public class PetstaComment {
     @Column(nullable = false)
     private String content;
 
+    @Column(nullable = false, columnDefinition = "TINYINT(1) DEFAULT 0")
+    private boolean deleted; // 🔥 삭제 여부
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "parent_id")
     private PetstaComment parent;
@@ -47,9 +50,32 @@ public class PetstaComment {
     @Column(name = "reply_count", nullable = false)
     private Integer replyCount = 0;
 
+    @OneToOne(mappedBy = "comment", cascade = CascadeType.ALL, orphanRemoval = true)
+    private PetstaCommentMention mention;
+
+    // 🔽 멘션 설정
+    public void setMention(PetstaCommentMention mention) {
+        this.mention = mention;
+        if (mention != null) {
+            mention.setComment(this);
+        }
+    }
+
+    // 🔽 대댓글 추가
     public void addReply(PetstaComment reply) {
         replies.add(reply);
         reply.parent = this;
         replyCount++;
     }
+
+    // 🔽 댓글 삭제 처리 (소프트 삭제)
+    public void markAsDeleted() {
+        this.content = "";
+        this.deleted = true;
+    }
+
+    public void setReplyCount(int replyCount) {
+        this.replyCount = replyCount;
+    }
+
 }

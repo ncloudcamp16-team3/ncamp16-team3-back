@@ -75,7 +75,8 @@ public class PetController {
             @AuthenticationPrincipal UserPrincipal userPrincipal,
             @PathVariable Integer petId,
             @RequestPart("petData") PetRequestDto petRequestDto,
-            @RequestPart(value = "images", required = false) List<MultipartFile> images) {
+            @RequestPart(value = "images", required = false) List<MultipartFile> images,
+            @RequestPart(value = "existingPhotos", required = false) MultipartFile existingPhotos) {
 
         if (userPrincipal == null) {
             return ResponseEntity.status(401)
@@ -84,7 +85,7 @@ public class PetController {
 
         try {
             Integer userId = userPrincipal.getUserId();
-            petService.updatePet(userId, petId, petRequestDto, images);
+            petService.updatePet(userId, petId, petRequestDto, images, existingPhotos);
 
             return ResponseEntity.ok(new CustomResponse("반려동물 정보가 수정되었습니다.", petId));
         } catch (Exception e) {
@@ -138,7 +139,7 @@ public class PetController {
     @PostMapping("/my/{userId}")
     public ResponseEntity<?> getMyPets(@PathVariable Integer userId, @AuthenticationPrincipal UserPrincipal userPrincipal) {
         try {
-            if(!Objects.equals(userId, userPrincipal.getUserId())) {
+            if (!Objects.equals(userId, userPrincipal.getUserId())) {
                 throw new UnauthorizedException();
             }
             List<PetDetailResponseDto> myPets = petService.getMyPets(userId);
@@ -155,12 +156,12 @@ public class PetController {
     public ResponseEntity<?> savePet(@PathVariable Integer userId, @AuthenticationPrincipal UserPrincipal userPrincipal,
                                      @RequestBody PetDetailResponseDto petDetailResponseDto) {
 
-        if(!Objects.equals(userId, userPrincipal.getUserId())) {
+        if (!Objects.equals(userId, userPrincipal.getUserId())) {
             throw new UnauthorizedException();
         }
 
         try {
-            petService.updatePet(petDetailResponseDto);
+            petService.MyupdatePet(petDetailResponseDto);
 
             return ResponseEntity.ok(new CustomResponse(UPDATE_PET_SUCCESS.getMessage(), null));
         } catch (Exception e) {

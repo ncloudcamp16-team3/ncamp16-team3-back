@@ -17,5 +17,4 @@ public class PaymentService {
         return paymentDao.findPaymentsByRequestDto(requestDto);
      }
 
-
 }

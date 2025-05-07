@@ -17,7 +17,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class CalendarReserveController {
 
-    CalendarReserveService calendarReserveService;
+    private final CalendarReserveService calendarReserveService;
 
     @GetMapping
     public ResponseEntity<?> getAllReserve(Integer userId) {

@@ -1,13 +1,13 @@
-package tf.tailfriend.user.entity.dto;
+package tf.tailfriend.petsta.entity.dto;
 
 import lombok.AllArgsConstructor;
-import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-@Data
+@Getter
 @NoArgsConstructor
 @AllArgsConstructor
-public class LoginRequestDto {
+public class MentionDto {
     private Integer userId;
-//    private String snsAccountId;
+    private String nickname;
 }

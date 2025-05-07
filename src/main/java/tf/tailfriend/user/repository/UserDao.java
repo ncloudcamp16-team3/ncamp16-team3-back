@@ -18,6 +18,10 @@ public interface UserDao extends JpaRepository<User, Integer> {
     void incrementPostCount(@Param("id") Integer userId);
 
     @Modifying
+    @Query("update User u set u.postCount = u.postCount - 1 where u.id = :id")
+    void decrementPostCount(@Param("id") Integer userId);
+
+    @Modifying
     @Query("update User u set u.followerCount = u.followerCount + 1 where u.id = :id")
     void incrementFollowerCount(@Param("id") Integer userId);
 
@@ -34,4 +38,5 @@ public interface UserDao extends JpaRepository<User, Integer> {
     void decrementFollowCount(@Param("id") Integer userId);
 
     boolean existsByNickname(String nickname);
+
 }

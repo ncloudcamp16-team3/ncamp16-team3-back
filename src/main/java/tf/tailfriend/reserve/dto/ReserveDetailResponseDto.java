@@ -17,4 +17,6 @@ public class ReserveDetailResponseDto {
     private LocalDateTime exitTime;
     private Integer amount;
     private String image;
+    private Double latitude;
+    private Double longitude;
 }

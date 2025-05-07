@@ -51,7 +51,6 @@ public class PetService {
     private final UserDao userDao;
     private final FileDao fileDao;
     private final FileService fileService;
-    private final NCPObjectStorageService ncpObjectStorageService;
     private final PetPhotoDao petPhotoDao;
     private final DongDao dongDao;
     private final StorageService storageService;
@@ -63,8 +62,8 @@ public class PetService {
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 반려동물입니다: " + petId));
 
         PetDetailResponseDto petResponse = makePetDetailResponseDto(pet);
-        setPresignedUrl(petResponse.getPhotos());
-
+        setPublicUrls(petResponse.getPhotos());
+        System.out.println("결과값: " + petResponse.getPhotos());
         return petResponse;
     }
 
@@ -153,23 +152,39 @@ public class PetService {
 
             PetPhotoDto defaultPhotoDto = PetPhotoDto.builder()
                     .id(defaultImgFile.getId())
-                    .path(ncpObjectStorageService.generatePresignedUrl(defaultImgFile.getPath()))
+                    .path(storageService.generatePresignedUrl(defaultImgFile.getPath()))
                     .thumbnail(true)
                     .build();
 
             photoDtos.add(defaultPhotoDto);
         } else {
             for (PetPhotoDto petPhotoDto : photoDtos) {
-                petPhotoDto.setPath(ncpObjectStorageService.generatePresignedUrl(petPhotoDto.getPath()));
+                petPhotoDto.setPath(storageService.generatePresignedUrl(petPhotoDto.getPath()));
             }
         }
     }
 
     private void setPublicUrls(List<PetPhotoDto> photoDtos) {
-        for (PetPhotoDto dto : photoDtos) {
-            dto.setPath(storageService.generatePresignedUrl(dto.getPath()));
+        if (photoDtos.isEmpty()) {
+            File defaultImgFile = fileDao.findById(1)
+                    .orElseThrow(() -> new FoundFileException());
+
+            System.out.println("뭐가나오는거"+defaultImgFile.getPath());
+
+            PetPhotoDto defaultPhotoDto = PetPhotoDto.builder()
+                    .id(defaultImgFile.getId())
+                    .path(fileService.getFullUrl(defaultImgFile.getPath()))
+                    .thumbnail(true)
+                    .build();
+
+            photoDtos.add(defaultPhotoDto);
+        } else {
+            for (PetPhotoDto dto : photoDtos) {
+                dto.setPath(fileService.getFullUrl(dto.getPath()));
+            }
         }
     }
+
 
     //수정
     @Transactional

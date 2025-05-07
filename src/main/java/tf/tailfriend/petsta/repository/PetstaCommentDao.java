@@ -32,6 +32,12 @@ public interface PetstaCommentDao extends JpaRepository<PetstaComment, Integer> 
     @Query("DELETE FROM PetstaComment c WHERE c.post.id = :postId AND c.parent IS NULL")
     void deleteParentsByPostId(@Param("postId") Integer postId);
 
+    @Modifying
+    @Query("DELETE FROM PetstaComment pc WHERE pc.user.id = :userId")
+    void deleteByUserId(@Param("userId") Integer userId);
 
+    @Modifying
+    @Query(value = "?1", nativeQuery = true)
+    void executeNativeQuery(String sql, Object... params);
 }
 

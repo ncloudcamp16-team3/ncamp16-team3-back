@@ -241,6 +241,16 @@ public class FacilityService {
                 .orElseThrow(() -> new IllegalArgumentException("시설을 찾을 수 없습니다: " + facilityId));
 
         FacilityResponseDto facilityDto = convertToDto(facility);
+        Integer totalStarPoint = facility.getTotalStarPoint();
+        Integer reviewCount = facility.getReviewCount();
+        if (totalStarPoint == 0 || reviewCount == 0) {
+            facilityDto.setStarPoint(0.0);
+        } else {
+            double avg = (double) totalStarPoint / reviewCount;
+            facilityDto.setStarPoint(avg);
+        }
+
+        log.info("facilityDto: {}", facilityDto);
 
         List<ReviewResponseDto> reviewDtos = getReviewDtos(facilityId);
 
@@ -691,11 +701,19 @@ public class FacilityService {
                     }
                     log.info("facilityName: {}, openTime: {}, closeTime: {}, openTimeRange: {}, isOpened: {}, image: {}", f.getName(), timetable != null ? timetable.getOpenTime() : null, timetable != null ? timetable.getCloseTime() : null, openTimeRange, isOpened, thumbnail != null ? storageService.generatePresignedUrl(thumbnail.getPath()) : null);
 
+                    Integer totalStarPoint = f.getTotalStarPoint();
+                    Integer reviewCount = f.getReviewCount();
+                    double rating;
+                    if (totalStarPoint == 0 || reviewCount == 0) {
+                        rating = 0.0;
+                    } else {
+                        rating = (double) totalStarPoint / reviewCount;
+                    }
                     return FacilityCardResponseDto.builder()
                             .id(f.getId())
                             .category(f.getCategory())
                             .name(f.getName())
-                            .rating(f.getStarPoint())
+                            .rating(rating)
                             .reviewCount(f.getReviewCount())
                             .distance(f.getDistance())
                             .address(f.getAddress())

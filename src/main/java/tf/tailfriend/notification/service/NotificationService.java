@@ -190,7 +190,7 @@ public void sendNotificationToUser(NotificationDto dto) {
     }
 }
 public boolean existsByUserIdAndReadStatusFalse(Integer userId) {
-    return notificationDao.existsByUserIdAndReadStatusFalse(userId);
+    return notificationDao.existsByUserIdAndReadStatusFalseAndNotificationTypeIdNot(userId, 7);
 }
 
 

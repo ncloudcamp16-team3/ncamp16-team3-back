@@ -30,6 +30,11 @@ import tf.tailfriend.petsta.repository.PetstaBookmarkDao;
 import tf.tailfriend.petsta.repository.PetstaCommentDao;
 import tf.tailfriend.petsta.repository.PetstaLikeDao;
 import tf.tailfriend.petsta.repository.PetstaPostDao;
+import tf.tailfriend.reserve.entity.Reserve;
+import tf.tailfriend.reserve.repository.PaymentDao;
+import tf.tailfriend.reserve.repository.ReserveDao;
+import tf.tailfriend.schedule.entity.Schedule;
+import tf.tailfriend.schedule.repository.ScheduleDao;
 import tf.tailfriend.user.entity.User;
 import tf.tailfriend.user.entity.UserFollow;
 import tf.tailfriend.user.entity.dto.*;
@@ -40,6 +45,7 @@ import tf.tailfriend.user.repository.UserFollowDao;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.Optional;
 
@@ -66,7 +72,10 @@ public class UserService {
     private final BoardDao boardDao;
     private final ProductDao productDao;
     private final PetDao petDao;
-    private final NotificationDao notificationDao
+    private final NotificationDao notificationDao;
+    private final ReserveDao reserveDao;
+    private final ScheduleDao scheduleDao;
+
 
     @PersistenceContext
     private EntityManager entityManager;
@@ -306,86 +315,21 @@ public class UserService {
             notificationDao.deleteByUserId(userId);
 
 
-//            try {
-//                // 결제 정보 삭제
-//                entityManager.createNativeQuery(
-//                                "DELETE p FROM payments p " +
-//                                        "JOIN reserves r ON p.reserve_id = r.id " +
-//                                        "WHERE r.user_id = ?")
-//                        .setParameter(1, userId)
-//                        .executeUpdate();
-//
-//                // 예약 정보 삭제
-//                entityManager.createNativeQuery("DELETE FROM reserves WHERE user_id = ?")
-//                        .setParameter(1, userId)
-//                        .executeUpdate();
-//            } catch (Exception e) {
-//                log.error("예약 정보 삭제 중 오류: {}", e.getMessage());
-//            }
-//
-//            try {
-//                // 반려동물 매칭 삭제
-//                entityManager.createNativeQuery(
-//                                "DELETE FROM pet_matches WHERE pet1_id IN (SELECT id FROM pets WHERE owner_id = ?) OR pet2_id IN (SELECT id FROM pets WHERE owner_id = ?)")
-//                        .setParameter(1, userId)
-//                        .setParameter(2, userId)
-//                        .executeUpdate();
-//
-//                // 반려동물 사진 삭제
-//                entityManager.createNativeQuery(
-//                                "DELETE pp FROM pet_photos pp " +
-//                                        "JOIN pets p ON pp.pet_id = p.id " +
-//                                        "WHERE p.owner_id = ?")
-//                        .setParameter(1, userId)
-//                        .executeUpdate();
-//
-//                // 반려동물
-//                entityManager.createNativeQuery(
-//                                "DELETE FROM pets WHERE owner_id = ?")
-//                        .setParameter(1, userId)
-//                        .executeUpdate();
-//            } catch (Exception e) {
-//                log.error("반려동물 처리 중 오류: {}", e.getMessage());
-//            }
-//
-//            // 펫시터 정보 처리
-//            try {
-//                entityManager.createNativeQuery(
-//                                "DELETE FROM pet_sitters WHERE id = ?")
-//                        .setParameter(1, userId)
-//                        .executeUpdate();
-//            } catch (Exception e) {
-//                log.error("펫시터 처리 중 오류: {}", e.getMessage());
-//            }
-//
-//            try {
-//                // 알림 데이터 삭제
-//                entityManager.createNativeQuery("DELETE FROM notifications WHERE user_id = ?")
-//                        .setParameter(1, userId)
-//                        .executeUpdate();
-//
-//                // 거래 매칭 데이터 삭제
-//                entityManager.createNativeQuery("DELETE FROM trade_matches WHERE user_id = ?")
-//                        .setParameter(1, userId)
-//                        .executeUpdate();
-//
-//                // 일정 데이터 삭제
-//                entityManager.createNativeQuery("DELETE FROM schedules WHERE user_id = ?")
-//                        .setParameter(1, userId)
-//                        .executeUpdate();
-//            } catch (Exception e) {
-//                log.error("알림, 거래 매칭, 일정 데이터 삭제 중 오류: {}", e.getMessage());
-//            }
-//
-//            // 회원 정보 완전 삭제
-//            try {
-//                entityManager.createNativeQuery("DELETE FROM users WHERE id = ?")
-//                        .setParameter(1, userId)
-//                        .executeUpdate();
-//
-//            } catch (Exception e) {
-//                throw e; // 회원 삭제 실패 시 예외 전파
-//            }
+            List<Reserve> reserves = reserveDao.findAllByUserId(userId);
+            reserveDao.deleteAll(reserves);
+
+            petSitterDao.findById(userId).ifPresent(petSitter -> {
+                petSitter.setFile(null);       // 🔥 file 연결 끊기
+                petSitterDao.save(petSitter);  // 🔄 update로 null 반영
+                petSitterDao.delete(petSitter); // ✅ 이제 삭제 가능
+            });
+            List<Schedule> schedules = scheduleDao.findByUserId(userId);
+            scheduleDao.deleteAll(schedules);
+
+            user.setNickname("deleted-" + UUID.randomUUID().toString().replace("-", "").substring(0, 20));
+            user.setSnsAccountId("deleted-" + UUID.randomUUID().toString().replace("-", ""));
+            user.setDeleted(true);//
+
         } catch (Exception e) {
             log.error("회원 탈퇴 중 오류 발생: {}", e.getMessage(), e);
             throw new IllegalStateException("회원 탈퇴 처리 중 오류가 발생했습니다: " + e.getMessage());

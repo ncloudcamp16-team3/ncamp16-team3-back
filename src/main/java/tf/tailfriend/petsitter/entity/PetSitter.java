@@ -66,6 +66,10 @@ public class PetSitter {
     @Column(nullable = false)
     private PetSitterStatus status = PetSitterStatus.NONE;
 
+    public void setFile(File file) {
+        this.file = file;
+    }
+
 
     @Getter
     public enum PetCount {

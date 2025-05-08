@@ -16,4 +16,6 @@ public interface TradeMatchDao extends JpaRepository<TradeMatch, Integer> {
     @Modifying
     @Query("DELETE FROM TradeMatch t WHERE t.user.id = :userId")
     void deleteByUserId(@Param("userId") Integer userId);
+
+    Iterable<? extends TradeMatch> findAllByUserId(Integer userId);
 }

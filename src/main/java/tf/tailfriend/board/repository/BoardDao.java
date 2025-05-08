@@ -42,4 +42,8 @@ public interface BoardDao extends JpaRepository<Board, Integer> {
     List<Board> findByUserIdOrderByCreatedAtDesc(Integer userId);
 
     Page<Board> findByUserIdOrderByCreatedAtDesc(Integer userId, Pageable pageable);
+
+    @Query("SELECT b FROM Board b LEFT JOIN FETCH b.photos WHERE b.user.id = :userId")
+    List<Board> findAllByUserIdWithPhotos(@Param("userId") Integer userId);
+
 }

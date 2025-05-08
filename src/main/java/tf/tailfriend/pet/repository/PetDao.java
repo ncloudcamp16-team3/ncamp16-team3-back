@@ -46,4 +46,6 @@ public interface PetDao extends JpaRepository<Pet, Integer> {
             @Param("myId") Integer myId);
 
     List<Pet> findByUserId(Integer userId);
+
+    List<Pet> findAllByUserId(Integer userId);
 }

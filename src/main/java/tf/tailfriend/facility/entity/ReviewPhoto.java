@@ -22,12 +22,12 @@ public class ReviewPhoto {
     private ReviewPhotoId id;
 
     @MapsId("fileId")
-    @ManyToOne(fetch = FetchType.LAZY)
+    @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "file_id")
     private File file;
 
     @MapsId("reviewId")
-    @ManyToOne(fetch = FetchType.LAZY)
+    @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "review_id")
     private Review review;
 

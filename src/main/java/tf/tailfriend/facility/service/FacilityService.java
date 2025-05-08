@@ -755,32 +755,22 @@ public class FacilityService {
         facilityDao.save(facility);
         log.info("바뀐 후 총 별점: {}", facility.getTotalStarPoint());
 
-        // 리뷰 이미지 저장
-        File file = fileService.save(image.getOriginalFilename(), "review", File.FileType.PHOTO);
-        log.info("파일 저장 완료");
+        if (image != null && !image.isEmpty()) {
+            // 리뷰 이미지 저장
+            File file = fileService.save(image.getOriginalFilename(), "review", File.FileType.PHOTO);
+            log.info("파일 저장 완료");
 
-        // 시설-리뷰 이미지 연결 생성
-        ReviewPhoto reviewPhoto = ReviewPhoto.of(file, review);
-        reviewPhotoDao.save(reviewPhoto);
-        log.info("시설-리뷰 이미지 연결 생성 완료");
+            // 시설-리뷰 이미지 연결 생성
+            ReviewPhoto reviewPhoto = ReviewPhoto.of(file, review);
+            reviewPhotoDao.save(reviewPhoto);
+            log.info("시설-리뷰 이미지 연결 생성 완료");
 
-        try (InputStream is = image.getInputStream()) {
-        storageService.upload(file.getPath(), is);
+            try (InputStream is = image.getInputStream()) {
+            storageService.upload(file.getPath(), is);
 
-        } catch (IOException | StorageServiceException e) {
-            throw new RuntimeException("파일 업로드 중 오류 발생: " + e);
+            } catch (IOException | StorageServiceException e) {
+                throw new RuntimeException("파일 업로드 중 오류 발생: " + e);
+            }
         }
-    }
-
-    public FacilityReviewResponseDto getFacilityForReview(Integer id) {
-        Optional<Facility> facilityOptional = facilityDao.findById(id);
-        List<FacilityPhoto> facilityPhotos = facilityPhotoDao.findByFacilityId(id);
-
-        return facilityOptional.map(facility -> FacilityReviewResponseDto.builder()
-                        .id(facility.getId())
-                        .name(facility.getName())
-                        .thumbnail(facilityPhotos.isEmpty() ? null : storageService.generatePresignedUrl(facilityPhotos.get(0).getFile().getPath()))
-                        .build())
-                .orElse(null); // 또는 예외 처리
     }
 }

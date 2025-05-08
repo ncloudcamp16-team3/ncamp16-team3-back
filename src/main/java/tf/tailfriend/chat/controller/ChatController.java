@@ -8,6 +8,7 @@ import tf.tailfriend.chat.entity.dto.ChatRoomListResponseDto;
 import tf.tailfriend.chat.service.ChatService;
 import tf.tailfriend.global.config.UserPrincipal;
 import tf.tailfriend.global.response.CustomResponse;
+import tf.tailfriend.notification.service.NotificationService;
 
 import java.util.List;
 
@@ -17,6 +18,7 @@ import java.util.List;
 public class ChatController {
 
     private final ChatService chatService;
+    private final NotificationService notificationService;
 
     @PostMapping("/room")
     public ResponseEntity<String> createRoom(
@@ -25,6 +27,7 @@ public class ChatController {
     ) {
         Integer userId1 = userPrincipal.getUserId();
         String uniqueId = chatService.createOrGetRoom(userId1,userId2);
+        notificationService.sendChatroomforOtherUser(userId2);
 
         return ResponseEntity.ok(uniqueId);
     }

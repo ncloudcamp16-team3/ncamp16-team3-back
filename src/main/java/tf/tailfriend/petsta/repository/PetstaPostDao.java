@@ -50,5 +50,6 @@ public interface PetstaPostDao extends JpaRepository<PetstaPost, Integer> {
     @Query("SELECT p.id FROM PetstaPost p WHERE p.user.id = :userId")
     List<Integer> findIdsByUserId(@Param("userId") Integer userId);
 
+    List<PetstaPost> findAllByUserId(Integer userId);
 }
 

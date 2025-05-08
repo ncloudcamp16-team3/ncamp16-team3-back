@@ -1,7 +1,10 @@
 package tf.tailfriend.chat.repository;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import tf.tailfriend.chat.entity.ChatRoom;
+import tf.tailfriend.pet.entity.PetMatch;
 import tf.tailfriend.user.entity.User;
 
 import java.util.List;
@@ -19,4 +22,6 @@ public interface ChatRoomDao extends JpaRepository<ChatRoom, Integer> {
     Optional<ChatRoom> findByUniqueId(String channelId);
 
 
+    @Query("SELECT c FROM ChatRoom c WHERE c.user1.id = :userId OR c.user2.id = :userId")
+    List<ChatRoom> findAllByUserId(@Param("userId") Integer userId);
 }

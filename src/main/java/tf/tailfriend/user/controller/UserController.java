@@ -25,6 +25,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import static tf.tailfriend.user.message.SuccessMessage.*;
@@ -130,19 +131,24 @@ public class UserController {
      */
     @DeleteMapping("/withdraw")
     public ResponseEntity<?> withdraw(@AuthenticationPrincipal UserPrincipal principal) {
-
         if (principal == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(Map.of("error", "로그인이 필요합니다."));
         }
+
         try {
-            userService.withdrawMember(principal.getUserId());
-            return ResponseEntity.ok(Map.of("message", "회원 탈퇴가 완료되었습니다."));
+            List<String> channelNames = userService.withdrawMember(principal.getUserId());
+
+            return ResponseEntity.ok(Map.of(
+                    "message", "회원 탈퇴가 완료되었습니다.",
+                    "channelNames", channelNames // ✅ 프론트에서 이걸로 채널 삭제 가능
+            ));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Map.of("error", "회원 탈퇴 처리 중 오류가 발생했습니다.."));
+                    .body(Map.of("error", "회원 탈퇴 처리 중 오류가 발생했습니다."));
         }
     }
+
 
     /**
      * 프로필 이미지 업로드 API

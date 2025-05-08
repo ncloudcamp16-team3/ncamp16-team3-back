@@ -39,5 +39,8 @@ public interface PetstaCommentDao extends JpaRepository<PetstaComment, Integer> 
     @Modifying
     @Query(value = "?1", nativeQuery = true)
     void executeNativeQuery(String sql, Object... params);
+
+    @Query("SELECT c FROM PetstaComment c LEFT JOIN FETCH c.replies WHERE c.user.id = :userId AND c.deleted = false")
+    List<PetstaComment> findAllWithRepliesByUserId(@Param("userId") Integer userId);
 }
 

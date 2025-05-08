@@ -17,13 +17,13 @@ public interface UserFollowDao extends JpaRepository<UserFollow, Integer> {
 
 
 
-    @Modifying
-    @Query("DELETE FROM UserFollow uf WHERE uf.follower.id = :followerId")
-    void deleteByFollowerId(@Param("followerId") Integer followerId);
+    // 내가 팔로우한 사람들
+    @Query("SELECT uf FROM UserFollow uf JOIN FETCH uf.followed WHERE uf.follower.id = :userId")
+    List<UserFollow> findAllByFollowerId(@Param("userId") Integer userId);
 
-    @Modifying
-    @Query("DELETE FROM UserFollow uf WHERE uf.followed.id = :followedId")
-    void deleteByFollowedId(@Param("followedId") Integer followedId);
+    // 나를 팔로우한 사람들
+    @Query("SELECT uf FROM UserFollow uf JOIN FETCH uf.follower WHERE uf.followed.id = :userId")
+    List<UserFollow> findAllByFollowedId(@Param("userId") Integer userId);
 
     // UserFollowDao.java
     @Query("SELECT uf.followed FROM UserFollow uf WHERE uf.follower.id = :followerId")

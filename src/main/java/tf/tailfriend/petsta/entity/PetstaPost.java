@@ -75,4 +75,11 @@ public class PetstaPost {
     public void setContent(String content) {
         this.content = content;
     }
+
+    public void decreaseCommentCount() {
+        if (this.commentCount > 0) {
+            this.commentCount--;
+        }
+    }
+
 }

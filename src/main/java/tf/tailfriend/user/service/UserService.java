@@ -6,13 +6,30 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import tf.tailfriend.board.entity.*;
+import tf.tailfriend.board.repository.*;
+import tf.tailfriend.chat.entity.ChatRoom;
+import tf.tailfriend.chat.repository.ChatRoomDao;
+import tf.tailfriend.chat.repository.TradeMatchDao;
 import tf.tailfriend.file.entity.File;
 import tf.tailfriend.file.repository.FileDao;
 import tf.tailfriend.global.service.StorageService;
+import tf.tailfriend.global.service.StorageServiceException;
+import tf.tailfriend.notification.repository.NotificationDao;
 import tf.tailfriend.pet.entity.Pet;
 import tf.tailfriend.pet.entity.PetPhoto;
 
+import tf.tailfriend.pet.repository.PetDao;
+import tf.tailfriend.pet.repository.PetMatchDao;
 import tf.tailfriend.petsitter.repository.PetSitterDao;
+import tf.tailfriend.petsta.entity.PetstaBookmark;
+import tf.tailfriend.petsta.entity.PetstaComment;
+import tf.tailfriend.petsta.entity.PetstaLike;
+import tf.tailfriend.petsta.entity.PetstaPost;
+import tf.tailfriend.petsta.repository.PetstaBookmarkDao;
+import tf.tailfriend.petsta.repository.PetstaCommentDao;
+import tf.tailfriend.petsta.repository.PetstaLikeDao;
+import tf.tailfriend.petsta.repository.PetstaPostDao;
 import tf.tailfriend.user.entity.User;
 import tf.tailfriend.user.entity.UserFollow;
 import tf.tailfriend.user.entity.dto.*;
@@ -21,6 +38,7 @@ import tf.tailfriend.user.exception.UserSaveException;
 import tf.tailfriend.user.repository.UserDao;
 import tf.tailfriend.user.repository.UserFollowDao;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.Optional;
@@ -35,6 +53,20 @@ public class UserService {
     private final FileDao fileDao;
     private final UserFollowDao userFollowDao;
     private final StorageService storageService;
+    private final PetstaLikeDao petstaLikeDao;
+    private final BoardLikeDao boardLikeDao;
+    private final ChatRoomDao chatRoomDao;
+    private final TradeMatchDao tradeMatchDao;
+    private final PetMatchDao petMatchDao;
+    private final CommentDao commentDao;
+    private final PetstaCommentDao petstaCommentDao;
+    private final PetstaPostDao petstaPostDao;
+    private final BoardBookmarkDao boardBookmarkDao;
+    private final PetstaBookmarkDao petstaBookmarkDao;
+    private final BoardDao boardDao;
+    private final ProductDao productDao;
+    private final PetDao petDao;
+    private final NotificationDao notificationDao
 
     @PersistenceContext
     private EntityManager entityManager;
@@ -114,326 +146,253 @@ public class UserService {
 
     //회원을 탈퇴
     @Transactional
-    public void withdrawMember(Integer userId) {
+    public List<String> withdrawMember(Integer userId) {
+        List<String> channelNames;
         try {
-            // 시스템 사용자 ID 설정 (탈퇴한 회원 데이터 소유권 이전용)
-            Integer systemUserId = 9999999;
+            User user = userDao.findById(userId)
+                    .orElseThrow(() -> new IllegalArgumentException("사용자 없음"));
 
-            // 펫스타 탈퇴 회원이 좋아요 한 게시글의 카운트 감소
-            try {
-                entityManager.createNativeQuery(
-                                "UPDATE petsta_posts pp " +
-                                        "JOIN petsta_likes pl ON pp.id = pl.petsta_post_id " +
-                                        "SET pp.like_count = GREATEST(pp.like_count - 1, 0) " +
-                                        "WHERE pl.user_id = ?")
-                        .setParameter(1, userId)
-                        .executeUpdate();
-            } catch (Exception e) {
-                log.error("펫스타 좋아요 카운트 조정 중 오류: {}", e.getMessage());
+
+            // 펫스타 좋아요 감소
+            List<PetstaLike> likes = petstaLikeDao.findAllByUserIdWithPost(userId);
+
+            for (PetstaLike like : likes) {
+                PetstaPost post = like.getPetstaPost();
+                post.decreaseLikeCount(); // 내부적으로 0 미만으로 내려가지 않음
             }
 
-            //게시판 탈퇴 회원이 좋아요 한 게시글의 카운트 감소
-            try {
-                entityManager.createNativeQuery(
-                                "UPDATE boards b " +
-                                        "JOIN board_likes bl ON b.id = bl.board_post_id " +
-                                        "SET b.like_count = GREATEST(b.like_count - 1, 0) " +
-                                        "WHERE bl.user_id = ?")
-                        .setParameter(1, userId)
-                        .executeUpdate();
-            } catch (Exception e) {
-                log.error("게시판 좋아요 카운트 조정 중 오류: {}", e.getMessage());
+             petstaLikeDao.deleteAll(likes);
+
+            // 펫스타 북마크 제거
+            List<PetstaBookmark> petstaBookmarks = petstaBookmarkDao.findAllByUserIdWithPost(userId);
+
+            for (PetstaBookmark bookmark : petstaBookmarks) {
+                PetstaPost post = bookmark.getPetstaPost();
             }
 
-            try {
-                // 내가 팔로우하는 사람들의 팔로워 카운트 감소
-                entityManager.createNativeQuery(
-                                "UPDATE users u " +
-                                        "JOIN user_follows uf ON u.id = uf.followed_id " +
-                                        "SET u.follower_count = GREATEST(u.follower_count - 1, 0) " +
-                                        "WHERE uf.follower_id = ?")
-                        .setParameter(1, userId)
-                        .executeUpdate();
+            petstaBookmarkDao.deleteAll(petstaBookmarks);
 
-                // 나를 팔로우하는 사람들의 팔로우 카운트 감소
-                entityManager.createNativeQuery(
-                                "UPDATE users u " +
-                                        "JOIN user_follows uf ON u.id = uf.follower_id " +
-                                        "SET u.follow_count = GREATEST(u.follow_count - 1, 0) " +
-                                        "WHERE uf.followed_id = ?")
-                        .setParameter(1, userId)
-                        .executeUpdate();
-            } catch (Exception e) {
-                log.error("팔로우 카운트 조정 중 오류: {}", e.getMessage());
+            // 게시판 좋아요 감소
+            List<BoardLike> boardLikes = boardLikeDao.findAllByUserIdWithBoard(userId);
+
+            for (BoardLike like : boardLikes) {
+                Board board = like.getBoard();
+                board.decreaseLikeCount(); // 최소 0 미만 방지용 조건 있으면 추가
             }
 
-            // 채팅방 및 메시지 처리
-            try {
-                // 채팅 메시지 내용 수정
-                entityManager.createNativeQuery(
-                                "UPDATE message SET content = '삭제된 메시지입니다', user_id = ? WHERE user_id = ?")
-                        .setParameter(1, systemUserId)
-                        .setParameter(2, userId)
-                        .executeUpdate();
+            boardLikeDao.deleteAll(boardLikes); // 좋아요 기록 삭제
 
-                // 채팅방은 남기고 사용자만 시스템 계정으로 변경 (user_id1)
-                entityManager.createNativeQuery(
-                                "UPDATE chat_rooms SET user_id1 = ? WHERE user_id1 = ?")
-                        .setParameter(1, systemUserId)
-                        .setParameter(2, userId)
-                        .executeUpdate();
+            List<BoardBookmark> boardBookmarks = boardBookmarkDao.findAllByUserIdWithBoard(userId);
 
-                // 채팅방은 남기고 사용자만 시스템 계정으로 변경 (user_id2)
-                entityManager.createNativeQuery(
-                                "UPDATE chat_rooms SET user_id2 = ? WHERE user_id2 = ?")
-                        .setParameter(1, systemUserId)
-                        .setParameter(2, userId)
-                        .executeUpdate();
-
-            } catch (Exception e) {
-                log.error("채팅 관련 데이터 처리 중 오류: {}", e.getMessage());
+            for (BoardBookmark bookmark : boardBookmarks) {
+                Board board = bookmark.getBoard();
             }
 
-            try {
-                // 내 게시글에 달린 댓글 삭제
-                entityManager.createNativeQuery(
-                                "DELETE pc FROM petsta_comments pc " +
-                                        "JOIN petsta_posts pp ON pc.post_id = pp.id " +
-                                        "WHERE pp.user_id = ?")
-                        .setParameter(1, userId)
-                        .executeUpdate();
+            boardBookmarkDao.deleteAll(boardBookmarks); // 북마크 엔티티 삭제
 
-                // 내가 작성한 댓글 처리
-                entityManager.createNativeQuery(
-                                "UPDATE petsta_comments SET content = '삭제된 댓글입니다', deleted = true, user_id = ? WHERE user_id = ?")
-                        .setParameter(1, systemUserId)
-                        .setParameter(2, userId)
-                        .executeUpdate();
-            } catch (Exception e) {
-                log.error("펫스타 댓글 처리 중 오류: {}", e.getMessage());
+
+            // 1. 내가 팔로우한 유저들의 followerCount 감소
+            List<UserFollow> followings = userFollowDao.findAllByFollowerId(userId);
+            for (UserFollow follow : followings) {
+                User followedUser = follow.getFollowed();
+                if (followedUser.getFollowerCount() > 0) {
+                    followedUser.setFollowerCount(followedUser.getFollowerCount() - 1);
+                }
             }
 
-            // 내 펫스타 게시글에 달린 좋아요 삭제
-            try {
-                entityManager.createNativeQuery(
-                                "DELETE pl FROM petsta_likes pl " +
-                                        "JOIN petsta_posts pp ON pl.petsta_post_id = pp.id " +
-                                        "WHERE pp.user_id = ?")
-                        .setParameter(1, userId)
-                        .executeUpdate();
-            } catch (Exception e) {
-                log.error("펫스타 게시글 좋아요 삭제 중 오류: {}", e.getMessage());
+            // 2. 나를 팔로우한 유저들의 followCount 감소
+            List<UserFollow> followers = userFollowDao.findAllByFollowedId(userId);
+            for (UserFollow follow : followers) {
+                User followerUser = follow.getFollower();
+                if (followerUser.getFollowCount() > 0) {
+                    followerUser.setFollowCount(followerUser.getFollowCount() - 1);
+                }
             }
 
-            // 내 펫스타 게시글에 달린 북마크 삭제
-            try {
-                entityManager.createNativeQuery(
-                                "DELETE pb FROM petsta_bookmarks pb " +
-                                        "JOIN petsta_posts pp ON pb.petsta_post_id = pp.id " +
-                                        "WHERE pp.user_id = ?")
-                        .setParameter(1, userId)
-                        .executeUpdate();
-            } catch (Exception e) {
-                log.error("펫스타 게시글 북마크 삭제 중 오류: {}", e.getMessage());
+            // 3. 팔로우 정보 삭제
+            userFollowDao.deleteAll(followings);
+            userFollowDao.deleteAll(followers);
+            user.setFollowCount(0);
+            user.setFollowerCount(0);
+            // 1. ChatRoom 삭제 + 채널 ID 수집
+            List<ChatRoom> rooms = chatRoomDao.findAllByUserId(userId);
+            channelNames = rooms.stream()
+                    .map(room -> "room-" + room.getUniqueId())
+                    .collect(Collectors.toList());
+            chatRoomDao.deleteAll(rooms);
+
+            // 2. TradeMatch 삭제
+            tradeMatchDao.deleteAll(tradeMatchDao.findAllByUserId(userId));
+
+            // 3. PetMatch 삭제
+            petMatchDao.deleteAll(petMatchDao.findAllByUserId(userId));
+
+            // 게시판 댓글 soft delete + board의 댓글 수 감소
+            List<Comment> comments = commentDao.findAllActiveByUserIdWithBoard(userId);
+            for (Comment comment : comments) {
+                Board board = comment.getBoard();
+                board.decreaseCommentCount(); // 내부적으로 음수 방지 처리 권장
+                comment.setDeleted();         // 내용 비우고 삭제 플래그 설정
             }
 
-            // 펫스타 게시글 완전 삭제
-            try {
-                entityManager.createNativeQuery("DELETE FROM petsta_posts WHERE user_id = ?")
-                        .setParameter(1, userId)
-                        .executeUpdate();
-                log.info("펫스타 게시글 삭제 완료");
-            } catch (Exception e) {
-                log.error("펫스타 게시글 처리 중 오류: {}", e.getMessage());
+            List<PetstaComment> petstaComments = petstaCommentDao.findAllWithRepliesByUserId(userId);
+
+            for (PetstaComment comment : petstaComments) {
+                if (comment.getReplies().isEmpty()) {
+                    // 🔽 댓글 수 감소는 실제 삭제될 경우만
+                    petstaPostDao.decrementCommentCount(comment.getPost().getId());
+
+                    if (comment.getParent() != null) {
+                        PetstaComment parent = comment.getParent();
+                        parent.setReplyCount(Math.max(0, parent.getReplyCount() - 1));
+                        petstaCommentDao.save(parent);
+                    }
+
+                    comment.markAsDeleted();
+                    comment.clearMention();
+                    petstaCommentDao.save(comment);
+                } else {
+                    comment.markAsDeleted();
+                    comment.clearMention();
+                    petstaCommentDao.save(comment);
+
+                }
             }
 
-            // 내가 다른 사람 게시글에 누른 좋아요 삭제
-            try {
-                entityManager.createNativeQuery("DELETE FROM petsta_likes WHERE user_id = ?")
-                        .setParameter(1, userId)
-                        .executeUpdate();
-            } catch (Exception e) {
-                log.error("펫스타 좋아요 삭제 중 오류: {}", e.getMessage());
+            List<PetstaPost> posts = petstaPostDao.findAllByUserId(userId);
+
+            for (PetstaPost post : posts) {
+                Integer postId = post.getId();
+
+                // 좋아요, 북마크 삭제
+                petstaLikeDao.deleteAllByPostId(postId);
+                petstaBookmarkDao.deleteAllByPostId(postId);
+
+                // 게시글 soft delete
+                post.markAsDeleted();
+                petstaPostDao.save(post);
             }
 
-            // 내가 다른 사람 게시글에 누른 북마크 삭제
-            try {
-                entityManager.createNativeQuery("DELETE FROM petsta_bookmarks WHERE user_id = ?")
-                        .setParameter(1, userId)
-                        .executeUpdate();
-            } catch (Exception e) {
-                log.error("펫스타 북마크 삭제 중 오류: {}", e.getMessage());
+            // 게시글 수 0으로 초기화
+            user.setPostCount(0);
+
+            List<Board> boards = boardDao.findAllByUserIdWithPhotos(userId);
+
+            for (Board board : boards) {
+                // 좋아요, 북마크, 댓글 삭제
+                boardLikeDao.deleteAllByBoard(board);
+                boardBookmarkDao.deleteAllByBoard(board);
+                commentDao.deleteAllByBoard(board);
+
+                // boardTypeId == 2 ➝ 중고 상품이라면 product 삭제
+                if (board.getBoardType().getId().equals(2)) {
+                    productDao.deleteByBoard(board); // or findByBoardId → delete
+                }
+
+                // 사진 S3 삭제
+                for (BoardPhoto photo : board.getPhotos()) {
+                    storageService.delete(photo.getFile().getPath());
+                }
+
+                // 게시글 삭제
+                boardDao.delete(board);
             }
 
-            try {
-                // 내 게시글에 달린 댓글 삭제
-                entityManager.createNativeQuery(
-                                "DELETE c FROM comments c " +
-                                        "JOIN boards b ON c.board_id = b.id " +
-                                        "WHERE b.user_id = ?")
-                        .setParameter(1, userId)
-                        .executeUpdate();
+            //내 펫 삭제
+            List<Pet> pets = petDao.findAllByUserId(userId);
+            petDao.deleteAll(pets);
 
-                // 내가 작성한 댓글 처리
-                entityManager.createNativeQuery(
-                                "UPDATE comments SET content = '삭제된 댓글입니다', deleted = true, user_id = ? WHERE user_id = ?")
-                        .setParameter(1, systemUserId)
-                        .setParameter(2, userId)
-                        .executeUpdate();
-            } catch (Exception e) {
-                log.error("게시판 댓글 처리 중 오류: {}", e.getMessage());
-            }
+            //내 모든 알림 삭제
+            notificationDao.deleteByUserId(userId);
 
-            // 내 게시판 게시글에 달린 좋아요 삭제
-            try {
-                entityManager.createNativeQuery(
-                                "DELETE bl FROM board_likes bl " +
-                                        "JOIN boards b ON bl.board_post_id = b.id " +
-                                        "WHERE b.user_id = ?")
-                        .setParameter(1, userId)
-                        .executeUpdate();
-            } catch (Exception e) {
-                log.error("게시판 게시글 좋아요 삭제 중 오류: {}", e.getMessage());
-            }
 
-            // 내 게시판 게시글에 달린 북마크 삭제
-            try {
-                entityManager.createNativeQuery(
-                                "DELETE bb FROM board_bookmarks bb " +
-                                        "JOIN boards b ON bb.board_post_id = b.id " +
-                                        "WHERE b.user_id = ?")
-                        .setParameter(1, userId)
-                        .executeUpdate();
-            } catch (Exception e) {
-                log.error("게시판 게시글 북마크 삭제 중 오류: {}", e.getMessage());
-            }
-
-            // 게시판 게시글 완전 삭제
-            try {
-                entityManager.createNativeQuery("DELETE FROM boards WHERE user_id = ?")
-                        .setParameter(1, userId)
-                        .executeUpdate();
-                log.info("게시판 게시글 삭제 완료");
-            } catch (Exception e) {
-                log.error("게시판 게시글 처리 중 오류: {}", e.getMessage());
-            }
-
-            // 내가 다른 사람 게시글에 누른 좋아요 삭제
-            try {
-                entityManager.createNativeQuery("DELETE FROM board_likes WHERE user_id = ?")
-                        .setParameter(1, userId)
-                        .executeUpdate();
-            } catch (Exception e) {
-                log.error("게시판 좋아요 삭제 중 오류: {}", e.getMessage());
-            }
-
-            // 내가 다른 사람 게시글에 누른 북마크 삭제
-            try {
-                entityManager.createNativeQuery("DELETE FROM board_bookmarks WHERE user_id = ?")
-                        .setParameter(1, userId)
-                        .executeUpdate();
-            } catch (Exception e) {
-                log.error("게시판 북마크 삭제 중 오류: {}", e.getMessage());
-            }
-
-            try {
-                // 내가 팔로우하는 사람들과의 관계 삭제
-                entityManager.createNativeQuery("DELETE FROM user_follows WHERE follower_id = ?")
-                        .setParameter(1, userId)
-                        .executeUpdate();
-
-                // 나를 팔로우하는 사람들과의 관계 삭제
-                entityManager.createNativeQuery("DELETE FROM user_follows WHERE followed_id = ?")
-                        .setParameter(1, userId)
-                        .executeUpdate();
-            } catch (Exception e) {
-                log.error("팔로우 관계 삭제 중 오류: {}", e.getMessage());
-            }
-
-            try {
-                // 결제 정보 삭제
-                entityManager.createNativeQuery(
-                                "DELETE p FROM payments p " +
-                                        "JOIN reserves r ON p.reserve_id = r.id " +
-                                        "WHERE r.user_id = ?")
-                        .setParameter(1, userId)
-                        .executeUpdate();
-
-                // 예약 정보 삭제
-                entityManager.createNativeQuery("DELETE FROM reserves WHERE user_id = ?")
-                        .setParameter(1, userId)
-                        .executeUpdate();
-            } catch (Exception e) {
-                log.error("예약 정보 삭제 중 오류: {}", e.getMessage());
-            }
-
-            try {
-                // 반려동물 매칭 삭제
-                entityManager.createNativeQuery(
-                                "DELETE FROM pet_matches WHERE pet1_id IN (SELECT id FROM pets WHERE owner_id = ?) OR pet2_id IN (SELECT id FROM pets WHERE owner_id = ?)")
-                        .setParameter(1, userId)
-                        .setParameter(2, userId)
-                        .executeUpdate();
-
-                // 반려동물 사진 삭제
-                entityManager.createNativeQuery(
-                                "DELETE pp FROM pet_photos pp " +
-                                        "JOIN pets p ON pp.pet_id = p.id " +
-                                        "WHERE p.owner_id = ?")
-                        .setParameter(1, userId)
-                        .executeUpdate();
-
-                // 반려동물
-                entityManager.createNativeQuery(
-                                "DELETE FROM pets WHERE owner_id = ?")
-                        .setParameter(1, userId)
-                        .executeUpdate();
-            } catch (Exception e) {
-                log.error("반려동물 처리 중 오류: {}", e.getMessage());
-            }
-
-            // 펫시터 정보 처리
-            try {
-                entityManager.createNativeQuery(
-                                "DELETE FROM pet_sitters WHERE id = ?")
-                        .setParameter(1, userId)
-                        .executeUpdate();
-            } catch (Exception e) {
-                log.error("펫시터 처리 중 오류: {}", e.getMessage());
-            }
-
-            try {
-                // 알림 데이터 삭제
-                entityManager.createNativeQuery("DELETE FROM notifications WHERE user_id = ?")
-                        .setParameter(1, userId)
-                        .executeUpdate();
-
-                // 거래 매칭 데이터 삭제
-                entityManager.createNativeQuery("DELETE FROM trade_matches WHERE user_id = ?")
-                        .setParameter(1, userId)
-                        .executeUpdate();
-
-                // 일정 데이터 삭제
-                entityManager.createNativeQuery("DELETE FROM schedules WHERE user_id = ?")
-                        .setParameter(1, userId)
-                        .executeUpdate();
-            } catch (Exception e) {
-                log.error("알림, 거래 매칭, 일정 데이터 삭제 중 오류: {}", e.getMessage());
-            }
-
-            // 회원 정보 완전 삭제
-            try {
-                entityManager.createNativeQuery("DELETE FROM users WHERE id = ?")
-                        .setParameter(1, userId)
-                        .executeUpdate();
-
-            } catch (Exception e) {
-                throw e; // 회원 삭제 실패 시 예외 전파
-            }
+//            try {
+//                // 결제 정보 삭제
+//                entityManager.createNativeQuery(
+//                                "DELETE p FROM payments p " +
+//                                        "JOIN reserves r ON p.reserve_id = r.id " +
+//                                        "WHERE r.user_id = ?")
+//                        .setParameter(1, userId)
+//                        .executeUpdate();
+//
+//                // 예약 정보 삭제
+//                entityManager.createNativeQuery("DELETE FROM reserves WHERE user_id = ?")
+//                        .setParameter(1, userId)
+//                        .executeUpdate();
+//            } catch (Exception e) {
+//                log.error("예약 정보 삭제 중 오류: {}", e.getMessage());
+//            }
+//
+//            try {
+//                // 반려동물 매칭 삭제
+//                entityManager.createNativeQuery(
+//                                "DELETE FROM pet_matches WHERE pet1_id IN (SELECT id FROM pets WHERE owner_id = ?) OR pet2_id IN (SELECT id FROM pets WHERE owner_id = ?)")
+//                        .setParameter(1, userId)
+//                        .setParameter(2, userId)
+//                        .executeUpdate();
+//
+//                // 반려동물 사진 삭제
+//                entityManager.createNativeQuery(
+//                                "DELETE pp FROM pet_photos pp " +
+//                                        "JOIN pets p ON pp.pet_id = p.id " +
+//                                        "WHERE p.owner_id = ?")
+//                        .setParameter(1, userId)
+//                        .executeUpdate();
+//
+//                // 반려동물
+//                entityManager.createNativeQuery(
+//                                "DELETE FROM pets WHERE owner_id = ?")
+//                        .setParameter(1, userId)
+//                        .executeUpdate();
+//            } catch (Exception e) {
+//                log.error("반려동물 처리 중 오류: {}", e.getMessage());
+//            }
+//
+//            // 펫시터 정보 처리
+//            try {
+//                entityManager.createNativeQuery(
+//                                "DELETE FROM pet_sitters WHERE id = ?")
+//                        .setParameter(1, userId)
+//                        .executeUpdate();
+//            } catch (Exception e) {
+//                log.error("펫시터 처리 중 오류: {}", e.getMessage());
+//            }
+//
+//            try {
+//                // 알림 데이터 삭제
+//                entityManager.createNativeQuery("DELETE FROM notifications WHERE user_id = ?")
+//                        .setParameter(1, userId)
+//                        .executeUpdate();
+//
+//                // 거래 매칭 데이터 삭제
+//                entityManager.createNativeQuery("DELETE FROM trade_matches WHERE user_id = ?")
+//                        .setParameter(1, userId)
+//                        .executeUpdate();
+//
+//                // 일정 데이터 삭제
+//                entityManager.createNativeQuery("DELETE FROM schedules WHERE user_id = ?")
+//                        .setParameter(1, userId)
+//                        .executeUpdate();
+//            } catch (Exception e) {
+//                log.error("알림, 거래 매칭, 일정 데이터 삭제 중 오류: {}", e.getMessage());
+//            }
+//
+//            // 회원 정보 완전 삭제
+//            try {
+//                entityManager.createNativeQuery("DELETE FROM users WHERE id = ?")
+//                        .setParameter(1, userId)
+//                        .executeUpdate();
+//
+//            } catch (Exception e) {
+//                throw e; // 회원 삭제 실패 시 예외 전파
+//            }
         } catch (Exception e) {
             log.error("회원 탈퇴 중 오류 발생: {}", e.getMessage(), e);
             throw new IllegalStateException("회원 탈퇴 처리 중 오류가 발생했습니다: " + e.getMessage());
+        } catch (StorageServiceException e) {
+            throw new RuntimeException(e);
         }
+        return channelNames;
     }
 
     private PetResponseDto convertToPetDto(Pet pet) {

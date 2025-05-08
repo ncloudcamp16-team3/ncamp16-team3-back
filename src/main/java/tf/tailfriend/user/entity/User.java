@@ -14,6 +14,7 @@ import java.util.Set;
 @Entity
 @Table(name = "users")
 @Getter
+@Setter
 @Builder(toBuilder = true)
 @NoArgsConstructor
 @AllArgsConstructor
@@ -108,9 +109,20 @@ public class User {
         this.file = file;
     }
 
+
+    public void setFollowerCount(Integer followerCount) {
+        this.followerCount = followerCount;
+    }
+
+    public void setFollowCount(Integer followCount) {
+        this.followCount = followCount;
+    }
+
     public void markAsDeleted() {
         this.deleted = true;
     }
+
+
 
     public void anonymizeUserData() {
         this.nickname = "탈퇴한 회원입니다";

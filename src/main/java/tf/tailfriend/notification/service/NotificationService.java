@@ -451,7 +451,8 @@ public boolean existsByUserIdAndReadStatusFalse(Integer userId) {
     public List<GetNotifyDto> getNotificationsByUserId(Integer userId) {
         List<tf.tailfriend.notification.entity.Notification> notifications = notificationDao.findByUserIdOrderByCreatedAtDesc(userId);
         return notifications.stream()
-                .map(this::getNotificationDetails) // title/body 설정 포함
+                .filter(notification -> notification.getNotificationType().getId() != 7) // ← type 7 제외
+                .map(this::getNotificationDetails)
                 .collect(Collectors.toList());
     }
 

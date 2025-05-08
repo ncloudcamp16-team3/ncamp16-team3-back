@@ -21,6 +21,9 @@ import tf.tailfriend.notification.service.NotificationService;
 import tf.tailfriend.user.entity.User;
 import tf.tailfriend.user.repository.UserDao;
 
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+
 
 @Slf4j
 @Service
@@ -40,6 +43,11 @@ public class NotificationMessageConsumer {
 
 
         String messageId = message.getMessageId();
+
+        if (message.getNotifyTypeId() != null && message.getNotifyTypeId() == 7) {
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
+            messageId = "chat-" + LocalDateTime.now().format(formatter);  // 예: chat-20250508120530
+        }
 
         if (notificationDao.existsByMessageId(messageId)) {
             log.info("이미 처리된 메시지 ID입니다. 수신을 건너뜁니다. 메시지 ID: {}", messageId);

@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.io.Serializable;
+import java.util.List;
 import java.util.Objects;
 
 @Entity
@@ -13,6 +14,7 @@ import java.util.Objects;
 @NoArgsConstructor
 @AllArgsConstructor
 public class UserFollow {
+
 
     @EmbeddedId
     private UserFollowId id;
@@ -33,6 +35,7 @@ public class UserFollow {
     @NoArgsConstructor
     @AllArgsConstructor
     public static class UserFollowId implements Serializable {
+
 
         @Column(name = "follower_id")
         private Integer followerId;

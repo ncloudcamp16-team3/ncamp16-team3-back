@@ -26,4 +26,5 @@ public interface ReserveDao extends JpaRepository<Reserve, Integer> {
     @Query("SELECT r FROM Reserve r WHERE r.user.id = :userId")
     List<Reserve> findAllByUserId(@Param("userId") Integer userId);
 
+    List<Reserve> findByUserIdOrderByIdDesc(Integer UserId);
 }

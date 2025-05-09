@@ -86,7 +86,7 @@ public class ReserveService {
 
     @Transactional
     public List<ReserveListResponseDto> getReserveListByUser(Integer userId) {
-        List<Reserve> reserves = reserveDao.findByUserId(userId);
+        List<Reserve> reserves = reserveDao.findByUserIdOrderByIdDesc(userId);
 
         return reserves.stream()
                 .map(reserve -> {

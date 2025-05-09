@@ -18,4 +18,6 @@ public interface TradeMatchDao extends JpaRepository<TradeMatch, Integer> {
     void deleteByUserId(@Param("userId") Integer userId);
 
     Iterable<? extends TradeMatch> findAllByUserId(Integer userId);
+
+    void deleteByPostId(Integer id);
 }

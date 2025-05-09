@@ -33,7 +33,7 @@ public class PaymentService {
         LocalDateTime startDateTime = startDate.atStartOfDay();
         LocalDateTime endDateTime = endDate.atTime(LocalTime.MAX);
 
-        List<Payment> payments = paymentDao.findByReserveUserIdAndCreatedAtBetween(userId, startDateTime,  endDateTime);
+        List<Payment> payments = paymentDao.findByReserveUserIdAndReserveEntryTimeBetween(userId, startDateTime,  endDateTime);
 
         return payments.stream()
                 .map(this::toDto)
@@ -53,6 +53,9 @@ public class PaymentService {
                                 : storageService.generatePresignedUrl(facility.getPhotos().get(0).getFile().getPath())
                 )
                 .createdAt(payment.getCreatedAt())
+                .reserveId(payment.getReserve().getId())
+                .entryTime(payment.getReserve().getEntryTime())
+                .exitTime(payment.getReserve().getExitTime())
                 .price(payment.getPrice())
                 .build();
     }

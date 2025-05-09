@@ -1,6 +1,7 @@
 package tf.tailfriend.reserve.service;
 
 import jakarta.persistence.EntityNotFoundException;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -32,12 +33,12 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+@Slf4j
 @RequiredArgsConstructor
 @Service
 public class ReserveService {
 
     private final ReserveDao reserveDao;
-    private final DateTimeFormatProvider dateTimeFormatProvider;
     private final UserDao userDao;
     private final RedisService redisService;
     private final FacilityDao facilityDao;

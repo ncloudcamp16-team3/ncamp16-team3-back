@@ -11,6 +11,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.util.UriComponentsBuilder;
+import tf.tailfriend.board.dto.BoardRequestDto;
 import tf.tailfriend.board.entity.Board;
 import tf.tailfriend.board.exception.GetPostException;
 import tf.tailfriend.facility.entity.dto.forReserve.FacilityCardResponseDto;
@@ -78,24 +79,15 @@ public class ReserveController {
         return facilityService.getFacilityCardsForReserve(requestDto);
     }
 
-    @PutMapping("/facility/{id}/review")
+    @PostMapping("/facility/review")
     public ResponseEntity<String> insertReview(
-            @PathVariable("id") String id,
-            @RequestParam("comment") String comment,
-            @RequestParam("starPoint") String starPoint,
+            @RequestPart("reviewData") ReviewInsertRequestDto requestDto,
             @RequestPart(value = "file", required = false) MultipartFile file,
             @AuthenticationPrincipal UserPrincipal userPrincipal) {
-        log.info("id: {}, comment: {}, starPoint: {}, file: {}", id, comment, starPoint, file.getOriginalFilename());
-        Integer parsedId = Integer.parseInt(id);
-        Integer parsedStarPoint = Integer.parseInt(starPoint);
-        ReviewInsertRequestDto requestDto = ReviewInsertRequestDto.builder()
-                .userId(userPrincipal.getUserId())
-                .facilityId(parsedId)
-                .comment(comment)
-                .starPoint(parsedStarPoint)
-                .build();
+        log.info("requestDto: {}, file: {}", requestDto, file.getOriginalFilename());
+
         try {
-            facilityService.insertReview(requestDto, file);
+            facilityService.insertReview(requestDto, userPrincipal.getUserId(), file);
             log.info("리뷰 등록 완료");
             return ResponseEntity.ok("리뷰가 성공적으로 등록되었습니다.");
         } catch (EntityNotFoundException e) {

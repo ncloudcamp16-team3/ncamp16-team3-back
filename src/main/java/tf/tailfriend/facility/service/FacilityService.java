@@ -4,6 +4,7 @@ import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.*;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,10 +20,13 @@ import tf.tailfriend.file.entity.File;
 import tf.tailfriend.file.repository.FileDao;
 import tf.tailfriend.file.service.FileService;
 import tf.tailfriend.global.config.UserPrincipal;
+import tf.tailfriend.global.exception.CustomException;
 import tf.tailfriend.global.service.StorageService;
 import tf.tailfriend.global.service.StorageServiceException;
 import tf.tailfriend.reserve.dto.RequestForFacility.FacilityList;
 import tf.tailfriend.reserve.dto.RequestForFacility.ReviewInsertRequestDto;
+import tf.tailfriend.reserve.entity.Reserve;
+import tf.tailfriend.reserve.repository.ReserveDao;
 import tf.tailfriend.user.entity.User;
 import tf.tailfriend.user.repository.UserDao;
 
@@ -54,6 +58,7 @@ public class FacilityService {
     private final FileService fileService;
     private final FileDao fileDao;
     private final ReviewPhotoDao reviewPhotoDao;
+    private final ReserveDao reserveDao;
 
     @Transactional(readOnly = true)
     public Page<FacilityResponseDto> findAll(Pageable pageable) {
@@ -728,10 +733,9 @@ public class FacilityService {
     }
 
     @Transactional
-    public void insertReview(ReviewInsertRequestDto requestDto, MultipartFile image) {
+    public void insertReview(ReviewInsertRequestDto requestDto, Integer userId, MultipartFile image) {
 
         // 로그인 되어있는 유저 찾기
-        Integer userId = requestDto.getUserId();
         User user = userDao.findById(userId).orElseThrow(() -> new EntityNotFoundException("유저 없음"));
         log.info("유저: {}", user);
 
@@ -746,8 +750,23 @@ public class FacilityService {
                 .comment(requestDto.getComment())
                 .starPoint(requestDto.getStarPoint())
                 .build();
-        reviewDao.save(review);
-        log.info("리뷰: {}", review);
+        Review saved = reviewDao.save(review);
+        log.info("리뷰: {}", saved);
+
+        Reserve reserve = reserveDao.findById(requestDto.getReserveId()).orElseThrow(() -> new CustomException() {
+            @Override
+            public HttpStatus getStatus() {
+                return HttpStatus.BAD_REQUEST;
+            }
+
+            @Override
+            public String getMessage() {
+                return "찾을 수 없는 예약 정보입니다.";
+            }
+        });
+
+        reserve.updateReview(saved);
+        reserveDao.save(reserve);
 
         // 시설 별점 통계 업데이트
         facility.updateTotalStarPoint(review.getStarPoint());

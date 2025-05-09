@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 import tf.tailfriend.facility.entity.Facility;
 import tf.tailfriend.user.entity.User;
+import tf.tailfriend.facility.entity.Review;
 
 import java.time.LocalDateTime;
 
@@ -41,4 +42,12 @@ public class Reserve {
 
     @OneToOne(mappedBy = "reserve", cascade = CascadeType.ALL, orphanRemoval = true)
     private Payment payment;
+
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "review_id", nullable = true)
+    private Review review;
+
+    public void updateReview(Review review) {
+        this.review = review;
+    }
 }

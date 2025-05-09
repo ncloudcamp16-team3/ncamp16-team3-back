@@ -1,4 +1,3 @@
-create schema tailfriends;
 use tailfriends;
 
 -- sns타입
@@ -159,7 +158,7 @@ CREATE TABLE IF NOT EXISTS comments
     deleted    BOOLEAN NOT NULL DEFAULT FALSE,                -- 삭제 상태
     PRIMARY KEY (id),
     FOREIGN KEY (user_id) REFERENCES users (id),
-    FOREIGN KEY (board_id) REFERENCES boards (id)
+    FOREIGN KEY (board_id) REFERENCES boards (id),
     FOREIGN KEY (parent_id) REFERENCES comments (id),
     FOREIGN KEY (ref_comment_id) REFERENCES comments (id)
     );
@@ -170,7 +169,7 @@ CREATE TABLE IF NOT EXISTS notification_types
     id   INTEGER     NOT NULL AUTO_INCREMENT, -- 알람 타입 아이디
     name VARCHAR(50) NOT NULL,                -- 알람 타입 이름
     PRIMARY KEY (id)
-    )
+    );
 
 -- 알람
 CREATE TABLE IF NOT EXISTS notifications
@@ -310,7 +309,7 @@ CREATE TABLE IF NOT EXISTS facility_types
     );
 
 -- 편의시설
-CREATE TABLE facilities
+CREATE TABLE IF NOT EXISTS facilities
 (
     id               INTEGER      NOT NULL AUTO_INCREMENT, -- 편의시설 아이디
     facility_type_id INTEGER      NOT NULL,                -- 편의시설 타입 아이디
@@ -350,6 +349,20 @@ CREATE TABLE IF NOT EXISTS facility_photos
     FOREIGN KEY (file_id) REFERENCES files (id)
     );
 
+-- 편의시설 리뷰
+CREATE TABLE IF NOT EXISTS reviews
+(
+    id          INTEGER NOT NULL AUTO_INCREMENT, -- 편의시설 리뷰 아이디
+    user_id     INTEGER NOT NULL,                -- 유저아이디
+    facility_id INTEGER NOT NULL,                -- 편의시설 아이디
+    comment     TEXT NULL,                       -- 리뷰내용
+    star_point  INTEGER NOT NULL,                -- 별점
+    created_at  DATETIME NOT NULL DEFAULT current_timestamp(), -- 작성일자
+    PRIMARY KEY (id),
+    FOREIGN KEY (facility_id) REFERENCES facilities (id),
+    FOREIGN KEY (user_id) REFERENCES users (id)
+    );
+
 -- 예약
 CREATE TABLE IF NOT EXISTS reserves
 (
@@ -359,8 +372,8 @@ CREATE TABLE IF NOT EXISTS reserves
     entry_time     DATETIME NOT NULL,                -- 예약 시작시각
     exit_time      DATETIME NULL,                    -- 예약 종료시각
     amount         INTEGER  NOT NULL,                -- 예약금
-    reserve_status BOOLEAN  NOT NULL DEFAULT false,  -- 예약 완료 상태
-    review_id      INTEGER  DEFAULT NULL             -- 리뷰 아이디
+    reserve_status BOOLEAN  NOT NULL DEFAULT FALSE,  -- 예약 완료 상태
+    review_id      INTEGER  DEFAULT NULL,             -- 리뷰 아이디
     PRIMARY KEY (id),
     FOREIGN KEY (user_id) REFERENCES users (id),
     FOREIGN KEY(facility_id) REFERENCES facilities (id),
@@ -378,20 +391,6 @@ CREATE TABLE IF NOT EXISTS payments
     PRIMARY KEY (id),
     FOREIGN KEY (reserve_id) REFERENCES reserves (id),
     UNIQUE (reserve_id)
-    );
-
--- 편의시설 리뷰
-CREATE TABLE IF NOT EXISTS reviews
-(
-    id          INTEGER NOT NULL AUTO_INCREMENT, -- 편의시설 리뷰 아이디
-    user_id     INTEGER NOT NULL,                -- 유저아이디
-    facility_id INTEGER NOT NULL,                -- 편의시설 아이디
-    comment     TEXT NULL,                       -- 리뷰내용
-    star_point  INTEGER NOT NULL,                -- 별점
-    created_at  DATETIME NOT NULL DEFAULT current_timestamp(), -- 작성일자
-    PRIMARY KEY (id),
-    FOREIGN KEY (facility_id) REFERENCES facilities (id),
-    FOREIGN KEY (user_id) REFERENCES users (id)
     );
 
 -- 편의시설리뷰 사진

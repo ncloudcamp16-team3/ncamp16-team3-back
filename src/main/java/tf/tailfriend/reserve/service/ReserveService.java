@@ -142,6 +142,10 @@ public class ReserveService {
                 .image(imageUrl)
                 .latitude(reserve.getFacility().getLatitude())
                 .longitude(reserve.getFacility().getLongitude())
+                .reviewDto(
+                        reserve.getReview() != null
+                                ? ReserveDetailResponseDto.reviewDtoFromEntity(reserve.getReview())
+                                : null)
                 .build();
     }
 

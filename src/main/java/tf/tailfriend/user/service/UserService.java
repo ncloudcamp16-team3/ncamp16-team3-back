@@ -328,6 +328,7 @@ public class UserService {
 
             user.setNickname("deleted-" + UUID.randomUUID().toString().replace("-", "").substring(0, 20));
             user.setSnsAccountId("deleted-" + UUID.randomUUID().toString().replace("-", ""));
+            user.setFile(fileDao.getFileById(1));
             user.setDeleted(true);//
 
         } catch (Exception e) {

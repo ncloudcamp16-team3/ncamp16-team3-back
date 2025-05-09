@@ -4,6 +4,7 @@ import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.*;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -236,7 +237,7 @@ public class FacilityService {
     }
 
     @Transactional(readOnly = true)
-    public FacilityDetailDto getFacilityDetailWithReviews(Integer facilityId) {
+    public FacilityDetailDto getFacilityDetailWithReviews(Integer facilityId, Integer userId) {
         Facility facility = facilityDao.findById(facilityId)
                 .orElseThrow(() -> new IllegalArgumentException("시설을 찾을 수 없습니다: " + facilityId));
 
@@ -256,7 +257,7 @@ public class FacilityService {
 
         List<Object[]> reviewRatio = reviewDao.countReviewsByStarPoint(facilityId);
 
-        return new FacilityDetailDto(facilityDto, reviewDtos, reviewRatio);
+        return new FacilityDetailDto(facilityDto, reviewDtos, reviewRatio, userId);
     }
 
     private List<ReviewResponseDto> getReviewDtos(Integer facilityId) {

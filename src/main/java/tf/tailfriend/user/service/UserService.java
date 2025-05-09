@@ -304,6 +304,7 @@ public class UserService {
                 }
 
                 // 게시글 삭제
+                tradeMatchDao.deleteByPostId(board.getId());
                 boardDao.delete(board);
             }
 

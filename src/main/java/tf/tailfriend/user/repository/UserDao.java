@@ -10,8 +10,11 @@ import java.util.Optional;
 
 public interface UserDao extends JpaRepository<User, Integer> {
 
-    Optional<User> findBySnsAccountIdAndSnsTypeId(String snsAccountId, Integer snsTypeId);
-    Optional<User> findByNickname(String nickname);
+    Optional<User> findByIdAndDeletedFalse(Integer id);
+    Optional<User> findBySnsAccountIdAndSnsTypeIdAndDeletedFalse(String snsAccountId, Integer snsTypeId);
+    Optional<User> findByNicknameAndDeletedFalse(String nickname);
+
+    boolean existsByNicknameAndDeletedFalse(String nickname);
 
     @Modifying
     @Query("update User u set u.postCount = u.postCount + 1 where u.id = :id")

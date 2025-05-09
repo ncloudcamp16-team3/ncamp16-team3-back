@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import tf.tailfriend.board.entity.Board;
 import tf.tailfriend.board.entity.BoardBookmark;
+import tf.tailfriend.board.entity.BoardLike;
 
 import java.util.List;
 import java.util.Optional;
@@ -26,6 +27,10 @@ public interface BoardBookmarkDao extends JpaRepository<BoardBookmark, BoardBook
     @Modifying
     @Query("DELETE FROM BoardBookmark bb WHERE bb.user.id = :userId")
     void deleteByUserId(@Param("userId") Integer userId);
+
+
+    @Query("SELECT b FROM BoardBookmark b JOIN FETCH b.board WHERE b.user.id = :userId")
+    List<BoardBookmark> findAllByUserIdWithBoard(@Param("userId") Integer userId);
 
 }
 

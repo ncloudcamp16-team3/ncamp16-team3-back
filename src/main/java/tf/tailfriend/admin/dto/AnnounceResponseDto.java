@@ -6,6 +6,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import tf.tailfriend.admin.entity.Announce;
 import tf.tailfriend.admin.entity.AnnouncePhoto;
+import tf.tailfriend.global.service.StorageService;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -25,7 +26,10 @@ public class AnnounceResponseDto {
     private String boardTypeName;
     private List<AnnouncePhotoDto> photos;
 
-    public static AnnounceResponseDto fromEntity(Announce announce) {
+    public static AnnounceResponseDto fromEntity(Announce announce, StorageService storageService) {
+        List<AnnounceResponseDto.AnnouncePhotoDto> photoDtos = announce.getPhotos().stream()
+                .map(photo -> AnnounceResponseDto.AnnouncePhotoDto.fromEntity(photo, storageService))
+                .collect(Collectors.toList());
         return AnnounceResponseDto.builder()
                 .id(announce.getId())
                 .title(announce.getTitle())
@@ -33,9 +37,7 @@ public class AnnounceResponseDto {
                 .createdAt(announce.getCreatedAt())
                 .boardTypeId(announce.getBoardType().getId())
                 .boardTypeName(announce.getBoardType().getName())
-                .photos(announce.getPhotos().stream()
-                        .map(AnnouncePhotoDto::fromEntity)
-                        .collect(Collectors.toList()))
+                .photos(photoDtos)
                 .build();
     }
 
@@ -48,10 +50,10 @@ public class AnnounceResponseDto {
         private Integer fileId;
         private String url;
 
-        public static AnnouncePhotoDto fromEntity(AnnouncePhoto photo) {
+        public static AnnouncePhotoDto fromEntity(AnnouncePhoto photo, StorageService storageService) {
             return AnnouncePhotoDto.builder()
                     .fileId(photo.getFile().getId())
-                    .url("/uploads/board" + photo.getFile().getPath())
+                    .url(storageService.generatePresignedUrl(photo.getFile().getPath()))
                     .build();
         }
     }

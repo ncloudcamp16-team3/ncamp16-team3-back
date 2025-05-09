@@ -44,7 +44,7 @@ public class AdminBoardController {
             }
             // 아무 조건 없는 경우 전체 조회
             else {
-                log.info("여기로 들어와야함");
+//                log.info("여기로 들어와야함");
                 boards = boardService.getAllBoards(pageRequest);
             }
 

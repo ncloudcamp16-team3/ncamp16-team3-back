@@ -22,4 +22,15 @@ public interface PetstaBookmarkDao extends JpaRepository<PetstaBookmark, Integer
     @Modifying
     @Query("DELETE FROM PetstaBookmark pb WHERE pb.user.id = :userId")
     void deleteByUserId(@Param("userId") Integer userId);
+
+    @Query("SELECT pb FROM PetstaBookmark pb JOIN pb.petstaPost p JOIN p.user u WHERE pb.user.id = :userId AND u.deleted = false")
+    List<PetstaBookmark> findByUserIdAndPetstaPostUserNotDeleted(@Param("userId") Integer userId);
+
+    @Query("SELECT b FROM PetstaBookmark b JOIN FETCH b.petstaPost WHERE b.user.id = :userId")
+    List<PetstaBookmark> findAllByUserIdWithPost(@Param("userId") Integer userId);
+
+    @Modifying
+    @Query("DELETE FROM PetstaBookmark b WHERE b.petstaPost.id = :postId")
+    void deleteAllByPostId(@Param("postId") Integer postId);
+
 }

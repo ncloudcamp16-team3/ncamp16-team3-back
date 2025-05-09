@@ -2,6 +2,8 @@ package tf.tailfriend.reserve.repository;
 
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import tf.tailfriend.reserve.entity.Reserve;
 import tf.tailfriend.schedule.entity.Schedule;
 
@@ -20,5 +22,8 @@ public interface ReserveDao extends JpaRepository<Reserve, Integer> {
 
     List<Reserve> findByEntryTimeBetween(LocalDateTime now, LocalDateTime tenMinutesLater);
 
+
+    @Query("SELECT r FROM Reserve r WHERE r.user.id = :userId")
+    List<Reserve> findAllByUserId(@Param("userId") Integer userId);
 
 }

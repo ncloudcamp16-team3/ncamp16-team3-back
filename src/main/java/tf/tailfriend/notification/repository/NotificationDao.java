@@ -22,4 +22,5 @@ public interface NotificationDao extends JpaRepository<Notification, Integer> {
 
     boolean existsByUserIdAndReadStatusFalse(Integer userId);
 
+    boolean existsByUserIdAndReadStatusFalseAndNotificationTypeIdNot(Integer userId, int i);
 }

@@ -345,6 +345,8 @@ public class PetSitterService {
             throw new IllegalArgumentException("승인된 펫시터만 그만둘 수 있습니다");
         }
 
+        petSitter.setFile(null);       // 🔥 file 연결 끊기
+        petSitterDao.save(petSitter);  // 🔄 update로 null 반영
         petSitterDao.delete(petSitter);
 
         entityManager.flush();

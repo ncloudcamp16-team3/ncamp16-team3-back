@@ -15,17 +15,20 @@ public interface UserFollowDao extends JpaRepository<UserFollow, Integer> {
     Optional<UserFollow> findByFollowerIdAndFollowedId(Integer followerId, Integer followedId);
     boolean existsByFollowerIdAndFollowedId(Integer followerId, Integer followedId);
 
-    @Modifying
-    @Query("DELETE FROM UserFollow uf WHERE uf.follower.id = :followerId")
-    void deleteByFollowerId(@Param("followerId") Integer followerId);
 
-    @Modifying
-    @Query("DELETE FROM UserFollow uf WHERE uf.followed.id = :followedId")
-    void deleteByFollowedId(@Param("followedId") Integer followedId);
+
+    // 내가 팔로우한 사람들
+    @Query("SELECT uf FROM UserFollow uf JOIN FETCH uf.followed WHERE uf.follower.id = :userId")
+    List<UserFollow> findAllByFollowerId(@Param("userId") Integer userId);
+
+    // 나를 팔로우한 사람들
+    @Query("SELECT uf FROM UserFollow uf JOIN FETCH uf.follower WHERE uf.followed.id = :userId")
+    List<UserFollow> findAllByFollowedId(@Param("userId") Integer userId);
 
     // UserFollowDao.java
     @Query("SELECT uf.followed FROM UserFollow uf WHERE uf.follower.id = :followerId")
     List<User> findTop10ByFollowerId(@Param("followerId") Integer followerId, Pageable pageable);
+
 
 
     List<UserFollow> findByFollowerIdAndFollowedIdIn(Integer currentUserId, List<Integer> collect);

@@ -7,6 +7,7 @@ import org.springframework.data.repository.query.Param;
 import tf.tailfriend.board.entity.Board;
 import tf.tailfriend.board.entity.BoardLike;
 
+import java.util.List;
 import java.util.Optional;
 
 public interface BoardLikeDao extends JpaRepository<BoardLike, BoardLike.BoardLikeId> {
@@ -17,4 +18,7 @@ public interface BoardLikeDao extends JpaRepository<BoardLike, BoardLike.BoardLi
     @Modifying
     @Query("DELETE FROM BoardLike bl WHERE bl.user.id = :userId")
     void deleteByUserId(@Param("userId") Integer userId);
+
+    @Query("SELECT bl FROM BoardLike bl JOIN FETCH bl.board WHERE bl.user.id = :userId")
+    List<BoardLike> findAllByUserIdWithBoard(@Param("userId") Integer userId);
 }

@@ -1,5 +1,7 @@
 package tf.tailfriend.admin.repository;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -27,4 +29,14 @@ public interface AnnounceDao extends JpaRepository<Announce, Integer> {
 
     // 제목 또는 내용으로 공지사항 검색
     List<Announce> findByTitleContainingOrContentContainingOrderByCreatedAtDesc(String titleKeyword, String contentKeyword);
+
+    Page<Announce> findByTitleContainingAndBoardType(String searchTerm, BoardType boardType, Pageable pageable);
+
+    Page<Announce> findByTitleContaining(String searchTerm, Pageable pageable);
+
+    Page<Announce> findByContentContainingAndBoardType(String searchTerm, BoardType boardType, Pageable pageable);
+
+    Page<Announce> findByContentContaining(String searchTerm, Pageable pageable);
+
+    Page<Announce> findByBoardType(BoardType boardType, Pageable pageable);
 }

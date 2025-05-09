@@ -451,7 +451,6 @@ public class PetstaPostService {
         // 삭제된 댓글 저장
         petstaCommentDao.save(comment);
     }
-
     @Transactional
     public void deletePost(Integer userId, Integer postId) {
         PetstaPost post = petstaPostDao.findById(postId)
@@ -461,12 +460,17 @@ public class PetstaPostService {
             throw new SecurityException("자신의 게시물만 삭제할 수 있습니다.");
         }
 
-        post.markAsDeleted(); // 삭제 표시
+        // 🔥 연관 좋아요 및 북마크 삭제
+        petstaLikeDao.deleteAllByPostId(postId);
 
-        // 삭제된 댓글 저장
+        petstaBookmarkDao.deleteAllByPostId(postId);
+
+        post.markAsDeleted(); // 삭제 표시
         petstaPostDao.save(post);
-        userDao.decrementPostCount(userId);
+
+        userDao.decrementPostCount(userId); // 작성글 수 감소
     }
+
 
 
 }

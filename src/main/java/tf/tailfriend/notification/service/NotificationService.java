@@ -38,6 +38,7 @@ import tf.tailfriend.user.entity.User;
 import tf.tailfriend.user.repository.UserDao;
 
 import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.LocalDateTime;
 import java.util.*;
@@ -78,6 +79,8 @@ public void sendNotificationToUser(NotificationDto dto) {
         System.out.println("❌ FCM 토큰이 없는 사용자입니다: userId = " + dto.getUserId());
         return;
     }
+
+    System.out.println("알림타입: "+dto.getNotifyTypeId());
 
     String title = "";
     String body = "";
@@ -130,6 +133,11 @@ public void sendNotificationToUser(NotificationDto dto) {
                 body = announce.getTitle();
                 image = imagePrefix + "/global.png";
             }
+            case 7 -> {
+                title = "채팅방에 구독 되었습니다.";
+                body = "내 채팅방 목록을 갱신합니다.";
+                image = "";
+            }
             default -> {
                 title = "알림";
                 body = "새로운 알림이 도착했습니다.";
@@ -145,12 +153,24 @@ public void sendNotificationToUser(NotificationDto dto) {
             }
             String fcmToken = userFcm.getFcmToken();
 
-            Message message = Message.builder()
+            Message message;
+            if (dto.getNotifyTypeId() == 7) {
+                message = Message.builder()
+                        .setToken(fcmToken)
+                        .putData("type", "FETCH_ROOMS") // ✅ 중요: 프론트 구분용
+                        .putData("title", title)
+                        .putData("body", body)
+                        .build();
+            }
+            else {
+
+            message = Message.builder()
                     .setToken(fcmToken)
                     .putData("title", title)
                     .putData("body", body)
                     .putData("icon", image)
                     .build();
+            }
 
             try {
                 FirebaseMessaging.getInstance().send(message);
@@ -170,7 +190,7 @@ public void sendNotificationToUser(NotificationDto dto) {
     }
 }
 public boolean existsByUserIdAndReadStatusFalse(Integer userId) {
-    return notificationDao.existsByUserIdAndReadStatusFalse(userId);
+    return notificationDao.existsByUserIdAndReadStatusFalseAndNotificationTypeIdNot(userId, 7);
 }
 
 
@@ -199,6 +219,58 @@ public boolean existsByUserIdAndReadStatusFalse(Integer userId) {
             );
         }
     }
+
+
+    public void sendChatroomforOtherUser(Integer userId2) {
+        boolean isLinux = System.getProperty("os.name").toLowerCase().contains("linux");
+        boolean isDev = !isLinux; // 리눅스가 아니면 개발 환경
+
+        // 시작 로그
+        System.out.println("채팅방 알림 전송 시작: userId2=" + userId2 + ", isDev=" + isDev);
+
+        List<UserFcm> userFcmtokens = userFcmDao.findUserFcmByUserId(userId2);
+
+        if (userFcmtokens == null || userFcmtokens.isEmpty()) {
+            System.out.println("알림을 보낼 FCM 토큰이 없습니다. userId2=" + userId2);
+        } else {
+            System.out.println("FCM 토큰 수: " + userFcmtokens.size() + "개");
+        }
+
+        for (UserFcm userFcm : userFcmtokens) {
+            Integer userId = userFcm.getUserId();
+            String formattedCreatedAt = ZonedDateTime.now(ZoneId.of("Asia/Seoul"))
+                    .format(DateTimeFormatter.ISO_OFFSET_DATE_TIME);
+
+            // 디버깅을 위한 로그: 유저 아이디와 시간 확인
+            System.out.println("FCM 토큰 전송 대상: userId=" + userId + ", 시간=" + formattedCreatedAt);
+
+            try {
+                // 알림 전송 및 로그 기록
+                notificationScheduler.sendNotificationAndSaveLog(
+                        userId,
+                        7, // 알림 유형 ID
+                        "", // 제목 (빈 값, 필요한 정보 추가 가능)
+                        formattedCreatedAt, // 생성 시간
+                        "📌 채팅방 생성 알림 전송 완료: 제목={}, 내용={}", // 성공 메시지
+                        "", // 메시지
+                        "", // 메시지
+                        "❌ 채팅방 생성 알림 전송 실패", // 실패 메시지
+                        isDev
+                );
+                // 성공 로그
+                System.out.println("채팅방 생성 알림 전송 완료: userId=" + userId);
+            } catch (Exception e) {
+                // 오류 로그
+                System.out.println("채팅방 생성 알림 전송 중 오류 발생: userId=" + userId + ", 오류=" + e.getMessage());
+                e.printStackTrace();  // 예외의 전체 스택 트레이스 출력
+            }
+        }
+
+        // 종료 로그
+        System.out.println("채팅방 알림 전송 완료: userId2=" + userId2);
+    }
+
+
 
     public void sendPetstaCommentNotification(PetstaCommentResponseDto dto, Integer postId) {
 
@@ -379,7 +451,8 @@ public boolean existsByUserIdAndReadStatusFalse(Integer userId) {
     public List<GetNotifyDto> getNotificationsByUserId(Integer userId) {
         List<tf.tailfriend.notification.entity.Notification> notifications = notificationDao.findByUserIdOrderByCreatedAtDesc(userId);
         return notifications.stream()
-                .map(this::getNotificationDetails) // title/body 설정 포함
+                .filter(notification -> notification.getNotificationType().getId() != 7) // ← type 7 제외
+                .map(this::getNotificationDetails)
                 .collect(Collectors.toList());
     }
 
@@ -457,6 +530,16 @@ public boolean existsByUserIdAndReadStatusFalse(Integer userId) {
                         dto.setBody("관련 공지글을 확인할 수 없습니다.");
                     }
                 }
+                case 7 -> {
+                    try {
+                        dto.setTitle("채팅방에 구독 되었습니다.");
+                        dto.setBody("내 채팅방 목록을 갱신합니다.");
+                    } catch (RuntimeException e) {
+                        dto.setTitle("채팅방");
+                        dto.setBody("관련 공지글을 확인할 수 없습니다.");
+                    }
+                }
+
                 default -> {
                     dto.setTitle("알림 내용이 없습니다.");
                     dto.setBody("알림 내용을 확인하세요.");

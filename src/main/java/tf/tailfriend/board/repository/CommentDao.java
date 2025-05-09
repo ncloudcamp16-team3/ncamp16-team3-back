@@ -39,4 +39,7 @@ public interface CommentDao extends JpaRepository<Comment, Integer> {
     @Query(value = "?1", nativeQuery = true)
     void executeNativeQuery(String sql, Object... params);
     List<Comment> findRepliesByParentId(Integer parentId);
+
+    @Query("SELECT c FROM Comment c JOIN FETCH c.board WHERE c.user.id = :userId AND c.deleted = false")
+    List<Comment> findAllActiveByUserIdWithBoard(@Param("userId") Integer userId);
 }

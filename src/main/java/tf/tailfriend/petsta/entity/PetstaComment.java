@@ -78,4 +78,10 @@ public class PetstaComment {
         this.replyCount = replyCount;
     }
 
+    public void clearMention() {
+        if (this.mention != null) {
+            this.mention.setComment(null); // 관계 끊기
+            this.mention = null;
+        }
+    }
 }

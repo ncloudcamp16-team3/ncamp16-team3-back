@@ -84,7 +84,7 @@ public class ReserveController {
             @RequestPart("reviewData") ReviewInsertRequestDto requestDto,
             @RequestPart(value = "file", required = false) MultipartFile file,
             @AuthenticationPrincipal UserPrincipal userPrincipal) {
-        log.info("requestDto: {}, file: {}", requestDto, file.getOriginalFilename());
+        log.info("requestDto: {}, file: {}", requestDto, file);
 
         try {
             facilityService.insertReview(requestDto, userPrincipal.getUserId(), file);

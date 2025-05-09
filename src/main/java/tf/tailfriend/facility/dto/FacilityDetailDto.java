@@ -16,4 +16,5 @@ public class FacilityDetailDto {
     private FacilityResponseDto facility;
     private List<ReviewResponseDto> reviews;
     private List<Object[]> ratingRatio;
+    private Integer userId;
 }

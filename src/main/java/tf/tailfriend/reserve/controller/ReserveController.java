@@ -135,11 +135,11 @@ public class ReserveController {
                     .build(false) // 인코딩 하지 않도록 설정
                     .toUriString();
 
-            response.sendRedirect("https://tailfriends" + query);
+            response.sendRedirect("https://tailfriends.kro.kr" + query);
             return;
         }
 
-        response.sendRedirect("https://tailfriends/reserve/fail");
+        response.sendRedirect("https://tailfriends.kro.kr/reserve/fail");
     }
 
     @GetMapping("/my")

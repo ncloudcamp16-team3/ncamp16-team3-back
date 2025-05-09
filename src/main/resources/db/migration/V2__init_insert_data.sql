@@ -1,12 +1,35 @@
--- 동 중위좌표
-CREATE TABLE IF NOT EXISTS dongs
-(
-    id         INTEGER NOT NULL AUTO_INCREMENT,    -- 유저아이디
-    name       VARCHAR(255) NOT NULL UNIQUE,       -- 동이름
-    latitude   DOUBLE,                             -- 위도
-    longitude  DOUBLE,                             -- 경도
-    PRIMARY KEY (id)
-);
+INSERT INTO sns_types (name) VALUES ('KAKAO');
+INSERT INTO sns_types (name) VALUES ('NAVER');
+INSERT INTO sns_types (name) VALUES ('GOOGLE');
+
+INSERT INTO files (path) VALUES ("uploads/user/profile.png");
+
+INSERT INTO pet_types (name) VALUES ('DOG');
+INSERT INTO pet_types (name) VALUES ('CAT');
+INSERT INTO pet_types (name) VALUES ('HAMSTER');
+INSERT INTO pet_types (name) VALUES ('PARROT');
+INSERT INTO pet_types (name) VALUES ('FISH');
+INSERT INTO pet_types (name) VALUES ('ETC');
+
+INSERT INTO board_types (name) VALUES ('자유게시판');
+INSERT INTO board_types (name) VALUES ('중고장터');
+INSERT INTO board_types (name) VALUES ('정보게시판');
+
+insert into notification_types(id,name) values(1,"BOARD_COMMENT");
+insert into notification_types(id,name) values(2,"PETSTA_COMMENT");
+insert into notification_types(id,name) values(3,"FACILITY_DATE");
+insert into notification_types(id,name) values(4,"SCHEDULE_DATE");
+insert into notification_types(id,name) values(5,"CHAT");
+insert into notification_types(id,name) values(6,"GLOBAL");
+insert into notification_types(id,name) values(7,"CHATROOM_JOIN");
+
+INSERT INTO chat_types (name) VALUES ('TEXT');
+INSERT INTO chat_types (name) VALUES ('MATCH');
+INSERT INTO chat_types (name) VALUES ('TRADE');
+
+INSERT INTO facility_types (name) VALUES ('HOTEL');
+INSERT INTO facility_types (name) VALUES ('BEAUTY');
+INSERT INTO facility_types (name) VALUES ('CAFE');
 
 INSERT INTO dongs (name, latitude, longitude) VALUES ('양재동', 37.484795, 127.03767);
 INSERT INTO dongs (name, latitude, longitude) VALUES ('원남동', 37.576775, 126.99862);

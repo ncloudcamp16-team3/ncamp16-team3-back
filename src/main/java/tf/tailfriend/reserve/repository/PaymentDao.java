@@ -12,5 +12,6 @@ import java.util.Optional;
 public interface PaymentDao extends JpaRepository<Payment, Integer>, CustomPaymentDao {
     Optional<Payment> findByReserveId(Integer reserveId);
 
-    List<Payment> findByReserveUserIdAndCreatedAtBetween(Integer userId, LocalDateTime start, LocalDateTime end);
+
+    List<Payment> findByReserveUserIdAndReserveEntryTimeBetween(Integer userId, LocalDateTime start, LocalDateTime end);
 }

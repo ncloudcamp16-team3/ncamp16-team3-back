@@ -13,6 +13,9 @@ public class PaymentHistoryDto {
     private String name; // 시설 이름
     private String imageUrl; // 썸네일
     private LocalDateTime createdAt; // 결제 일시
+    private Integer reserveId;
+    private LocalDateTime entryTime;
+    private LocalDateTime exitTime;
     private Integer price;
 
 }

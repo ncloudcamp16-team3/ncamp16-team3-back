@@ -36,8 +36,9 @@ public class PetstaService {
     @Transactional
     public PetstaUserpageResponseDto getUserPage(Integer currentId, Integer userId) {
         // 1. 유저 조회
-        User user = userDao.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("해당 유저를 찾을 수 없습니다."));
+        User user = userDao.findByIdAndDeletedFalse(userId)
+                .orElseThrow(() -> new IllegalArgumentException("탈퇴한 유저이거나 존재하지 않는 유저입니다."));
+
 
         // 2. 유저 게시글 조회
         List<PetstaPost> posts = petstaPostDao.findByUserIdAndDeletedFalseOrderByCreatedAtDesc(userId);

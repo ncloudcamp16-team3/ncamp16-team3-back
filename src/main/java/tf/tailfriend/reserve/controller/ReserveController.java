@@ -14,6 +14,8 @@ import org.springframework.web.util.UriComponentsBuilder;
 import tf.tailfriend.board.dto.BoardRequestDto;
 import tf.tailfriend.board.entity.Board;
 import tf.tailfriend.board.exception.GetPostException;
+import tf.tailfriend.facility.dto.FacilityDetailDto;
+import tf.tailfriend.facility.entity.Facility;
 import tf.tailfriend.facility.entity.dto.forReserve.FacilityCardResponseDto;
 import tf.tailfriend.facility.entity.dto.forReserve.FacilityReviewResponseDto;
 import tf.tailfriend.facility.service.FacilityService;
@@ -21,6 +23,7 @@ import tf.tailfriend.global.config.UserPrincipal;
 import tf.tailfriend.global.exception.CustomException;
 import tf.tailfriend.global.response.CustomResponse;
 import tf.tailfriend.global.service.RedisService;
+import tf.tailfriend.global.service.StorageServiceException;
 import tf.tailfriend.reserve.dto.RequestForFacility.FacilityList;
 import tf.tailfriend.reserve.dto.RequestForFacility.ReviewInsertRequestDto;
 import tf.tailfriend.reserve.dto.ReserveDetailResponseDto;
@@ -35,6 +38,7 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.AccessDeniedException;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -165,6 +169,47 @@ public class ReserveController {
 
         return ResponseEntity.status(HttpStatus.OK)
                 .body(new CustomResponse("예약 취소에 성공하였습니다", null));
+    }
+
+    @PutMapping("/facility/review/{id}")
+    public ResponseEntity<?> updateReview(@PathVariable Integer id,
+                                          @AuthenticationPrincipal UserPrincipal user,
+                                          @RequestParam("comment") String comment,
+                                          @RequestParam("starPoint") int starPoint,
+                                          @RequestPart(value = "image", required = false) MultipartFile image) {
+        try {
+            FacilityDetailDto detailDto = facilityService.updateReview(id, user.getUserId(), comment, starPoint, image);
+            return ResponseEntity.ok().body(detailDto);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("리뷰를 찾을 수 없습니다: " + e.getMessage());
+        } catch (AccessDeniedException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("리뷰를 수정할 권한이 없습니다: " + e.getMessage());
+        } catch (StorageServiceException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("리뷰 이미지 재 업로드 중 오류가 발생하였습니다: " + e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("리뷰 수정 중 알 수 없는 오류가 발생했습니다: " + e.getMessage());
+        }
+    }
+
+    @DeleteMapping("/facility/review/{id}")
+    public ResponseEntity<?> deleteReview(@PathVariable Integer id,
+                                          @AuthenticationPrincipal UserPrincipal user) {
+        try {
+            FacilityDetailDto detailDto = facilityService.deleteReview(id, user.getUserId());
+            return ResponseEntity.ok().body(detailDto);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body("리뷰를 찾을 수 없습니다: " + e.getMessage());
+        } catch (AccessDeniedException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body("리뷰를 삭제할 권한이 없습니다: " + e.getMessage());
+        } catch (StorageServiceException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("이미지 삭제 중 오류가 발생하였습니다: " + e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("리뷰 삭제 중 알 수 없는 오류가 발생했습니다: " + e.getMessage());
+        }
     }
 
 }

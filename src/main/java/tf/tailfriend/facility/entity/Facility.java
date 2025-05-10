@@ -105,4 +105,6 @@ public class Facility {
     public void updateReviewCount() {
         this.reviewCount += 1;
     }
+
+    public void discountReview() {this.reviewCount -= 1;}
 }

@@ -205,16 +205,13 @@ public class PetSitterService {
                 fileId = imageFileEntity.getId();
 
                 try (InputStream is = imageFile.getInputStream()) {
-                    try {
-                        storageService.openUpload(imageFileEntity.getPath(), is);
-                    } catch (StorageServiceException e) {
-                        logger.error("이미지 업로드 실패", e);
-                        throw new RuntimeException("파일 업로드 실패: " + e.getMessage());
-                    }
+                    storageService.openUpload(imageFileEntity.getPath(), is);
+                } catch (StorageServiceException e) {
+                    logger.error("이미지 업로드 실패", e);
+                    throw new RuntimeException("파일 업로드 실패: " + e.getMessage());
                 }
             } else if (exists) {
                 // 기존 펫시터가 있고 새 이미지가 제공되지 않은 경우, 기존 파일 ID 사용
-                // 직접 ID만 조회하여 프록시 초기화 문제 회피
                 Query fileIdQuery = entityManager.createQuery(
                         "SELECT ps.file.id FROM PetSitter ps WHERE ps.id = :id");
                 fileIdQuery.setParameter("id", requestDto.getUserId());
@@ -225,8 +222,7 @@ public class PetSitterService {
                     fileId = imageFileEntity.getId();
                 } else {
                     logger.info("기존 이미지 ID 유지: fileId={}", fileId);
-                    // 프록시 초기화 문제 방지를 위해 여기서는 파일 객체를 로드하지 않고 ID만 사용
-                    imageFileEntity = null; // 나중에 응답에서 필요할 때 다시 조회
+                    imageFileEntity = null;
                 }
             } else {
                 // 새 펫시터이고 이미지가 제공되지 않은 경우, 기본 이미지 사용
@@ -241,18 +237,15 @@ public class PetSitterService {
                 petType = petTypeDao.findById(requestDto.getPetTypeId()).orElse(null);
             }
 
-            Integer petTypeId = petType != null ? petType.getId() : null;
-
             // 다중 선택된 반려동물 타입 정보
             String petTypesFormatted = requestDto.getPetTypesFormatted();
             List<Integer> petTypeIds = requestDto.getPetTypeIds();
 
-            // 로깅
             logger.info("펫시터 신청 정보: petTypesFormatted={}, petTypeIds={}, fileId={}",
                     petTypesFormatted, petTypeIds != null ? petTypeIds.toString() : "null", fileId);
 
-            // EntityManager 사용
             if (exists) {
+                // 기존 펫시터 정보 업데이트
                 String updateQuery =
                         "UPDATE pet_sitters SET " +
                                 "age = ?1, " +
@@ -268,21 +261,19 @@ public class PetSitterService {
                                 "apply_at = NULL " +
                                 "WHERE id = ?10";
 
-                // 쿼리 파라미터 설정
                 Query query = entityManager.createNativeQuery(updateQuery);
                 query.setParameter(1, requestDto.getAge());
                 query.setParameter(2, requestDto.getHouseType());
                 query.setParameter(3, requestDto.getComment());
                 query.setParameter(4, requestDto.getGrown());
 
-                // grown이 false인 경우 반려동물 관련 정보는 null로 설정
                 if (requestDto.getGrown() == null || !requestDto.getGrown()) {
-                    query.setParameter(5, null);  // pet_count null로 설정
-                    query.setParameter(8, null);  // pet_type_id null로 설정
-                    query.setParameter(9, null);  // pet_types_formatted null로 설정
+                    query.setParameter(5, null);
+                    query.setParameter(8, null);
+                    query.setParameter(9, null);
                 } else {
                     query.setParameter(5, requestDto.getPetCount() != null ? requestDto.getPetCount().name() : null);
-                    query.setParameter(8, petTypeId);
+                    query.setParameter(8, petType != null ? petType.getId() : null);
                     query.setParameter(9, petTypesFormatted);
                 }
 
@@ -290,21 +281,48 @@ public class PetSitterService {
                 query.setParameter(7, fileId);
                 query.setParameter(10, requestDto.getUserId());
 
-                // 쿼리 실행
                 int updated = query.executeUpdate();
-                logger.info("펫시터 정보 업데이트 완료: userId={}, rows={}, fileId={}, grown={}",
-                        requestDto.getUserId(), updated, fileId, requestDto.getGrown());
+                logger.info("펫시터 정보 업데이트 완료: userId={}, rows={}", requestDto.getUserId(), updated);
+            } else {
+                // 새로운 펫시터 추가
+                String insertQuery =
+                        "INSERT INTO pet_sitters (id, age, house_type, comment, grown, pet_count, sitter_exp, " +
+                                "file_id, pet_type_id, pet_types_formatted, status, created_at) " +
+                                "VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, 'NONE', NOW())";
+
+                Query query = entityManager.createNativeQuery(insertQuery);
+                query.setParameter(1, requestDto.getUserId());
+                query.setParameter(2, requestDto.getAge());
+                query.setParameter(3, requestDto.getHouseType());
+                query.setParameter(4, requestDto.getComment());
+                query.setParameter(5, requestDto.getGrown());
+
+                if (requestDto.getGrown() == null || !requestDto.getGrown()) {
+                    query.setParameter(6, null);
+                    query.setParameter(9, null);
+                    query.setParameter(10, null);
+                } else {
+                    query.setParameter(6, requestDto.getPetCount() != null ? requestDto.getPetCount().name() : null);
+                    query.setParameter(9, petType != null ? petType.getId() : null);
+                    query.setParameter(10, petTypesFormatted);
+                }
+
+                query.setParameter(7, requestDto.getSitterExp());
+                query.setParameter(8, fileId);
+
+                int inserted = query.executeUpdate();
+                logger.info("새 펫시터 등록 완료: userId={}, rows={}", requestDto.getUserId(), inserted);
             }
 
-            // DB에서 다시 데이터 조회하여 응답 생성 - 새로운 세션에서 완전히 다시 로드
+            // 변경사항 즉시 적용
             entityManager.flush();
             entityManager.clear();
 
+            // 새로 저장된 엔티티 조회
             PetSitter updatedPetSitter = petSitterDao.findById(requestDto.getUserId())
                     .orElseThrow(() -> new IllegalStateException("저장된 펫시터 정보를 조회할 수 없습니다"));
 
             PetSitterResponseDto responseDto = PetSitterResponseDto.fromEntity(updatedPetSitter);
-
             responseDto.setPetTypesFormatted(petTypesFormatted);
 
             if (petTypeIds != null && !petTypeIds.isEmpty()) {
@@ -314,7 +332,7 @@ public class PetSitterService {
                 responseDto.setPetTypes(petTypeNames);
             }
 
-            // 이미지 URL 설정 - 업데이트된 펫시터 엔티티에서 파일 경로 가져오기
+            // 이미지 URL 설정
             String imagePath = updatedPetSitter.getFile().getPath();
             String imageUrl = storageService.generatePresignedUrl(imagePath);
             responseDto.setImagePath(imageUrl);

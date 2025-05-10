@@ -117,8 +117,8 @@ public class UserService {
         }
 
         // 2. 닉네임 길이 제한
-        if (newNickname.length() < 2 || newNickname.length() > 20) {
-            throw new IllegalArgumentException("닉네임은 2-20자 사이여야 합니다.");
+        if (newNickname.length() < 2 || newNickname.length() > 8) {
+            throw new IllegalArgumentException("닉네임은 2-8자 사이여야 합니다.");
         }
 
         // 3. 닉네임 중복 검사

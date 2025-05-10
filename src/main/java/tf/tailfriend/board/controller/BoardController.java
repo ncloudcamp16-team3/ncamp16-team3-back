@@ -250,7 +250,7 @@ public class BoardController {
 
     @PostMapping("/comment")
     public ResponseEntity<?> addComment(@RequestBody CommentRequestDto commentRequestDto) {
-        log.info("\n댓글 요청 Dto {}", commentRequestDto);
+        log.info("\n댓글 추가 요청 Dto {}", commentRequestDto);
 
         try {
             // 댓글 객체로 받기
@@ -327,7 +327,7 @@ public class BoardController {
 
                 @Override
                 public String getMessage() {
-                    return "댓글 수정에 실패하였습니다";
+                    return e.getMessage();
                 }
             };
         }

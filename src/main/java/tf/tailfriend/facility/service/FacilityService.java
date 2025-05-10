@@ -803,7 +803,9 @@ public class FacilityService {
     }
 
     @Transactional
-    public FacilityDetailDto updateReview(Integer reviewId, Integer userId, String comment, Integer starPoint, MultipartFile image) throws AccessDeniedException, StorageServiceException {
+    public FacilityDetailDto updateReview(Integer reviewId, Integer userId, String comment, Integer starPoint, MultipartFile image)
+            throws AccessDeniedException, StorageServiceException {
+
         Review review = reviewDao.findById(reviewId)
                 .orElseThrow(() -> new IllegalArgumentException("리뷰를 찾을 수 없습니다."));
 
@@ -812,64 +814,61 @@ public class FacilityService {
         }
 
         log.info("수정 전 총 별점: {}", review.getFacility().getTotalStarPoint());
-        // 별점 변경 처리
+
         Integer oldStarPoint = review.getStarPoint();
-        if (oldStarPoint < starPoint) {
-            Integer plus = starPoint - oldStarPoint;
-            review.getFacility().updateTotalStarPoint(plus);
-            log.info("별점 변경 사항: +{}", plus);
-        } else {
-            Integer minus = oldStarPoint - starPoint;
-            review.getFacility().updateTotalStarPoint(-minus);
-            log.info("별점 변경 사항: -{}", minus);
+        if (!Objects.equals(oldStarPoint, starPoint)) {
+            int diff = starPoint - oldStarPoint;
+            review.getFacility().updateTotalStarPoint(diff);
+            log.info("별점 변경 사항: {}", diff > 0 ? "+" + diff : diff);
         }
+
         review.update(comment, starPoint);
-        log.info("수정 후 총 별점: {}", review.getFacility().getTotalStarPoint());
 
-        // 이미지 변경 처리
-        if (image != null && !image.isEmpty()) {
-            // 1. 기존 리뷰 사진 조회
-            List<ReviewPhoto> oldPhotos = reviewPhotoDao.findByReviewId(review.getId());
+        // 이미지 삭제 또는 변경
+        List<ReviewPhoto> oldPhotos = reviewPhotoDao.findByReviewId(review.getId());
 
-            // 2. 실제 파일 삭제
-            try {
+        // ✅ 이미지 제거 요청인 경우
+        if (image == null || image.isEmpty()) {
+            if (!oldPhotos.isEmpty()) {
                 for (ReviewPhoto photo : oldPhotos) {
-                    storageService.delete(photo.getFile().getPath()); // S3 또는 로컬 파일 삭제
+                    storageService.delete(photo.getFile().getPath());
                 }
-            } catch (StorageServiceException e) {
-                throw new RuntimeException("파일 삭제 중 오류 발생: " + e);
+                reviewPhotoDao.deleteAll(oldPhotos);
+                fileDao.deleteAll(oldPhotos.stream().map(ReviewPhoto::getFile).collect(Collectors.toList()));
+                log.info("기존 리뷰 이미지 삭제 완료");
+            }
+        }
+        // ✅ 이미지 수정 요청인 경우
+        else {
+            // 기존 이미지 삭제
+            if (!oldPhotos.isEmpty()) {
+                for (ReviewPhoto photo : oldPhotos) {
+                    storageService.delete(photo.getFile().getPath());
+                }
+                reviewPhotoDao.deleteAll(oldPhotos);
+                fileDao.deleteAll(oldPhotos.stream().map(ReviewPhoto::getFile).collect(Collectors.toList()));
+                log.info("기존 리뷰 이미지 삭제 완료");
             }
 
-            // 3. DB에서 review_photos 먼저 삭제
-            reviewPhotoDao.deleteAll(oldPhotos);
-
-            // 4. DB에서 files 삭제
-            fileDao.deleteAll(
-                    oldPhotos.stream().map(ReviewPhoto::getFile).collect(Collectors.toList())
-            );
-
-            // 5. 새로운 파일 저장
+            // 새 이미지 저장
             try (InputStream is = image.getInputStream()) {
                 File newFile = fileService.save(image.getOriginalFilename(), "review", File.FileType.PHOTO);
-                log.info("파일 저장 완료");
                 storageService.upload(newFile.getPath(), is);
-                log.info("파일 업로드 완료");
-
-                // 6. 새로운 ReviewPhoto 생성 및 저장
                 ReviewPhoto newPhoto = ReviewPhoto.of(newFile, review);
                 reviewPhotoDao.save(newPhoto);
-                log.info("시설-리뷰 이미지 연결 생성 완료");
+                log.info("새 리뷰 이미지 저장 완료");
             } catch (IOException | StorageServiceException | NullPointerException e) {
                 throw new RuntimeException("파일 업로드 중 오류 발생: " + e);
             }
-
         }
-            FacilityResponseDto newFacility = getFacilityById(review.getFacility().getId());
-            List<ReviewResponseDto> newReviews = getReviewDtos(review.getFacility().getId());
-            List<Object[]> newRatingRatio = reviewDao.countReviewsByStarPoint(review.getFacility().getId());
 
-            return new FacilityDetailDto(newFacility, newReviews, newRatingRatio, userId);
+        FacilityResponseDto newFacility = getFacilityById(review.getFacility().getId());
+        List<ReviewResponseDto> newReviews = getReviewDtos(review.getFacility().getId());
+        List<Object[]> newRatingRatio = reviewDao.countReviewsByStarPoint(review.getFacility().getId());
+
+        return new FacilityDetailDto(newFacility, newReviews, newRatingRatio, userId);
     }
+
 
     @Transactional
     public FacilityDetailDto deleteReview(Integer id, Integer userId) throws AccessDeniedException, StorageServiceException {

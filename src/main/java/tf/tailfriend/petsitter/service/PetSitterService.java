@@ -274,39 +274,26 @@ public class PetSitterService {
                 query.setParameter(2, requestDto.getHouseType());
                 query.setParameter(3, requestDto.getComment());
                 query.setParameter(4, requestDto.getGrown());
-                query.setParameter(5, requestDto.getPetCount().name());
+
+                // grown이 false인 경우 반려동물 관련 정보는 null로 설정
+                if (requestDto.getGrown() == null || !requestDto.getGrown()) {
+                    query.setParameter(5, null);  // pet_count null로 설정
+                    query.setParameter(8, null);  // pet_type_id null로 설정
+                    query.setParameter(9, null);  // pet_types_formatted null로 설정
+                } else {
+                    query.setParameter(5, requestDto.getPetCount() != null ? requestDto.getPetCount().name() : null);
+                    query.setParameter(8, petTypeId);
+                    query.setParameter(9, petTypesFormatted);
+                }
+
                 query.setParameter(6, requestDto.getSitterExp());
                 query.setParameter(7, fileId);
-                query.setParameter(8, petTypeId);
-                query.setParameter(9, petTypesFormatted);
                 query.setParameter(10, requestDto.getUserId());
 
                 // 쿼리 실행
                 int updated = query.executeUpdate();
-                logger.info("펫시터 정보 업데이트 완료: userId={}, rows={}, fileId={}",
-                        requestDto.getUserId(), updated, fileId);
-            } else {
-                // 새 데이터 삽입 쿼리
-                String insertQuery =
-                        "INSERT INTO pet_sitters (id, age, house_type, comment, grown, pet_count, sitter_exp, file_id, pet_type_id, pet_types_formatted, status, created_at) " +
-                                "VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, 'NONE', NOW())";
-
-                Query query = entityManager.createNativeQuery(insertQuery);
-                query.setParameter(1, requestDto.getUserId());
-                query.setParameter(2, requestDto.getAge());
-                query.setParameter(3, requestDto.getHouseType());
-                query.setParameter(4, requestDto.getComment());
-                query.setParameter(5, requestDto.getGrown());
-                query.setParameter(6, requestDto.getPetCount().name());
-                query.setParameter(7, requestDto.getSitterExp());
-                query.setParameter(8, fileId);
-                query.setParameter(9, petTypeId);
-                query.setParameter(10, petTypesFormatted);
-
-                // 쿼리 실행
-                int inserted = query.executeUpdate();
-                logger.info("펫시터 정보 삽입 완료: userId={}, rows={}, fileId={}",
-                        requestDto.getUserId(), inserted, fileId);
+                logger.info("펫시터 정보 업데이트 완료: userId={}, rows={}, fileId={}, grown={}",
+                        requestDto.getUserId(), updated, fileId, requestDto.getGrown());
             }
 
             // DB에서 다시 데이터 조회하여 응답 생성 - 새로운 세션에서 완전히 다시 로드
@@ -500,9 +487,7 @@ public class PetSitterService {
         return new PageImpl<>(dtoList, pageable, total);
     }
 
-    /**
-     * 전체 펫시터 목록 - 현재 로그인한 사용자를 제외한 모든 펫시터 표시
-     */
+    // 전체 펫시터 목록 - 현재 로그인한 사용자를 제외한 모든 펫시터 표시
     @Transactional(readOnly = true)
     public Page<PetSitterResponseDto> findAllApprovedPetSitters(
             String age, Boolean petOwnership, Boolean sitterExp, String houseType,

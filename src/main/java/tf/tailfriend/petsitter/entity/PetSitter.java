@@ -1,5 +1,7 @@
 package tf.tailfriend.petsitter.entity;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonValue;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -8,6 +10,7 @@ import tf.tailfriend.pet.entity.PetType;
 import tf.tailfriend.user.entity.User;
 
 import java.time.LocalDateTime;
+import java.util.Arrays;
 
 @Entity
 @Table(name = "pet_sitters")
@@ -70,15 +73,34 @@ public class PetSitter {
         this.file = file;
     }
 
-
     @Getter
     public enum PetCount {
-        ONE("1"), TWO("2"), THREE_PLUS("3+");
+        ONE("1"),
+        TWO("2"),
+        THREE_PLUS("3+");
 
         private final String value;
 
         PetCount(String value) {
             this.value = value;
+        }
+
+        @JsonValue
+        public String getValue() {
+            return value;
+        }
+
+
+        @JsonCreator
+        public static PetCount fromValue(String value) {
+            try {
+                return PetCount.valueOf(value);
+            } catch (IllegalArgumentException e) {
+                return Arrays.stream(values())
+                        .filter(v -> v.value.equals(value))
+                        .findFirst()
+                        .orElseThrow(() -> new IllegalArgumentException("Invalid PetCount value: " + value));
+            }
         }
     }
 
@@ -86,7 +108,6 @@ public class PetSitter {
     public enum PetSitterStatus {
         PENDING, APPROVE, DELETE, NONE
     }
-
 
     public void approve() {
         this.status = PetSitterStatus.APPROVE;

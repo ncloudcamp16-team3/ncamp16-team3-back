@@ -53,6 +53,9 @@ public class PaymentService {
                                 : storageService.generatePresignedUrl(facility.getPhotos().get(0).getFile().getPath())
                 )
                 .createdAt(payment.getCreatedAt())
+                .reserveId(payment.getReserve().getId())
+                .entryTime(payment.getReserve().getEntryTime())
+                .exitTime(payment.getReserve().getExitTime())
                 .price(payment.getPrice())
                 .build();
     }

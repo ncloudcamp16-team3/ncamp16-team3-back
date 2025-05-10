@@ -1,5 +1,6 @@
 package tf.tailfriend.chat.repository;
 
+import jakarta.transaction.Transactional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -19,5 +20,8 @@ public interface TradeMatchDao extends JpaRepository<TradeMatch, Integer> {
 
     Iterable<? extends TradeMatch> findAllByUserId(Integer userId);
 
-    void deleteByPostId(Integer id);
+    @Transactional
+    @Modifying
+    @Query("DELETE FROM TradeMatch tm WHERE tm.postId = :postId")
+    void deleteByPostId(@Param("postId") Integer postId);
 }

@@ -13,5 +13,5 @@ public interface PaymentDao extends JpaRepository<Payment, Integer>, CustomPayme
     Optional<Payment> findByReserveId(Integer reserveId);
 
 
-    List<Payment> findByReserveUserIdAndReserveEntryTimeBetween(Integer userId, LocalDateTime start, LocalDateTime end);
+    List<Payment> findByReserveUserIdAndCreatedAtBetween(Integer userId, LocalDateTime start, LocalDateTime end);
 }

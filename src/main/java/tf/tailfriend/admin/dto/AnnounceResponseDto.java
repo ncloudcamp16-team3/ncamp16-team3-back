@@ -9,7 +9,9 @@ import tf.tailfriend.admin.entity.AnnouncePhoto;
 import tf.tailfriend.global.service.StorageService;
 
 import java.time.LocalDateTime;
+import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Getter
@@ -27,9 +29,13 @@ public class AnnounceResponseDto {
     private List<AnnouncePhotoDto> photos;
 
     public static AnnounceResponseDto fromEntity(Announce announce, StorageService storageService) {
-        List<AnnounceResponseDto.AnnouncePhotoDto> photoDtos = announce.getPhotos().stream()
-                .map(photo -> AnnounceResponseDto.AnnouncePhotoDto.fromEntity(photo, storageService))
-                .collect(Collectors.toList());
+        List<AnnounceResponseDto.AnnouncePhotoDto> photoDtos =
+                Optional.ofNullable(announce.getPhotos())
+                        .orElse(Collections.emptyList())
+                        .stream()
+                        .map(photo -> AnnounceResponseDto.AnnouncePhotoDto.fromEntity(photo, storageService))
+                        .collect(Collectors.toList());
+
         return AnnounceResponseDto.builder()
                 .id(announce.getId())
                 .title(announce.getTitle())

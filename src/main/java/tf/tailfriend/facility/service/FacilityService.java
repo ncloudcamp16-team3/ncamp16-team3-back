@@ -27,7 +27,6 @@ import tf.tailfriend.reserve.repository.ReserveDao;
 import tf.tailfriend.user.entity.User;
 import tf.tailfriend.user.repository.UserDao;
 
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.AccessDeniedException;
@@ -735,6 +734,32 @@ public class FacilityService {
         User user = userDao.findById(userId).orElseThrow(() -> new EntityNotFoundException("유저 없음"));
         log.info("유저: {}", user);
 
+        Reserve reserve = reserveDao.findById(requestDto.getReserveId()).orElseThrow(() -> new CustomException() {
+            @Override
+            public HttpStatus getStatus() {
+                return HttpStatus.BAD_REQUEST;
+            }
+
+            @Override
+            public String getMessage() {
+                return "찾을 수 없는 예약 정보입니다.";
+            }
+        });
+
+        if (reserve.getReview() != null) {
+            throw new CustomException() {
+                @Override
+                public HttpStatus getStatus() {
+                    return HttpStatus.BAD_REQUEST;
+                }
+
+                @Override
+                public String getMessage() {
+                    return "리뷰는 한번만 남길 수 있습니다";
+                }
+            };
+        }
+
         // 시설 찾기
         Facility facility = facilityDao.findById(requestDto.getFacilityId()).orElseThrow(() -> new EntityNotFoundException("시설 없음"));
         log.info("바뀌기 전 총 별점: {}", facility.getTotalStarPoint());
@@ -748,18 +773,6 @@ public class FacilityService {
                 .build();
         Review saved = reviewDao.save(review);
         log.info("리뷰: {}", saved);
-
-        Reserve reserve = reserveDao.findById(requestDto.getReserveId()).orElseThrow(() -> new CustomException() {
-            @Override
-            public HttpStatus getStatus() {
-                return HttpStatus.BAD_REQUEST;
-            }
-
-            @Override
-            public String getMessage() {
-                return "찾을 수 없는 예약 정보입니다.";
-            }
-        });
 
         reserve.updateReview(saved);
         reserveDao.save(reserve);

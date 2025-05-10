@@ -194,8 +194,16 @@ public class PetSitterService {
 
             // 이미지 파일 처리
             File imageFileEntity;
+            Integer fileId;
+
+            // 사용자 ID로 펫시터 존재 여부 확인
+            boolean exists = petSitterDao.existsById(requestDto.getUserId());
+
             if (imageFile != null && !imageFile.isEmpty()) {
+                // 새 이미지 파일이 제공된 경우, 새로운 파일 저장
                 imageFileEntity = fileService.save(imageFile.getOriginalFilename(), "petsitter", File.FileType.PHOTO);
+                fileId = imageFileEntity.getId();
+
                 try (InputStream is = imageFile.getInputStream()) {
                     try {
                         storageService.openUpload(imageFileEntity.getPath(), is);
@@ -204,8 +212,27 @@ public class PetSitterService {
                         throw new RuntimeException("파일 업로드 실패: " + e.getMessage());
                     }
                 }
+            } else if (exists) {
+                // 기존 펫시터가 있고 새 이미지가 제공되지 않은 경우, 기존 파일 ID 사용
+                // 직접 ID만 조회하여 프록시 초기화 문제 회피
+                Query fileIdQuery = entityManager.createQuery(
+                        "SELECT ps.file.id FROM PetSitter ps WHERE ps.id = :id");
+                fileIdQuery.setParameter("id", requestDto.getUserId());
+                fileId = (Integer) fileIdQuery.getSingleResult();
+
+                if (fileId == null) {
+                    imageFileEntity = fileService.getDefaultImage();
+                    fileId = imageFileEntity.getId();
+                } else {
+                    logger.info("기존 이미지 ID 유지: fileId={}", fileId);
+                    // 프록시 초기화 문제 방지를 위해 여기서는 파일 객체를 로드하지 않고 ID만 사용
+                    imageFileEntity = null; // 나중에 응답에서 필요할 때 다시 조회
+                }
             } else {
+                // 새 펫시터이고 이미지가 제공되지 않은 경우, 기본 이미지 사용
                 imageFileEntity = fileService.getDefaultImage();
+                fileId = imageFileEntity.getId();
+                logger.info("기본 이미지 사용: fileId={}", fileId);
             }
 
             // 펫 타입 조회
@@ -214,19 +241,15 @@ public class PetSitterService {
                 petType = petTypeDao.findById(requestDto.getPetTypeId()).orElse(null);
             }
 
-            // 사용자 ID로 펫시터 존재 여부 확인
-            boolean exists = petSitterDao.existsById(requestDto.getUserId());
-
             Integer petTypeId = petType != null ? petType.getId() : null;
-            Integer fileId = imageFileEntity.getId();
 
             // 다중 선택된 반려동물 타입 정보
             String petTypesFormatted = requestDto.getPetTypesFormatted();
             List<Integer> petTypeIds = requestDto.getPetTypeIds();
 
             // 로깅
-            logger.info("펫시터 신청 정보: petTypesFormatted={}, petTypeIds={}",
-                    petTypesFormatted, petTypeIds != null ? petTypeIds.toString() : "null");
+            logger.info("펫시터 신청 정보: petTypesFormatted={}, petTypeIds={}, fileId={}",
+                    petTypesFormatted, petTypeIds != null ? petTypeIds.toString() : "null", fileId);
 
             // EntityManager 사용
             if (exists) {
@@ -260,13 +283,13 @@ public class PetSitterService {
 
                 // 쿼리 실행
                 int updated = query.executeUpdate();
-                logger.info("펫시터 정보 업데이트 완료: userId={}, rows={}", requestDto.getUserId(), updated);
+                logger.info("펫시터 정보 업데이트 완료: userId={}, rows={}, fileId={}",
+                        requestDto.getUserId(), updated, fileId);
             } else {
                 // 새 데이터 삽입 쿼리
                 String insertQuery =
                         "INSERT INTO pet_sitters (id, age, house_type, comment, grown, pet_count, sitter_exp, file_id, pet_type_id, pet_types_formatted, status, created_at) " +
                                 "VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, 'NONE', NOW())";
-
 
                 Query query = entityManager.createNativeQuery(insertQuery);
                 query.setParameter(1, requestDto.getUserId());
@@ -282,17 +305,18 @@ public class PetSitterService {
 
                 // 쿼리 실행
                 int inserted = query.executeUpdate();
-                logger.info("펫시터 정보 삽입 완료: userId={}, rows={}", requestDto.getUserId(), inserted);
+                logger.info("펫시터 정보 삽입 완료: userId={}, rows={}, fileId={}",
+                        requestDto.getUserId(), inserted, fileId);
             }
 
-            // DB에서 다시 데이터 조회하여 응답 생성
+            // DB에서 다시 데이터 조회하여 응답 생성 - 새로운 세션에서 완전히 다시 로드
+            entityManager.flush();
             entityManager.clear();
 
             PetSitter updatedPetSitter = petSitterDao.findById(requestDto.getUserId())
                     .orElseThrow(() -> new IllegalStateException("저장된 펫시터 정보를 조회할 수 없습니다"));
 
             PetSitterResponseDto responseDto = PetSitterResponseDto.fromEntity(updatedPetSitter);
-
 
             responseDto.setPetTypesFormatted(petTypesFormatted);
 
@@ -303,8 +327,9 @@ public class PetSitterService {
                 responseDto.setPetTypes(petTypeNames);
             }
 
-            // 이미지 URL 설정
-            String imageUrl = storageService.generatePresignedUrl(imageFileEntity.getPath());
+            // 이미지 URL 설정 - 업데이트된 펫시터 엔티티에서 파일 경로 가져오기
+            String imagePath = updatedPetSitter.getFile().getPath();
+            String imageUrl = storageService.generatePresignedUrl(imagePath);
             responseDto.setImagePath(imageUrl);
 
             return responseDto;

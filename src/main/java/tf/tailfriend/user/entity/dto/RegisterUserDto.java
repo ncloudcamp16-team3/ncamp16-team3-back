@@ -17,7 +17,7 @@ import java.util.List;
 public class RegisterUserDto {
 
     @NotBlank(message = "닉네임은 필수입니다.")
-    @Size(min = 2, max = 16, message = "닉네임은 2~16자여야 합니다.")
+    @Size(min = 2, max = 8, message = "닉네임은 2~8자여야 합니다.")
     private String nickname;
 
     @NotBlank(message = "SNS 계정 ID는 필수입니다.")

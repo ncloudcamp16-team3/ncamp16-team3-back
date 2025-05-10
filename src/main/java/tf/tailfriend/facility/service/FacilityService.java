@@ -5,22 +5,18 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.*;
 import org.springframework.http.HttpStatus;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import tf.tailfriend.facility.dto.*;
 import tf.tailfriend.facility.entity.*;
 import tf.tailfriend.facility.entity.dto.forReserve.FacilityCardResponseDto;
-import tf.tailfriend.facility.entity.dto.forReserve.FacilityReviewResponseDto;
 import tf.tailfriend.facility.entity.dto.forReserve.FacilityWithDistanceProjection;
 import tf.tailfriend.facility.entity.dto.forReserve.ThumbnailForCardDto;
 import tf.tailfriend.facility.repository.*;
 import tf.tailfriend.file.entity.File;
 import tf.tailfriend.file.repository.FileDao;
 import tf.tailfriend.file.service.FileService;
-import tf.tailfriend.global.config.UserPrincipal;
 import tf.tailfriend.global.exception.CustomException;
 import tf.tailfriend.global.service.StorageService;
 import tf.tailfriend.global.service.StorageServiceException;
@@ -34,7 +30,7 @@ import tf.tailfriend.user.repository.UserDao;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
+import java.nio.file.AccessDeniedException;
 import java.sql.Time;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -143,7 +139,7 @@ public class FacilityService {
 
     @Transactional
     public FacilityAddResponseDto saveFacility(FacilityRequestDto requestDto, List<MultipartFile> images) {
-        FacilityType facilityType = facilityTypeDao.findById(Integer.valueOf(requestDto.getFacilityTypeId()))
+        FacilityType facilityType = facilityTypeDao.findById(requestDto.getFacilityTypeId())
                 .orElseThrow(() -> new IllegalArgumentException("Invalid facility type"));
 
         Facility facility = Facility.builder()
@@ -791,5 +787,110 @@ public class FacilityService {
                 throw new RuntimeException("파일 업로드 중 오류 발생: " + e);
             }
         }
+    }
+
+    @Transactional
+    public FacilityDetailDto updateReview(Integer reviewId, Integer userId, String comment, Integer starPoint, MultipartFile image) throws AccessDeniedException, StorageServiceException {
+        Review review = reviewDao.findById(reviewId)
+                .orElseThrow(() -> new IllegalArgumentException("리뷰를 찾을 수 없습니다."));
+
+        if (!review.getUser().getId().equals(userId)) {
+            throw new AccessDeniedException("리뷰를 수정할 권한이 없습니다.");
+        }
+
+        log.info("수정 전 총 별점: {}", review.getFacility().getTotalStarPoint());
+        // 별점 변경 처리
+        Integer oldStarPoint = review.getStarPoint();
+        if (oldStarPoint < starPoint) {
+            Integer plus = starPoint - oldStarPoint;
+            review.getFacility().updateTotalStarPoint(plus);
+            log.info("별점 변경 사항: +{}", plus);
+        } else {
+            Integer minus = oldStarPoint - starPoint;
+            review.getFacility().updateTotalStarPoint(-minus);
+            log.info("별점 변경 사항: -{}", minus);
+        }
+        review.update(comment, starPoint);
+        log.info("수정 후 총 별점: {}", review.getFacility().getTotalStarPoint());
+
+        // 이미지 변경 처리
+        if (image != null && !image.isEmpty()) {
+            // 1. 기존 리뷰 사진 조회
+            List<ReviewPhoto> oldPhotos = reviewPhotoDao.findByReviewId(review.getId());
+
+            // 2. 실제 파일 삭제
+            try {
+                for (ReviewPhoto photo : oldPhotos) {
+                    storageService.delete(photo.getFile().getPath()); // S3 또는 로컬 파일 삭제
+                }
+            } catch (StorageServiceException e) {
+                throw new RuntimeException("파일 삭제 중 오류 발생: " + e);
+            }
+
+            // 3. DB에서 review_photos 먼저 삭제
+            reviewPhotoDao.deleteAll(oldPhotos);
+
+            // 4. DB에서 files 삭제
+            fileDao.deleteAll(
+                    oldPhotos.stream().map(ReviewPhoto::getFile).collect(Collectors.toList())
+            );
+
+            // 5. 새로운 파일 저장
+            try (InputStream is = image.getInputStream()) {
+                File newFile = fileService.save(image.getOriginalFilename(), "review", File.FileType.PHOTO);
+                log.info("파일 저장 완료");
+                storageService.upload(newFile.getPath(), is);
+                log.info("파일 업로드 완료");
+
+                // 6. 새로운 ReviewPhoto 생성 및 저장
+                ReviewPhoto newPhoto = ReviewPhoto.of(newFile, review);
+                reviewPhotoDao.save(newPhoto);
+                log.info("시설-리뷰 이미지 연결 생성 완료");
+            } catch (IOException | StorageServiceException | NullPointerException e) {
+                throw new RuntimeException("파일 업로드 중 오류 발생: " + e);
+            }
+
+        }
+            FacilityResponseDto newFacility = getFacilityById(review.getFacility().getId());
+            List<ReviewResponseDto> newReviews = getReviewDtos(review.getFacility().getId());
+            List<Object[]> newRatingRatio = reviewDao.countReviewsByStarPoint(review.getFacility().getId());
+
+            return new FacilityDetailDto(newFacility, newReviews, newRatingRatio, userId);
+    }
+
+    @Transactional
+    public FacilityDetailDto deleteReview(Integer id, Integer userId) throws AccessDeniedException, StorageServiceException {
+        Review review = reviewDao.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("리뷰를 찾을 수 없습니다."));
+
+        if (!review.getUser().getId().equals(userId)) {
+            throw new AccessDeniedException("리뷰를 삭제할 권한이 없습니다.");
+        }
+
+        List<ReviewPhoto> reviewPhotos = reviewPhotoDao.findByReviewId(id);
+        if (!reviewPhotos.isEmpty()) {
+            try {
+                for (ReviewPhoto photo : reviewPhotos) {
+                    reviewPhotoDao.delete(photo);
+                    fileDao.delete(photo.getFile());
+                    storageService.delete(photo.getFile().getPath());
+                }
+                log.info("리뷰 이미지 삭제 완료");
+            } catch (StorageServiceException e) {
+                throw new StorageServiceException("리뷰 이미지 삭제 중 오류 발생: " + e.getMessage(), e);
+            }
+        }
+
+        review.getFacility().updateTotalStarPoint(-review.getStarPoint());
+        review.getFacility().discountReview();
+        reviewDao.delete(review);
+        log.info("리뷰 삭제 완료");
+
+        FacilityResponseDto newFacility = getFacilityById(review.getFacility().getId());
+        List<ReviewResponseDto> newReviews = getReviewDtos(review.getFacility().getId());
+        List<Object[]> newRatingRatio = reviewDao.countReviewsByStarPoint(review.getFacility().getId());
+
+        return new FacilityDetailDto(newFacility, newReviews, newRatingRatio, userId);
+
     }
 }

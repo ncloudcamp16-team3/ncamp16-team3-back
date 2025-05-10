@@ -36,4 +36,10 @@ public class Review {
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
+
+    public Review update(String comment, Integer starPoint) {
+        this.comment = comment;
+        this.starPoint = starPoint;
+        return this;
+    }
 }

@@ -56,7 +56,7 @@ public class AnnounceService {
                 .build();
 
         List<File> files = new ArrayList<>();
-        if (images != null & !images.isEmpty()) {
+        if (images != null && !images.isEmpty()) {
             for (MultipartFile image : images) {
                 if (!image.isEmpty()) {
                     // 1. 파일 메타데이터를 DB에 저장

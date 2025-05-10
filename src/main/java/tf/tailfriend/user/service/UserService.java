@@ -22,10 +22,7 @@ import tf.tailfriend.pet.entity.PetPhoto;
 import tf.tailfriend.pet.repository.PetDao;
 import tf.tailfriend.pet.repository.PetMatchDao;
 import tf.tailfriend.petsitter.repository.PetSitterDao;
-import tf.tailfriend.petsta.entity.PetstaBookmark;
-import tf.tailfriend.petsta.entity.PetstaComment;
-import tf.tailfriend.petsta.entity.PetstaLike;
-import tf.tailfriend.petsta.entity.PetstaPost;
+import tf.tailfriend.petsta.entity.*;
 import tf.tailfriend.petsta.repository.PetstaBookmarkDao;
 import tf.tailfriend.petsta.repository.PetstaCommentDao;
 import tf.tailfriend.petsta.repository.PetstaLikeDao;
@@ -161,6 +158,18 @@ public class UserService {
             User user = userDao.findById(userId)
                     .orElseThrow(() -> new IllegalArgumentException("사용자 없음"));
 
+            List<PetstaCommentMention> mentions = petstaCommentDao.findMentionsByUserId(userId);
+
+            for (PetstaCommentMention mention : mentions) {
+                PetstaComment comment = mention.getComment();
+                String originalContent = comment.getContent();
+
+                // @닉네임 ➝ @삭제된유저 로 바꾸기
+                String replacedContent = originalContent.replaceFirst("@" + mention.getMentionedNickname(), "@삭제된유저");
+
+                comment.setContent(replacedContent);
+                petstaCommentDao.save(comment);
+            }
 
             // 펫스타 좋아요 감소
             List<PetstaLike> likes = petstaLikeDao.findAllByUserIdWithPost(userId);
@@ -245,28 +254,29 @@ public class UserService {
             }
 
             List<PetstaComment> petstaComments = petstaCommentDao.findAllWithRepliesByUserId(userId);
-
             for (PetstaComment comment : petstaComments) {
-                if (comment.getReplies().isEmpty()) {
-                    // 🔽 댓글 수 감소는 실제 삭제될 경우만
-                    petstaPostDao.decrementCommentCount(comment.getPost().getId());
 
-                    if (comment.getParent() != null) {
-                        PetstaComment parent = comment.getParent();
-                        parent.setReplyCount(Math.max(0, parent.getReplyCount() - 1));
-                        petstaCommentDao.save(parent);
-                    }
-
-                    comment.markAsDeleted();
-                    comment.clearMention();
-                    petstaCommentDao.save(comment);
-                } else {
-                    comment.markAsDeleted();
-                    comment.clearMention();
-                    petstaCommentDao.save(comment);
-
+                // 이미 소프트 삭제된 댓글은 건너뜀
+                if (comment.isDeleted()) {
+                    continue;
                 }
+
+                // 🔽 댓글 수 감소
+                petstaPostDao.decrementCommentCount(comment.getPost().getId());
+
+                // 🔽 대댓글이면 부모 댓글의 replyCount 감소
+                if (comment.getParent() != null) {
+                    PetstaComment parent = comment.getParent();
+                    parent.setReplyCount(Math.max(0, parent.getReplyCount() - 1));
+                    petstaCommentDao.save(parent);
+                }
+
+                comment.markAsDeleted();
+                comment.clearMention();
+                petstaCommentDao.save(comment);
             }
+
+
 
             List<PetstaPost> posts = petstaPostDao.findAllByUserId(userId);
 

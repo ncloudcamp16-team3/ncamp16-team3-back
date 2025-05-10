@@ -49,12 +49,14 @@ public class CommentResponseDto {
         private Integer id;
         private String authorNickname;
         private Integer authorId;
+        private Boolean deletedAuthor;
 
         @Builder
-        public CommentSummaryDto(Integer id, String authorNickname, Integer authorId) {
+        public CommentSummaryDto(Integer id, String authorNickname, Integer authorId, Boolean deletedAuthor) {
             this.id = id;
             this.authorNickname = authorNickname;
             this.authorId = authorId;
+            this.deletedAuthor = deletedAuthor;
         }
 
         public static CommentSummaryDto fromEntity(Comment refcomment) {
@@ -62,6 +64,7 @@ public class CommentResponseDto {
                     .id(refcomment.getId())
                     .authorNickname(refcomment.getUser().getNickname())
                     .authorId(refcomment.getUser().getId())
+                    .deletedAuthor(refcomment.getUser().getDeleted())
                     .build();
         }
     }

@@ -89,6 +89,10 @@ public class CommentService {
 
     @Transactional
     public void updateComment(String content, Integer commentId) {
+        if(content == null || content.trim().isEmpty()) {
+            throw new IllegalArgumentException("댓글이 공백일 수 없습니다");
+        }
+
         Comment comment = commentDao.findById(commentId)
                 .orElseThrow(() -> new IllegalArgumentException("comment not found"));
 

@@ -84,4 +84,8 @@ public class PetstaComment {
             this.mention = null;
         }
     }
+
+    public void setContent(String replacedContent) {
+        this.content = replacedContent;
+    }
 }

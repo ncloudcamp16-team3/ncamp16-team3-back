@@ -5,6 +5,7 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import tf.tailfriend.petsta.entity.PetstaComment;
+import tf.tailfriend.petsta.entity.PetstaCommentMention;
 import tf.tailfriend.petsta.entity.PetstaPost;
 
 import java.util.List;
@@ -42,5 +43,8 @@ public interface PetstaCommentDao extends JpaRepository<PetstaComment, Integer> 
 
     @Query("SELECT c FROM PetstaComment c LEFT JOIN FETCH c.replies WHERE c.user.id = :userId AND c.deleted = false")
     List<PetstaComment> findAllWithRepliesByUserId(@Param("userId") Integer userId);
+
+    @Query("SELECT m FROM PetstaCommentMention m WHERE m.mentionedUser.id = :userId")
+    List<PetstaCommentMention> findMentionsByUserId(@Param("userId") Integer userId);
 }
 

@@ -57,6 +57,10 @@ public class AnnounceResponseDto {
         private String url;
 
         public static AnnouncePhotoDto fromEntity(AnnouncePhoto photo, StorageService storageService) {
+            if (photo == null || photo.getFile() == null) {
+                return null;  // 또는 기본값 반환
+            }
+
             return AnnouncePhotoDto.builder()
                     .fileId(photo.getFile().getId())
                     .url(storageService.generatePresignedUrl(photo.getFile().getPath()))

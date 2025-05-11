@@ -1,6 +1,7 @@
 package tf.tailfriend.user.entity.dto;
 
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -30,6 +31,7 @@ public class RegisterPetDto {
     private String birth;
 
     @NotNull(message = "몸무게는 필수입니다.")
+    @DecimalMax(value = "1000.0", inclusive = true, message = "몸무게는 최대 1000kg 이하여야 합니다.")
     private Double weight;
 
     @Size(max = 255, message = "소개는 255자 이내로 작성해주세요.")

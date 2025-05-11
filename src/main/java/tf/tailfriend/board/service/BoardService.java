@@ -438,6 +438,8 @@ public class BoardService {
 
         tradeMatchDao.deleteAllByPostId(boardId);
         commentDao.deleteAllByBoard(board);
+        boardLikeDao.deleteAllByBoard(board);
+        boardBookmarkDao.deleteAllByBoard(board);
         boardDao.delete(board);
     }
 

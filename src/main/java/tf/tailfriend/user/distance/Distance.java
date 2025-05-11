@@ -7,10 +7,10 @@ import lombok.extern.slf4j.Slf4j;
 @Getter
 public enum Distance {
 
-    LEVEL1(1),
-    LEVEL2(3),
-    LEVEL3(5),
-    LEVEL4(10);
+    LEVEL1(5),
+    LEVEL2(10),
+    LEVEL3(20),
+    LEVEL4(40);
 
     private final int value;
 

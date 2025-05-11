@@ -31,6 +31,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -214,7 +215,7 @@ public class BoardService {
             saveEntity = Product.builder()
                     .board(savedBoard)
                     .price(boardRequestDto.getPrice())
-                    .sell(boardRequestDto.getSell())
+                    .sell(true)
                     .address(boardRequestDto.getAddress())
                     .build();
 
@@ -491,5 +492,16 @@ public class BoardService {
     private Page<BoardResponseDto> convertToDtoPage(Page<Board> boards) {
 //        log.info("boards: {}", boards.getContent());
         return boards.map(this::convertToDto);
+    }
+
+    public void setCompleteSell(Integer postId, Integer userId) {
+        Product product = productDao.findById(postId).orElseThrow(() -> new IllegalArgumentException("게시물 조회에 실패하였습니다"));
+        if (!Objects.equals(userId, product.getBoard().getUser().getId())) {
+            throw new IllegalArgumentException("게시물에 대한 수정 권한이 없습니다");
+        }
+
+        product.updateProduct(product.getPrice(), false, product.getAddress());
+
+        productDao.save(product);
     }
 }

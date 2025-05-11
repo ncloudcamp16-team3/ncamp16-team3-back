@@ -17,6 +17,7 @@ public class FacilityCardResponseDto implements Card {
     private Double rating;
     private Integer reviewCount;
     private Integer distance;
+    private String tel;
     private String address;
     private String openTimeRange;
     private boolean isOpened;
@@ -31,6 +32,7 @@ public class FacilityCardResponseDto implements Card {
                 ", rating=" + rating +
                 ", reviewCount=" + reviewCount +
                 ", distance=" + distance +
+                ", tel='" + tel + '\'' +
                 ", address='" + address + '\'' +
                 ", openTime='" + openTimeRange + '\'' +
                 ", isOpened=" + isOpened + '\'' +

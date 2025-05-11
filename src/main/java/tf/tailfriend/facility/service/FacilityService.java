@@ -717,6 +717,7 @@ public class FacilityService {
                             .rating(rating)
                             .reviewCount(f.getReviewCount())
                             .distance(f.getDistance())
+                            .tel(f.getTel())
                             .address(f.getAddress())
                             .openTimeRange(openTimeRange)
                             .isOpened(isOpened)

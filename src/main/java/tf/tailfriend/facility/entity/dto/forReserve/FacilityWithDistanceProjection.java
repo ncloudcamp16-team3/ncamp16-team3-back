@@ -22,6 +22,9 @@ public interface FacilityWithDistanceProjection {
     @Value("#{target.distance}")
     Integer getDistance();
 
+    @Value("#{target.tel}")
+    String getTel();
+
     @Value("#{target.address}")
     String getAddress();
 }

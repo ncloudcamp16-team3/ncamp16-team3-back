@@ -39,6 +39,7 @@ public interface FacilityDao extends JpaRepository<Facility, Integer> {
             "f.totalStarPoint AS totalStarPoint, " +
             "f.reviewCount AS reviewCount, " +
             "ROUND(function('ST_DISTANCE_SPHERE', function('POINT', :lng, :lat), function('POINT', f.longitude, f.latitude)), 0) AS distance, " +
+            "f.tel AS tel, " +
             "f.address AS address " +
             "FROM Facility f JOIN f.facilityType ft " +
             "WHERE f.facilityType.name = :category " +
@@ -52,6 +53,7 @@ public interface FacilityDao extends JpaRepository<Facility, Integer> {
             "f.totalStarPoint AS totalStarPoint, " +
             "f.reviewCount AS reviewCount, " +
             "ROUND(function('ST_DISTANCE_SPHERE', function('POINT', :lng, :lat), function('POINT', f.longitude, f.latitude)), 0) AS distance, " +
+            "f.tel AS tel, " +
             "f.address AS address " +
             "FROM Facility f JOIN f.facilityType ft " +
             "WHERE f.facilityType.name = :category " +

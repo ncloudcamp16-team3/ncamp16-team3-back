@@ -34,6 +34,7 @@ import tf.tailfriend.user.exception.UnauthorizedException;
 
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import static tf.tailfriend.board.message.SuccessMessage.*;
@@ -109,6 +110,30 @@ public class BoardController {
                     .body(new CustomResponse(GET_POST_SUCCESS.getMessage(), boardService.getBoardById(postId)));
         } catch (Exception e) {
             throw new GetPostException();
+        }
+    }
+
+    @PostMapping("/product/complete")
+    public ResponseEntity<?> completeSell(@RequestBody Map<String, Integer> body,
+                                          @AuthenticationPrincipal UserPrincipal userPrincipal) {
+        Integer postId = body.get("postId");
+        try {
+            boardService.setCompleteSell(postId, userPrincipal.getUserId());
+            return ResponseEntity.status(HttpStatus.OK)
+                    .body(new CustomResponse("판매완료 변경에서 성공하였습니다", null));
+        } catch (Exception e) {
+            log.error(e.getMessage());
+            throw new CustomException() {
+                @Override
+                public HttpStatus getStatus() {
+                    return HttpStatus.BAD_REQUEST;
+                }
+
+                @Override
+                public String getMessage() {
+                    return e.getMessage();
+                }
+            };
         }
     }
 

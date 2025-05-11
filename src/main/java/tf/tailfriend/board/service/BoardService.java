@@ -439,6 +439,8 @@ public class BoardService {
 
         tradeMatchDao.deleteAllByPostId(boardId);
         commentDao.deleteAllByBoard(board);
+        boardLikeDao.deleteAllByBoard(board);
+        boardBookmarkDao.deleteAllByBoard(board);
         boardDao.delete(board);
     }
 
@@ -459,10 +461,17 @@ public class BoardService {
 
     // Board Entity를 BoardResponseDto로 변환하는 헬퍼 메서드
     private BoardResponseDto convertToDto(Board board) {
-        // 기본 DTO 생성 (기존 fromEntity 메서드 활용)
-        BoardResponseDto dto = BoardResponseDto.fromEntity(board);
+        BoardResponseDto dto;
 
-        // 이미지 URL 처리
+        // boardType이 2(중고거래)이고 Product가 있는 경우
+        if (board.getBoardType().getId().equals(2) && board.getProduct().isPresent()) {
+            dto = BoardResponseDto.fromProductEntity(board.getProduct().get());
+        } else {
+            // 일반 게시판인 경우
+            dto = BoardResponseDto.fromEntity(board);
+        }
+
+        // 공통 이미지 URL 처리
         if (board.getPhotos() != null && !board.getPhotos().isEmpty()) {
             List<String> imageUrls = new ArrayList<>();
 

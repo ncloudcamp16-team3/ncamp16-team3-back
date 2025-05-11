@@ -15,6 +15,7 @@ public class ReserveDetailResponseDto {
     private String address;
     private String type;
     private Boolean status;
+    private Integer facilityId;
     private LocalDateTime entryTime;
     private LocalDateTime exitTime;
     private Integer amount;

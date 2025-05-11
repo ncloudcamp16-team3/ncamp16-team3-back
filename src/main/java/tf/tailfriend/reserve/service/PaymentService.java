@@ -33,7 +33,7 @@ public class PaymentService {
         LocalDateTime startDateTime = startDate.atStartOfDay();
         LocalDateTime endDateTime = endDate.atTime(LocalTime.MAX);
 
-        List<Payment> payments = paymentDao.findByReserveUserIdAndCreatedAtBetween(userId, startDateTime,  endDateTime);
+        List<Payment> payments = paymentDao.findByReserveUserIdAndCreatedAtBetweenOrderByCreatedAtDesc(userId, startDateTime,  endDateTime);
 
         return payments.stream()
                 .map(this::toDto)
@@ -57,6 +57,9 @@ public class PaymentService {
                 .entryTime(payment.getReserve().getEntryTime())
                 .exitTime(payment.getReserve().getExitTime())
                 .price(payment.getPrice())
+                .reviewId(
+                        reserve.getReview() != null ? reserve.getReview().getId() : null
+                )
                 .build();
     }
 }

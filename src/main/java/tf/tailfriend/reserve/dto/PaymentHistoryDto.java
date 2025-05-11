@@ -17,5 +17,6 @@ public class PaymentHistoryDto {
     private LocalDateTime entryTime;
     private LocalDateTime exitTime;
     private Integer price;
+    private Integer reviewId;
 
 }

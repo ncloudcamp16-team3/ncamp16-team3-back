@@ -139,6 +139,7 @@ public class ReserveService {
                 .entryTime(reserve.getEntryTime())
                 .exitTime(reserve.getExitTime())
                 .amount(reserve.getAmount())
+                .facilityId(facility.getId())
                 .image(imageUrl)
                 .latitude(reserve.getFacility().getLatitude())
                 .longitude(reserve.getFacility().getLongitude())
